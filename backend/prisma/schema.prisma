@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  password             String
+  name                 String?
+  plan                 String   @default("free")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String   @default("inactive")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  projects Project[]
+  @@map("users")
+}
+
+model Project {
+  id              String   @id @default(uuid())
+  userId          String
+  businessName    String?
+  niche           String?
+  targetAudience  String?
+  description     String?
+  websiteContent  Json?
+  emailTemplates  Json?
+  legalDocs       Json?
+  status          String   @default("draft")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("projects")
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  projectId  String
+  userMessage String
+  aiResponse String
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model Subscription {
+  id                  String   @id @default(uuid())
+  userId              String
+  planType            String
+  amountPence         Int
+  stripeSubscriptionId String?
+  status              String   @default("active")
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime @default(now())
+
+  @@map("subscriptions")
+}
