@@ -26,7 +26,7 @@ export default function ProjectsPage() {
       if (!userId) return;
 
       try {
-        const response = await fetch(`http://localhost:3001/api/projects?userId=${userId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects?userId=${userId}`);
         const data = await response.json();
         setProjects(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -46,7 +46,7 @@ export default function ProjectsPage() {
     setCreating(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/projects', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
     if (!userId || !confirm('Are you sure you want to delete this project?')) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/projects/${projectId}?userId=${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}?userId=${userId}`, {
         method: 'DELETE',
       });
 

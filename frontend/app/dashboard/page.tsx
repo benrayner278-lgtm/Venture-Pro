@@ -65,7 +65,7 @@ export default function DashboardPage() {
   const loadConversationHistory = async (id: string) => {
     setLoadingHistory(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/chat/${id}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/${id}`);
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     if (!projectId) return; // Only save if we have a projectId
 
     try {
-      await fetch('http://localhost:3001/api/chat/save', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,7 +133,7 @@ export default function DashboardPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/chat/message', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

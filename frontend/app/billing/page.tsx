@@ -63,20 +63,20 @@ export default function BillingPage() {
     const fetchData = async () => {
       try {
         if (userId) {
-          const billingResponse = await fetch(`http://localhost:3001/api/billing/${userId}`);
+          const billingResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}`);
           if (billingResponse.ok) {
             const billingData = await billingResponse.json();
             setBillingInfo(billingData);
           }
 
-          const invoicesResponse = await fetch(`http://localhost:3001/api/billing/${userId}/invoices`);
+          const invoicesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}/invoices`);
           if (invoicesResponse.ok) {
             const invoicesData = await invoicesResponse.json();
             setInvoices(invoicesData || []);
           }
         }
 
-        const plansResponse = await fetch('http://localhost:3001/api/checkout/plans');
+        const plansResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkout/plans`);
         const plansData = await plansResponse.json();
         setPlans(plansData);
       } catch (error) {
@@ -103,7 +103,7 @@ export default function BillingPage() {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/checkout/create-session`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkout/create-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId, userId }),
@@ -136,7 +136,7 @@ export default function BillingPage() {
 
     setCanceling(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/billing/${userId}/cancel`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

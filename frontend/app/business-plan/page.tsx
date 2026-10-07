@@ -50,7 +50,7 @@ Include the following sections:
 
 Format it clearly with headers and bullet points.`;
 
-      const response = await fetch('http://localhost:3001/api/chat/message', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
