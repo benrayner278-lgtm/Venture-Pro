@@ -92,6 +92,9 @@ const createCheckoutSession = async (req, res) => {
         userId,
         planId,
       },
+      subscription_data: {
+        metadata: { userId, planId },
+      },
     });
 
     res.json({ sessionId: session.id, url: session.url });
