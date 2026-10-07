@@ -103,7 +103,7 @@ export default function BillingPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/checkout/create-session', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/checkout/create-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId, userId }),
@@ -117,15 +117,8 @@ export default function BillingPage() {
 
       const data = await response.json();
 
-      if (data.sessionId) {
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: data.sessionId,
-        });
-
-        if (error) {
-          console.error('Stripe error:', error);
-          alert(`Stripe error: ${error.message}`);
-        }
+      if (data.url) {
+        window.location.href = data.url;
       } else {
         alert('Failed to create checkout session');
       }

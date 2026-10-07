@@ -94,7 +94,7 @@ const createCheckoutSession = async (req, res) => {
       },
     });
 
-    res.json({ sessionId: session.id, clientSecret: session.client_secret });
+    res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error('Checkout error:', error);
     res.status(500).json({ error: `Failed to create checkout session: ${error.message}` });
