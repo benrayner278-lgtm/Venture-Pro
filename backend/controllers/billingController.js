@@ -149,7 +149,7 @@ const cancelSubscription = async (req, res) => {
     }
 
     // Cancel subscription in Stripe
-    const canceledSubscription = await stripe.subscriptions.del(user.stripeSubscriptionId);
+    const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
 
     // Update user in database
     await prisma.user.update({
