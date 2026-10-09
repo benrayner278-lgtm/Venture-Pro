@@ -36,6 +36,7 @@ export default function SignupPage() {
       if (res.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('userName', data.user.name || '');
         router.push('/dashboard');
       } else {
         setError(data.error || 'Signup failed');

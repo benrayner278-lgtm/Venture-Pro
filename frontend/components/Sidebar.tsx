@@ -42,6 +42,7 @@ export default function Sidebar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
     router.push('/');
   };
 
@@ -101,7 +102,7 @@ export default function Sidebar() {
         <div className="px-2">
           <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500">Signed in as</p>
           <p className="text-sm text-gray-200 truncate">
-            {(typeof window !== 'undefined' && localStorage.getItem('userEmail')) || 'User'}
+            {(typeof window !== 'undefined' && localStorage.getItem('userName')) || 'Account'}
           </p>
         </div>
         <button
