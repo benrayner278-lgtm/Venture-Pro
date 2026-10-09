@@ -70,7 +70,7 @@ const createCheckoutSession = async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'gbp',
             product_data: {
               name: `Venture-Pro ${plan.name} Plan`,
               description: plan.features.join(', '),

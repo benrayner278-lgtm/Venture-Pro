@@ -270,7 +270,7 @@ export default function BillingPage() {
                                   {new Date(invoice.date).toLocaleDateString()}
                                 </td>
                                 <td className="py-4 px-4 text-white text-sm font-medium">
-                                  ${(invoice.amount / 100).toFixed(2)}
+                                  £{(invoice.amount / 100).toFixed(2)}
                                 </td>
                                 <td className="py-4 px-4 text-sm">
                                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -328,7 +328,7 @@ export default function BillingPage() {
                       <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
                       <div className="mb-6">
                         <span className="text-4xl font-bold text-white">
-                          ${(plan.price / 100).toFixed(2)}
+                          £{(plan.price / 100).toFixed(2)}
                         </span>
                         <span className="text-gray-400 ml-2">/ {plan.interval}</span>
                       </div>
