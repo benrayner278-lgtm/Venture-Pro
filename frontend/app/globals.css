@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.app-bg {
+  background:
+    radial-gradient(1000px 500px at 50% -15%, rgba(37, 99, 235, 0.22), transparent 70%),
+    linear-gradient(180deg, #05070d 0%, #070b15 100%);
+}

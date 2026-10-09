@@ -4,7 +4,7 @@ import Sidebar from '@/components/Sidebar';
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-gray-900 flex">
+    <div className="min-h-screen app-bg flex">
       <Sidebar />
 
       <div className="flex-1 flex flex-col">

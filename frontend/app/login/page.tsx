@@ -41,7 +41,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-gray-900 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen app-bg flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="bg-gray-900 rounded-3xl shadow-2xl p-10 border border-gray-800/50">
           {/* Header */}
