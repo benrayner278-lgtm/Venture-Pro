@@ -46,7 +46,7 @@ export default function DashboardPage() {
     {
       id: '1',
       type: 'ai',
-      content: 'Welcome to Venture-Pro! 👋 I\'m your AI business builder. Tell me about your business idea and I\'ll help you build everything from scratch.',
+      content: 'Welcome to Venture-Pro. Describe your business idea and I will help you plan it, write the copy and build the website.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -182,7 +182,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="border-b border-white/[0.06] px-8 py-4">
           <h1 className="text-base font-semibold text-white tracking-tight">Chat</h1>
-          <p className="text-gray-500 text-xs mt-0.5">Your AI business assistant</p>
+          <p className="text-gray-500 text-xs mt-0.5">Plan your business with an AI partner</p>
         </div>
 
         {/* Chat Container */}
