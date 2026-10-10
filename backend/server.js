@@ -20,11 +20,13 @@ const chatRoutes = require('./routes/chat');
 const checkoutRoutes = require('./routes/checkout');
 const projectRoutes = require('./routes/projects');
 const billingRoutes = require('./routes/billing');
+const websiteRoutes = require('./routes/website');
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/website', websiteRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
