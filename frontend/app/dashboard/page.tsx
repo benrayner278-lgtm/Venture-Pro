@@ -180,24 +180,24 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gray-900/50 border-b border-gray-800/50 px-8 py-5 shadow-lg backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Chat</h1>
-          <p className="text-gray-400 text-sm font-medium mt-1">Your AI business assistant</p>
+        <div className="border-b border-white/[0.06] px-8 py-4">
+          <h1 className="text-base font-semibold text-white tracking-tight">Chat</h1>
+          <p className="text-gray-500 text-xs mt-0.5">Your AI business assistant</p>
         </div>
 
         {/* Chat Container */}
-      <div className="flex-1 overflow-y-auto p-8 space-y-8 max-w-3xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-8 py-10 space-y-6 max-w-3xl mx-auto w-full">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`animate-fade-in ${message.type === 'user' ? 'flex justify-end' : 'flex justify-start'}`}
           >
             {message.type === 'user' ? (
-              <div className="max-w-xl px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-medium">
+              <div className="max-w-xl px-4 py-2.5 rounded-2xl bg-white/[0.08] text-gray-100 text-sm">
                 {message.content}
               </div>
             ) : (
-              <div className="max-w-2xl text-gray-200 leading-relaxed whitespace-pre-wrap">
+              <div className="max-w-2xl text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: formatMarkdown(message.content)
@@ -213,10 +213,10 @@ export default function DashboardPage() {
         ))}
         {loading && (
           <div className="flex justify-start animate-fade-in">
-            <div className="flex space-x-3 py-4">
-              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce"></div>
-              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="flex space-x-1.5 py-3">
+              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"></div>
+              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
         )}
@@ -224,22 +224,26 @@ export default function DashboardPage() {
       </div>
 
         {/* Input Area */}
-        <div className="bg-gray-900/50 border-t border-gray-800/50 px-8 py-6 backdrop-blur-sm">
-          <form onSubmit={handleSendMessage} className="flex gap-3 max-w-3xl mx-auto">
+        <div className="border-t border-white/[0.06] px-8 py-5">
+          <form onSubmit={handleSendMessage} className="relative max-w-3xl mx-auto">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell me about your business idea..."
-              className="flex-1 bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none placeholder-gray-500 transition text-sm"
+              placeholder="Tell me about your business idea"
+              className="w-full bg-white/[0.04] text-gray-100 pl-4 pr-12 py-3 rounded-xl border border-white/10 focus:border-white/25 outline-none placeholder-gray-600 transition text-sm"
               disabled={loading}
             />
             <button
               type="submit"
-              disabled={loading}
-              className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-lg transition font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={loading || !input.trim()}
+              aria-label="Send"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-white text-black flex items-center justify-center transition hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              Send
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="M13 6l6 6-6 6" />
+              </svg>
             </button>
           </form>
         </div>
