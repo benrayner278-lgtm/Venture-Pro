@@ -195,7 +195,7 @@ export default function BillingPage() {
                   onClick={() => setActiveTab('dashboard')}
                   className={`px-4 py-3 font-medium border-b-2 transition ${
                     activeTab === 'dashboard'
-                      ? 'text-blue-400 border-blue-500'
+                      ? 'text-white border-white/40'
                       : 'text-gray-400 border-transparent hover:text-gray-300'
                   }`}
                 >
@@ -205,7 +205,7 @@ export default function BillingPage() {
                   onClick={() => setActiveTab('plans')}
                   className={`px-4 py-3 font-medium border-b-2 transition ${
                     activeTab === 'plans'
-                      ? 'text-blue-400 border-blue-500'
+                      ? 'text-white border-white/40'
                       : 'text-gray-400 border-transparent hover:text-gray-300'
                   }`}
                 >
@@ -287,7 +287,7 @@ export default function BillingPage() {
                                       href={invoice.pdfUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-blue-400 hover:text-blue-300 text-sm font-semibold"
+                                      className="text-white hover:text-white text-sm font-semibold"
                                     >
                                       Download
                                     </a>
@@ -313,13 +313,13 @@ export default function BillingPage() {
                       key={planId}
                       className={`rounded-2xl p-8 flex flex-col transition ${
                         planId === 'professional'
-                          ? 'bg-gradient-to-br from-blue-600/20 to-blue-700/20 border border-blue-500/50 ring-2 ring-blue-500/30'
+                          ? 'bg-gradient-to-br from-white/10 to-white/5 border border-white/20 ring-2 ring-white/25'
                           : 'bg-gray-900/50 border border-gray-800/50 hover:border-gray-700'
                       }`}
                     >
                       {planId === 'professional' && (
                         <div className="mb-4">
-                          <span className="text-xs font-bold text-blue-400 bg-blue-600/20 px-3 py-1 rounded-full">
+                          <span className="text-xs font-bold text-white bg-white/10 px-3 py-1 rounded-full">
                             RECOMMENDED
                           </span>
                         </div>
@@ -336,7 +336,7 @@ export default function BillingPage() {
                       <ul className="flex-1 space-y-3 mb-8">
                         {plan.features.map((feature, idx) => (
                           <li key={idx} className="text-gray-300 text-sm flex items-start gap-2">
-                            <span className="text-blue-400 mt-1">✓</span>
+                            <span className="text-white mt-1">✓</span>
                             <span>{feature}</span>
                           </li>
                         ))}
@@ -347,7 +347,7 @@ export default function BillingPage() {
                         disabled={checkoutLoading === planId}
                         className={`w-full py-3 rounded-lg font-semibold text-sm transition ${
                           planId === 'professional'
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            ? 'bg-white hover:bg-gray-200 text-black'
                             : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700'
                         } disabled:opacity-60 disabled:cursor-not-allowed`}
                       >

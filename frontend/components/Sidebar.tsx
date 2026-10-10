@@ -60,10 +60,10 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 h-screen flex flex-col bg-[#060912] border-r border-white/[0.06]">
+    <aside className="w-64 h-screen flex flex-col bg-black border-r border-white/[0.08]">
       <div className="px-6 pt-7 pb-6">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-sky-400 via-blue-600 to-indigo-700 shadow-[0_0_24px_-4px_rgba(59,130,246,0.7)] flex items-center justify-center">
+          <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-white via-zinc-300 to-zinc-500 shadow-[0_0_24px_-4px_rgba(255,255,255,0.35)] flex items-center justify-center">
             <div className="w-3.5 h-3.5 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
           </div>
           <div>
@@ -87,9 +87,9 @@ export default function Sidebar() {
               }`}
             >
               {active && (
-                <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
+                <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
               )}
-              <span className={active ? 'text-blue-400' : 'text-gray-500'}>
+              <span className={active ? 'text-white' : 'text-gray-500'}>
                 <NavIcon name={item.icon} />
               </span>
               <span className="font-medium">{item.label}</span>

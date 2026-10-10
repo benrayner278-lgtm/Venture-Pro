@@ -220,7 +220,7 @@ export default function LegalDocumentsPage() {
                     onClick={() => handleSelectTemplate(template)}
                     className={`w-full text-left p-4 rounded-lg transition border ${
                       selectedTemplate?.id === template.id
-                        ? 'bg-blue-600/20 border-blue-500/30'
+                        ? 'bg-white/10 border-white/20'
                         : 'bg-gray-800/50 border-gray-700/50 hover:bg-gray-800'
                     }`}
                   >
@@ -240,14 +240,14 @@ export default function LegalDocumentsPage() {
                     <textarea
                       value={customBody}
                       onChange={(e) => setCustomBody(e.target.value)}
-                      className="w-full h-96 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-mono text-sm resize-none"
+                      className="w-full h-96 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-mono text-sm resize-none"
                     />
                   </div>
 
                   <div className="flex gap-3 flex-wrap">
                     <button
                       onClick={handleCopyToClipboard}
-                      className="flex-1 min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-semibold text-sm"
+                      className="flex-1 min-w-[140px] bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-lg transition font-semibold text-sm"
                     >
                       Copy to Clipboard
                     </button>

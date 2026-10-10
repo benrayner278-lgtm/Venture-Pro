@@ -90,7 +90,7 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
                     value={formData.businessName}
                     onChange={handleInputChange}
                     placeholder="e.g., CloudSync"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
@@ -103,7 +103,7 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
                     value={formData.tagline}
                     onChange={handleInputChange}
                     placeholder="e.g., Seamless Cloud Storage for Teams"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
@@ -115,7 +115,7 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
                     value={formData.features}
                     onChange={handleInputChange}
                     placeholder="e.g., Real-time collaboration, End-to-end encryption, 100GB storage"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 resize-none h-24"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 resize-none h-24"
                     required
                   />
                 </div>
@@ -128,14 +128,14 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
                     value={formData.callToAction}
                     onChange={handleInputChange}
                     placeholder="e.g., Start Free Trial, Get Started Now"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 rounded-lg transition shadow-lg hover:shadow-xl mt-6"
+                  className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3 rounded-lg transition shadow-lg hover:shadow-xl mt-6"
                 >
                   Generate Website
                 </button>
@@ -145,7 +145,7 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
 
           {step === 'generating' && (
             <div className="flex flex-col items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white/40 mb-4"></div>
               <p className="text-gray-300 text-lg">Generating website copy...</p>
             </div>
           )}

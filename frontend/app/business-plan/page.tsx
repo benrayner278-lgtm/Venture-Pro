@@ -92,7 +92,7 @@ Format it clearly with headers and bullet points.`;
                     value={formData.businessName}
                     onChange={handleInputChange}
                     placeholder="e.g., EcoTech Solutions"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
@@ -105,7 +105,7 @@ Format it clearly with headers and bullet points.`;
                     value={formData.industry}
                     onChange={handleInputChange}
                     placeholder="e.g., SaaS, E-commerce, Consulting"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
@@ -118,7 +118,7 @@ Format it clearly with headers and bullet points.`;
                     value={formData.targetMarket}
                     onChange={handleInputChange}
                     placeholder="e.g., Small businesses in the US"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
@@ -130,7 +130,7 @@ Format it clearly with headers and bullet points.`;
                     value={formData.valueProposition}
                     onChange={handleInputChange}
                     placeholder="What problem does your business solve and how?"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 resize-none h-24"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 resize-none h-24"
                     required
                   />
                 </div>
@@ -143,14 +143,14 @@ Format it clearly with headers and bullet points.`;
                     value={formData.revenue}
                     onChange={handleInputChange}
                     placeholder="e.g., Subscription, One-time purchase, Freemium"
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                     required
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 rounded-lg transition shadow-lg hover:shadow-xl mt-6"
+                  className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3 rounded-lg transition shadow-lg hover:shadow-xl mt-6"
                 >
                   Generate Business Plan
                 </button>
@@ -160,7 +160,7 @@ Format it clearly with headers and bullet points.`;
 
           {step === 'generating' && (
             <div className="flex flex-col items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white/40 mb-4"></div>
               <p className="text-gray-300 text-lg">Generating your business plan...</p>
             </div>
           )}

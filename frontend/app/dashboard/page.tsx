@@ -193,7 +193,7 @@ export default function DashboardPage() {
             className={`animate-fade-in ${message.type === 'user' ? 'flex justify-end' : 'flex justify-start'}`}
           >
             {message.type === 'user' ? (
-              <div className="max-w-xl px-5 py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-white font-medium">
+              <div className="max-w-xl px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white font-medium">
                 {message.content}
               </div>
             ) : (
@@ -214,9 +214,9 @@ export default function DashboardPage() {
         {loading && (
           <div className="flex justify-start animate-fade-in">
             <div className="flex space-x-3 py-4">
-              <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce"></div>
-              <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce"></div>
+              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2.5 h-2.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
           </div>
         )}
@@ -231,13 +231,13 @@ export default function DashboardPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Tell me about your business idea..."
-              className="flex-1 bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none placeholder-gray-500 transition text-sm"
+              className="flex-1 bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none placeholder-gray-500 transition text-sm"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-lg transition font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Send
             </button>

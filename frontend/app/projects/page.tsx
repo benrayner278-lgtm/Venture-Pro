@@ -101,7 +101,7 @@ export default function ProjectsPage() {
           </div>
           <button
             onClick={() => setShowNewForm(!showNewForm)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition font-semibold text-sm shadow-lg"
+            className="bg-white hover:bg-gray-200 text-black px-6 py-2.5 rounded-lg transition font-semibold text-sm shadow-lg"
           >
             + New Project
           </button>
@@ -120,7 +120,7 @@ export default function ProjectsPage() {
                     placeholder="Business Name"
                     value={newProject.businessName}
                     onChange={(e) => setNewProject({ ...newProject, businessName: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                   />
                 </div>
                 <div>
@@ -129,7 +129,7 @@ export default function ProjectsPage() {
                     placeholder="Industry/Niche"
                     value={newProject.niche}
                     onChange={(e) => setNewProject({ ...newProject, niche: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500"
                   />
                 </div>
                 <div>
@@ -137,14 +137,14 @@ export default function ProjectsPage() {
                     placeholder="Description (optional)"
                     value={newProject.description}
                     onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 resize-none h-24"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 resize-none h-24"
                   />
                 </div>
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={creating}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition font-semibold text-sm disabled:opacity-60"
+                    className="bg-white hover:bg-gray-200 text-black px-6 py-2.5 rounded-lg transition font-semibold text-sm disabled:opacity-60"
                   >
                     {creating ? 'Creating...' : 'Create Project'}
                   </button>
@@ -170,7 +170,7 @@ export default function ProjectsPage() {
               <p className="text-gray-400 text-lg mb-4">No projects yet</p>
               <button
                 onClick={() => setShowNewForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition font-semibold text-sm"
+                className="bg-white hover:bg-gray-200 text-black px-6 py-2.5 rounded-lg transition font-semibold text-sm"
               >
                 Create Your First Project
               </button>
@@ -192,7 +192,7 @@ export default function ProjectsPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/dashboard?projectId=${project.id}`}
-                        className="text-blue-400 hover:text-blue-300 text-xs font-semibold px-2 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 transition"
+                        className="text-white hover:text-white text-xs font-semibold px-2 py-1 rounded bg-white/10 hover:bg-white/10 transition"
                       >
                         Chat
                       </Link>

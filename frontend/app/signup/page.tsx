@@ -54,7 +54,7 @@ export default function SignupPage() {
         <div className="bg-gray-900 rounded-3xl shadow-2xl p-10 border border-gray-800/50">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-neutral-800 to-black border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span className="text-white font-bold text-xl">VP</span>
             </div>
             <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">Venture-Pro</h1>
@@ -69,7 +69,7 @@ export default function SignupPage() {
                 placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -79,7 +79,7 @@ export default function SignupPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -89,7 +89,7 @@ export default function SignupPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -99,7 +99,7 @@ export default function SignupPage() {
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -111,7 +111,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3.5 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-6"
+              className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3.5 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-6"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
@@ -120,7 +120,7 @@ export default function SignupPage() {
           {/* Footer */}
           <p className="text-gray-400 text-center mt-6 text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
+            <Link href="/login" className="text-white hover:text-white font-semibold">
               Login
             </Link>
           </p>

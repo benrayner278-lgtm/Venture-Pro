@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="bg-gray-900 rounded-3xl shadow-2xl p-10 border border-gray-800/50">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-neutral-800 to-black border border-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span className="text-white font-bold text-xl">VP</span>
             </div>
             <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">Venture-Pro</h1>
@@ -62,7 +62,7 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -72,7 +72,7 @@ export default function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition placeholder-gray-500 font-medium"
+                className="w-full px-4 py-3.5 bg-gray-800 text-white rounded-xl border border-gray-700 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 font-medium"
                 required
               />
             </div>
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3.5 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-6"
+              className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3.5 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed mt-6"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -93,7 +93,7 @@ export default function LoginPage() {
           {/* Footer */}
           <p className="text-gray-400 text-center mt-6 text-sm">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-semibold">
+            <Link href="/signup" className="text-white hover:text-white font-semibold">
               Sign Up
             </Link>
           </p>
