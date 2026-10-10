@@ -69,15 +69,26 @@ Specific requests: ${requests || 'none'}`;
       ? `Here is the current website as JSON:\n${JSON.stringify(currentContent)}\n\nMake this change, keeping everything else that still fits, and return the full updated JSON: ${instruction}\n\nBusiness brief:\n${brief}`
       : `Plan and write the website for this business:\n${brief}`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-5-5',
-      max_tokens: 6000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    let content;
+    let lastError;
+    for (let attempt = 0; attempt < 2 && !content; attempt++) {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-5-5',
+        max_tokens: 6000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      });
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      try {
+        content = parseContent(text);
+      } catch (error) {
+        lastError = error;
+      }
+    }
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const content = parseContent(text);
+    if (!content) {
+      throw lastError;
+    }
 
     res.json({ content });
   } catch (error) {
