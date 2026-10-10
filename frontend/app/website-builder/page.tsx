@@ -13,9 +13,11 @@ export default function WebsiteBuilderPage() {
     tagline: '',
     features: '',
     callToAction: '',
+    requests: '',
   });
   const [content, setContent] = useState<WebsiteContent | null>(null);
   const [themeId, setThemeId] = useState(WEBSITE_THEMES[0].id);
+  const [shuffle, setShuffle] = useState(0);
   const [tweak, setTweak] = useState('');
   const [tweaking, setTweaking] = useState(false);
 
@@ -65,7 +67,7 @@ export default function WebsiteBuilderPage() {
     }
   };
 
-  const html = content ? renderWebsite(content, themeId) : '';
+  const html = content ? renderWebsite(content, themeId, shuffle) : '';
 
   const downloadWebsite = () => {
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -141,6 +143,17 @@ export default function WebsiteBuilderPage() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Anything specific? (optional)</label>
+                  <textarea
+                    name="requests"
+                    value={formData.requests}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Add a section to show our work, include a contact email hello@example.com"
+                    className="w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500 resize-none h-24"
+                  />
+                </div>
+
                 <button
                   type="submit"
                   className="w-full bg-white hover:bg-gray-200 text-black font-medium text-sm py-3 rounded-xl transition mt-6"
@@ -189,6 +202,12 @@ export default function WebsiteBuilderPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <button
+                    onClick={() => setShuffle((n) => n + 1)}
+                    className="w-full border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl transition font-medium text-sm"
+                  >
+                    Shuffle layout
+                  </button>
                   <button
                     onClick={downloadWebsite}
                     className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl transition font-medium text-sm"
