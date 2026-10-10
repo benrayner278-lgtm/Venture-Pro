@@ -10,6 +10,24 @@ interface WebsiteInfo {
   callToAction: string;
 }
 
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const formatCopy = (text: string) =>
+  escapeHtml(text)
+    .split('\n')
+    .map((line) => {
+      if (line.startsWith('##')) {
+        return `<h3 class="section-title">${line.replace('##', '').trim()}</h3>`;
+      }
+      const bolded = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      if (bolded.trim().startsWith('-') || bolded.trim().startsWith('•')) {
+        return `<div class="bullet">• ${bolded.replace(/^[\s\-•]+/, '').trim()}</div>`;
+      }
+      return bolded.trim() ? `<p>${bolded}</p>` : '<div class="spacer"></div>';
+    })
+    .join('');
+
 export default function WebsiteBuilderPage() {
   const [step, setStep] = useState<'form' | 'generating' | 'result'>('form');
   const [formData, setFormData] = useState<WebsiteInfo>({
@@ -58,12 +76,27 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
       });
 
       const data = await response.json();
+      if (!response.ok || !data.message) {
+        throw new Error(data.error || 'No content returned');
+      }
       setWebsite(data.message);
       setStep('result');
     } catch (error) {
       console.error('Error generating website:', error);
+      alert('Website generation failed. Please try again.');
       setStep('form');
     }
+  };
+
+  const downloadWebsite = () => {
+    const title = escapeHtml(formData.businessName || 'Website');
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>body{margin:0;background:#000;color:#d1d5db;font-family:Inter,Arial,sans-serif;line-height:1.7}main{max-width:760px;margin:0 auto;padding:64px 24px}p{margin:0 0 12px}strong{color:#fff;font-weight:600}.section-title{font-size:22px;font-weight:700;color:#fff;margin:32px 0 12px}.bullet{margin-left:16px;margin-bottom:8px}.spacer{height:8px}</style></head><body><main>${formatCopy(website)}</main></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(formData.businessName || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -162,29 +195,18 @@ Write it as engaging, conversion-focused copy. Format with clear section headers
                 >
                   ← Create Another Website
                 </button>
+                <button
+                  onClick={downloadWebsite}
+                  className="bg-white hover:bg-gray-200 text-black px-5 py-2.5 rounded-xl transition font-medium text-sm"
+                >
+                  Download HTML
+                </button>
               </div>
 
               <div className="border border-white/[0.06] bg-white/[0.02] rounded-2xl p-8">
                 <div
-                  className="text-gray-300 text-sm leading-relaxed space-y-4"
-                  dangerouslySetInnerHTML={{
-                    __html: website
-                      .split('\n')
-                      .map((line) => {
-                        // Headers: ## text -> <h3>text</h3>
-                        if (line.startsWith('##')) {
-                          return `<h3 class="text-xl font-bold text-white mt-6 mb-3">${line.replace('##', '').trim()}</h3>`;
-                        }
-                        // Bold
-                        line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
-                        // Bullet points
-                        if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
-                          return `<div class="ml-4 mb-2">• ${line.replace(/^[\s\-•]+/, '').trim()}</div>`;
-                        }
-                        return line ? `<p class="mb-3">${line}</p>` : '<div class="h-2"></div>';
-                      })
-                      .join(''),
-                  }}
+                  className="copy-output text-gray-300 text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: formatCopy(website) }}
                 />
               </div>
             </div>

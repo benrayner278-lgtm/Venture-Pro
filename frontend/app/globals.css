@@ -30,3 +30,28 @@ body {
     radial-gradient(900px 420px at 50% -18%, rgba(255, 255, 255, 0.07), transparent 70%),
     #000000;
 }
+
+.copy-output p {
+  margin-bottom: 0.75rem;
+}
+
+.copy-output strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.copy-output .section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.copy-output .bullet {
+  margin-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.copy-output .spacer {
+  height: 0.5rem;
+}
