@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { WEBSITE_THEMES, WebsiteContent, renderWebsite } from '@/lib/websiteTemplates';
+import { apiFetch } from '@/lib/api';
 
 type Step = 'form' | 'generating' | 'result';
 
@@ -27,10 +28,9 @@ export default function WebsiteBuilderPage() {
   };
 
   const requestContent = async (extra: { currentContent?: WebsiteContent; instruction?: string }) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/website/generate`, {
+    const response = await apiFetch('/api/website/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, ...extra }),
+      json: { ...formData, ...extra },
     });
     const data = await response.json();
     if (!response.ok || !data.content) {

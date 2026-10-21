@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { apiFetch, saveSession } from '@/lib/api';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -25,18 +26,16 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`, {
+      const res = await apiFetch('/api/auth/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        auth: false,
+        json: { name, email, password },
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.user.id);
-        localStorage.setItem('userName', data.user.name || '');
+      if (res.ok && data.token && data.user?.id) {
+        saveSession(data.token, data.user);
         router.push('/dashboard');
       } else {
         setError(data.error || 'Signup failed');

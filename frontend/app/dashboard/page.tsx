@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import { apiFetch } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -65,7 +66,7 @@ export default function DashboardPage() {
   const loadConversationHistory = async (id: string) => {
     setLoadingHistory(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/${id}`);
+      const response = await apiFetch(`/api/chat/${id}`);
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -99,14 +100,13 @@ export default function DashboardPage() {
     if (!projectId) return; // Only save if we have a projectId
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/save`, {
+      await apiFetch('/api/chat/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        json: {
           projectId,
           userMessage: userMsg,
           aiResponse: aiMsg,
-        }),
+        },
       });
     } catch (error) {
       console.error('Failed to save message:', error);
@@ -133,13 +133,12 @@ export default function DashboardPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/message`, {
+      const response = await apiFetch('/api/chat/message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        json: {
           message: userText,
-          userId: localStorage.getItem('userId') || 'anonymous',
-        }),
+          ...(projectId ? { projectId } : {}),
+        },
       });
 
       if (!response.ok) {

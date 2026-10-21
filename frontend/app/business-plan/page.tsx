@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { apiFetch } from '@/lib/api';
 
 interface BusinessInfo {
   businessName: string;
@@ -50,13 +51,9 @@ Include the following sections:
 
 Format it clearly with headers and bullet points.`;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/message`, {
+      const response = await apiFetch('/api/chat/message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: prompt,
-          userId: localStorage.getItem('userId') || 'anonymous',
-        }),
+        json: { message: prompt },
       });
 
       const data = await response.json();

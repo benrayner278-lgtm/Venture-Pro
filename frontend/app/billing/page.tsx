@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import { apiFetch } from '@/lib/api';
 
 interface Plan {
   name: string;
@@ -63,20 +64,20 @@ export default function BillingPage() {
     const fetchData = async () => {
       try {
         if (userId) {
-          const billingResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}`);
+          const billingResponse = await apiFetch('/api/billing/me');
           if (billingResponse.ok) {
             const billingData = await billingResponse.json();
             setBillingInfo(billingData);
           }
 
-          const invoicesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}/invoices`);
+          const invoicesResponse = await apiFetch('/api/billing/me/invoices');
           if (invoicesResponse.ok) {
             const invoicesData = await invoicesResponse.json();
             setInvoices(invoicesData || []);
           }
         }
 
-        const plansResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkout/plans`);
+        const plansResponse = await apiFetch('/api/checkout/plans');
         const plansData = await plansResponse.json();
         setPlans(plansData);
       } catch (error) {
@@ -103,10 +104,9 @@ export default function BillingPage() {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/checkout/create-session`, {
+      const response = await apiFetch('/api/checkout/create-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, userId }),
+        json: { planId },
       });
 
       if (!response.ok) {
@@ -136,9 +136,8 @@ export default function BillingPage() {
 
     setCanceling(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/billing/${userId}/cancel`, {
+      const response = await apiFetch('/api/billing/me/cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
 
       if (response.ok) {

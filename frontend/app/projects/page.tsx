@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import { apiFetch } from '@/lib/api';
 
 interface Project {
   id: string;
@@ -26,7 +27,7 @@ export default function ProjectsPage() {
       if (!userId) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects?userId=${userId}`);
+        const response = await apiFetch('/api/projects');
         const data = await response.json();
         setProjects(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -46,15 +47,13 @@ export default function ProjectsPage() {
     setCreating(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
+      const response = await apiFetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
+        json: {
           businessName: newProject.businessName || 'Untitled Project',
           niche: newProject.niche,
           description: newProject.description,
-        }),
+        },
       });
 
       if (response.ok) {
@@ -75,7 +74,7 @@ export default function ProjectsPage() {
     if (!userId || !confirm('Are you sure you want to delete this project?')) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}?userId=${userId}`, {
+      const response = await apiFetch(`/api/projects/${projectId}`, {
         method: 'DELETE',
       });
 
