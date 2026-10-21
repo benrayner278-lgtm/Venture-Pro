@@ -1,12 +1,11 @@
 const express = require('express');
 const { createCheckoutSession, getPlans } = require('../controllers/checkoutController');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get available plans
+// Plan list is public pricing info
 router.get('/plans', getPlans);
-
-// Create checkout session
-router.post('/create-session', createCheckoutSession);
+router.post('/create-session', auth, createCheckoutSession);
 
 module.exports = router;

@@ -2,10 +2,19 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET is not set; refusing to start');
+  process.exit(1);
+}
+
 const app = express();
 
 // Middleware
-app.use(cors());
+app.set('trust proxy', 1);
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''));
+app.use(cors({ origin: allowedOrigins }));
 
 // Webhook endpoint (must come before express.json())
 const { handleWebhook } = require('./controllers/checkoutController');

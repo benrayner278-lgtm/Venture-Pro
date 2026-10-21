@@ -1,13 +1,25 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Signup
 const signup = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { password, name } = req.body || {};
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+    if (!EMAIL_RE.test(email) || email.length > 254) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+      return res.status(400).json({ error: 'Password must be between 8 and 128 characters' });
+    }
+    if (name !== undefined && (typeof name !== 'string' || name.length > 100)) {
+      return res.status(400).json({ error: 'Name must be under 100 characters' });
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -55,7 +67,12 @@ const signup = async (req, res) => {
 // Login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body || {};
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+    if (!email || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
     // Find user in database
     const user = await prisma.user.findUnique({

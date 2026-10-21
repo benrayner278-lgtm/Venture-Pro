@@ -1,18 +1,14 @@
 const express = require('express');
 const { processMessage, saveMessage, getMessages, deleteMessage } = require('../controllers/chatController');
+const auth = require('../middleware/auth');
+const { aiLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
+router.use(auth);
 
-// Process a chat message
-router.post('/message', processMessage);
-
-// Save a new message
+router.post('/message', aiLimiter, processMessage);
 router.post('/save', saveMessage);
-
-// Get all messages for a project
 router.get('/:projectId', getMessages);
-
-// Delete a message
 router.delete('/:messageId', deleteMessage);
 
 module.exports = router;

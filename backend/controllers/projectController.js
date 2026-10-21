@@ -1,15 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // Get all projects for a user
 const getProjects = async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = req.userId;
 
     const projects = await prisma.project.findMany({
       where: { userId },
@@ -19,7 +13,7 @@ const getProjects = async (req, res) => {
     res.json(projects);
   } catch (error) {
     console.error('Get projects error:', error);
-    res.status(500).json({ error: `Failed to fetch projects: ${error.message}` });
+    res.status(500).json({ error: 'Failed to fetch projects' });
   }
 };
 
@@ -27,10 +21,10 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { userId } = req.query;
+    const userId = req.userId;
 
-    if (!projectId || !userId) {
-      return res.status(400).json({ error: 'Project ID and User ID are required' });
+    if (!projectId) {
+      return res.status(400).json({ error: 'Project ID is required' });
     }
 
     const project = await prisma.project.findUnique({
@@ -38,25 +32,25 @@ const getProject = async (req, res) => {
     });
 
     // Verify project belongs to user
-    if (!project || project.userId !== userId) {
+    if (!project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+    if (project.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     res.json(project);
   } catch (error) {
     console.error('Get project error:', error);
-    res.status(500).json({ error: `Failed to fetch project: ${error.message}` });
+    res.status(500).json({ error: 'Failed to fetch project' });
   }
 };
 
 // Create new project
 const createProject = async (req, res) => {
   try {
-    const { userId, businessName, niche, targetAudience, description } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = req.userId;
+    const { businessName, niche, targetAudience, description } = req.body || {};
 
     // Verify user exists
     const user = await prisma.user.findUnique({
@@ -81,7 +75,7 @@ const createProject = async (req, res) => {
     res.status(201).json(project);
   } catch (error) {
     console.error('Create project error:', error);
-    res.status(500).json({ error: `Failed to create project: ${error.message}` });
+    res.status(500).json({ error: 'Failed to create project' });
   }
 };
 
@@ -89,10 +83,11 @@ const createProject = async (req, res) => {
 const updateProject = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { userId, businessName, niche, targetAudience, description, websiteContent, emailTemplates, legalDocs, status } = req.body;
+    const userId = req.userId;
+    const { businessName, niche, targetAudience, description, websiteContent, emailTemplates, legalDocs, status } = req.body || {};
 
-    if (!projectId || !userId) {
-      return res.status(400).json({ error: 'Project ID and User ID are required' });
+    if (!projectId) {
+      return res.status(400).json({ error: 'Project ID is required' });
     }
 
     // Verify project belongs to user
@@ -100,8 +95,11 @@ const updateProject = async (req, res) => {
       where: { id: projectId },
     });
 
-    if (!project || project.userId !== userId) {
+    if (!project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+    if (project.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     const updatedProject = await prisma.project.update({
@@ -121,7 +119,7 @@ const updateProject = async (req, res) => {
     res.json(updatedProject);
   } catch (error) {
     console.error('Update project error:', error);
-    res.status(500).json({ error: `Failed to update project: ${error.message}` });
+    res.status(500).json({ error: 'Failed to update project' });
   }
 };
 
@@ -129,10 +127,10 @@ const updateProject = async (req, res) => {
 const deleteProject = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { userId } = req.query;
+    const userId = req.userId;
 
-    if (!projectId || !userId) {
-      return res.status(400).json({ error: 'Project ID and User ID are required' });
+    if (!projectId) {
+      return res.status(400).json({ error: 'Project ID is required' });
     }
 
     // Verify project belongs to user
@@ -140,8 +138,11 @@ const deleteProject = async (req, res) => {
       where: { id: projectId },
     });
 
-    if (!project || project.userId !== userId) {
+    if (!project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+    if (project.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     await prisma.project.delete({
@@ -151,7 +152,7 @@ const deleteProject = async (req, res) => {
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     console.error('Delete project error:', error);
-    res.status(500).json({ error: `Failed to delete project: ${error.message}` });
+    res.status(500).json({ error: 'Failed to delete project' });
   }
 };
 

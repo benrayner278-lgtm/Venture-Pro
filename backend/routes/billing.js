@@ -1,18 +1,21 @@
 const express = require('express');
 const { getBillingInfo, getInvoices, getPlans, cancelSubscription } = require('../controllers/billingController');
+const auth = require('../middleware/auth');
+const { requireSelf } = require('../middleware/auth');
 
 const router = express.Router();
+router.use(auth);
 
-// Get user's billing information
-router.get('/:userId', getBillingInfo);
-
-// Get user's invoices
-router.get('/:userId/invoices', getInvoices);
-
-// Get available plans
 router.get('/plans/list', getPlans);
 
-// Cancel subscription
-router.post('/:userId/cancel', cancelSubscription);
+// Preferred: the user comes from the token
+router.get('/me', getBillingInfo);
+router.get('/me/invoices', getInvoices);
+router.post('/me/cancel', cancelSubscription);
+
+// Legacy paths: :userId must match the token (403 otherwise)
+router.get('/:userId', requireSelf, getBillingInfo);
+router.get('/:userId/invoices', requireSelf, getInvoices);
+router.post('/:userId/cancel', requireSelf, cancelSubscription);
 
 module.exports = router;

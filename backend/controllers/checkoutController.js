@@ -1,7 +1,6 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { PrismaClient } = require('@prisma/client');
+const { getStripe } = require('../lib/stripe');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const PLANS = {
   starter: {
@@ -26,10 +25,11 @@ const PLANS = {
 
 const createCheckoutSession = async (req, res) => {
   try {
-    const { planId, userId } = req.body;
+    const { planId } = req.body || {};
+    const userId = req.userId;
 
-    if (!planId || !userId) {
-      return res.status(400).json({ error: 'Plan ID and User ID are required' });
+    if (!planId) {
+      return res.status(400).json({ error: 'Plan ID is required' });
     }
 
     if (!PLANS[planId]) {
@@ -50,7 +50,7 @@ const createCheckoutSession = async (req, res) => {
     // Create Stripe customer if not exists
     let stripeCustomerId = user.stripeCustomerId;
     if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: user.email,
         name: user.name,
         metadata: { userId },
@@ -65,7 +65,7 @@ const createCheckoutSession = async (req, res) => {
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       line_items: [
         {
@@ -100,7 +100,7 @@ const createCheckoutSession = async (req, res) => {
     res.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error('Checkout error:', error);
-    res.status(500).json({ error: `Failed to create checkout session: ${error.message}` });
+    res.status(500).json({ error: 'Failed to create checkout session' });
   }
 };
 
@@ -108,7 +108,7 @@ const handleWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
   try {
-    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const event = getStripe().webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
 
     console.log(`✅ Webhook received: ${event.type}`);
 
@@ -203,7 +203,7 @@ const handleWebhook = async (req, res) => {
     res.json({ received: true });
   } catch (error) {
     console.error('Webhook error:', error);
-    res.status(400).json({ error: `Webhook failed: ${error.message}` });
+    res.status(400).json({ error: 'Webhook verification failed' });
   }
 };
 

@@ -20,7 +20,24 @@ model User {
   updatedAt            DateTime @updatedAt
 
   projects Project[]
+  sites    Site[]
   @@map("users")
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  userId    String
+  slug      String   @unique
+  title     String
+  content   Json
+  themeId   String   @default("midnight")
+  shuffle   Int      @default(0)
+  status    String   @default("live")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("sites")
 }
 
 model Project {

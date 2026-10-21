@@ -1,16 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { getStripe } = require('../lib/stripe');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // Get user's billing information
 const getBillingInfo = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -32,24 +27,18 @@ const getBillingInfo = async (req, res) => {
       name: user.name,
       plan: user.plan || 'free',
       subscriptionStatus: user.subscriptionStatus || 'inactive',
-      stripeCustomerId: user.stripeCustomerId,
-      stripeSubscriptionId: user.stripeSubscriptionId,
       subscription: subscription || null,
     });
   } catch (error) {
     console.error('Get billing info error:', error);
-    res.status(500).json({ error: `Failed to fetch billing info: ${error.message}` });
+    res.status(500).json({ error: 'Failed to fetch billing info' });
   }
 };
 
 // Get user's invoice history
 const getInvoices = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -61,7 +50,7 @@ const getInvoices = async (req, res) => {
 
     // Get invoices from Stripe if customer exists
     if (user.stripeCustomerId) {
-      const invoices = await stripe.invoices.list({
+      const invoices = await getStripe().invoices.list({
         customer: user.stripeCustomerId,
         limit: 12,
       });
@@ -86,7 +75,7 @@ const getInvoices = async (req, res) => {
     res.json([]);
   } catch (error) {
     console.error('Get invoices error:', error);
-    res.status(500).json({ error: `Failed to fetch invoices: ${error.message}` });
+    res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 };
 
@@ -123,18 +112,14 @@ const getPlans = async (req, res) => {
     res.json(plans);
   } catch (error) {
     console.error('Get plans error:', error);
-    res.status(500).json({ error: `Failed to fetch plans: ${error.message}` });
+    res.status(500).json({ error: 'Failed to fetch plans' });
   }
 };
 
 // Cancel subscription
 const cancelSubscription = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -149,7 +134,7 @@ const cancelSubscription = async (req, res) => {
     }
 
     // Cancel subscription in Stripe
-    const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+    const canceledSubscription = await getStripe().subscriptions.cancel(user.stripeSubscriptionId);
 
     // Update user in database
     await prisma.user.update({
@@ -161,10 +146,10 @@ const cancelSubscription = async (req, res) => {
       },
     });
 
-    res.json({ message: 'Subscription canceled successfully', subscription: canceledSubscription });
+    res.json({ message: 'Subscription canceled successfully', status: canceledSubscription.status });
   } catch (error) {
     console.error('Cancel subscription error:', error);
-    res.status(500).json({ error: `Failed to cancel subscription: ${error.message}` });
+    res.status(500).json({ error: 'Failed to cancel subscription' });
   }
 };
 

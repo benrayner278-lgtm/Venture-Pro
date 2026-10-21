@@ -1,8 +1,6 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { getAnthropic } = require('../lib/anthropic');
+const prisma = require('../lib/prisma');
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 const SECTION_TYPES = [
   'hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom',
@@ -53,7 +51,15 @@ const parseContent = (text) => {
 
 const generateWebsite = async (req, res) => {
   try {
-    const { businessName, tagline, features, callToAction, requests, currentContent, instruction } = req.body;
+    const { businessName, tagline, features, callToAction, requests, currentContent, instruction } = req.body || {};
+
+    // If a project is given, it must belong to the caller
+    const { projectId } = req.body || {};
+    if (projectId) {
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) return res.status(404).json({ error: 'Project not found' });
+      if (project.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+    }
 
     if (!businessName || !tagline || !features || !callToAction) {
       return res.status(400).json({ error: 'Business name, tagline, features and call to action are required' });
@@ -72,7 +78,7 @@ Specific requests: ${requests || 'none'}`;
     let content;
     let lastError;
     for (let attempt = 0; attempt < 2 && !content; attempt++) {
-      const response = await anthropic.messages.create({
+      const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-5-5',
         max_tokens: 6000,
         system: SYSTEM_PROMPT,
@@ -93,7 +99,7 @@ Specific requests: ${requests || 'none'}`;
     res.json({ content });
   } catch (error) {
     console.error('Generate website error:', error);
-    res.status(500).json({ error: `Failed to generate website: ${error.message}` });
+    res.status(500).json({ error: 'Failed to generate website' });
   }
 };
 
