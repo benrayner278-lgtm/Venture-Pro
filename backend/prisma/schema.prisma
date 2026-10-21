@@ -33,6 +33,12 @@ model Project {
   websiteContent  Json?
   emailTemplates  Json?
   legalDocs       Json?
+  domainName      String?
+  domainStatus    String?  @default("none")
+  domainProvider  String?
+  domainRegisteredAt DateTime?
+  emailStatus     String?  @default("none")
+  emailUsers      Json?
   status          String   @default("draft")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
