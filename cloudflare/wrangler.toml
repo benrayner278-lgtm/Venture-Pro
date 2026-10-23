@@ -1,0 +1,7 @@
+name = "venture-pro-sites"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+routes = [
+  { pattern = "*.venture-pro.io/*", zone_name = "venture-pro.io" }
+]

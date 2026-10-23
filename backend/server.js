@@ -21,7 +21,7 @@ const { handleWebhook } = require('./controllers/checkoutController');
 app.post('/api/checkout/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 
 // Regular JSON middleware
-app.use(express.json());
+app.use(express.json({ limit: '300kb' }));
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -30,12 +30,16 @@ const checkoutRoutes = require('./routes/checkout');
 const projectRoutes = require('./routes/projects');
 const billingRoutes = require('./routes/billing');
 const websiteRoutes = require('./routes/website');
+const sitesRoutes = require('./routes/sites');
+const publicSitesRoutes = require('./routes/publicSites');
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/website', websiteRoutes);
+app.use('/api/sites', sitesRoutes);
+app.use('/api/public/sites', publicSitesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

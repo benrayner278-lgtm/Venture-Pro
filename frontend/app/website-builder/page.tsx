@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { WEBSITE_THEMES, WebsiteContent, renderWebsite } from '@/lib/websiteTemplates';
+import { WEBSITE_THEMES, WebsiteContent } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
+import PublishPanel from '@/components/PublishPanel';
 
 type Step = 'form' | 'generating' | 'result';
 
@@ -67,7 +68,28 @@ export default function WebsiteBuilderPage() {
     }
   };
 
-  const html = content ? renderWebsite(content, themeId, shuffle) : '';
+  const [html, setHtml] = useState('');
+  const [previewError, setPreviewError] = useState('');
+
+  useEffect(() => {
+    if (!content) return;
+    let cancelled = false;
+    apiFetch('/api/sites/preview', { method: 'POST', json: { content, themeId, shuffle } })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Preview failed');
+        if (!cancelled) {
+          setHtml(data.html);
+          setPreviewError('');
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setPreviewError(error instanceof Error ? error.message : 'Preview failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [content, themeId, shuffle]);
 
   const downloadWebsite = () => {
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -224,9 +246,12 @@ export default function WebsiteBuilderPage() {
                     Create another
                   </button>
                 </div>
+
+                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} />
               </aside>
 
               <div className="flex-1 min-w-0 flex flex-col gap-4">
+                {previewError && <p className="text-sm text-red-400">{previewError}</p>}
                 <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
                   <iframe
                     title="Website preview"
