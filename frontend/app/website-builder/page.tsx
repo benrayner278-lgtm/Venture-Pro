@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
 import StyleEditor from '@/components/StyleEditor';
+import TextEditPanel from '@/components/TextEditPanel';
+import { ContentPath, describePath, getAt, setAt } from '@/lib/contentPath';
 
 type Step = 'form' | 'generating' | 'result';
 type View = 'preview' | 'style' | 'contact' | 'portfolio';
@@ -60,6 +62,7 @@ export default function WebsiteBuilderPage() {
   const handleTweak = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content || !tweak.trim()) return;
+    setEditingPath(null);
     setTweaking(true);
     try {
       // Contact details and photos are kept by the builder, so they are not sent to the AI.
@@ -83,12 +86,34 @@ export default function WebsiteBuilderPage() {
   const [previewContent, setPreviewContent] = useState<WebsiteContent | null>(null);
   const [html, setHtml] = useState('');
   const [previewError, setPreviewError] = useState('');
+  // Maps each clickable piece of text in the preview to its place in the content.
+  const [editPaths, setEditPaths] = useState<Record<string, ContentPath>>({});
+  const [editingPath, setEditingPath] = useState<ContentPath | null>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
 
   // Wait for a pause in editing before asking the server for a new preview.
   useEffect(() => {
     const timer = setTimeout(() => setPreviewContent(content), 400);
     return () => clearTimeout(timer);
   }, [content]);
+
+  // The preview sends a message when its text is double-clicked. Only the preview frame is trusted.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== frameRef.current?.contentWindow) return;
+      if (event.data?.type !== 'edit-text') return;
+      const path = editPaths[event.data.id];
+      if (path) setEditingPath(path);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [editPaths]);
+
+  const saveEdit = (text: string) => {
+    if (!content || !editingPath) return;
+    setContent(setAt(content, editingPath, text));
+    setEditingPath(null);
+  };
 
   const openPortfolio = () => {
     if (!content) return;
@@ -102,12 +127,13 @@ export default function WebsiteBuilderPage() {
   useEffect(() => {
     if (!previewContent) return;
     let cancelled = false;
-    apiFetch('/api/sites/preview', { method: 'POST', json: { content: previewContent, themeId, shuffle } })
+    apiFetch('/api/sites/preview', { method: 'POST', json: { content: previewContent, themeId, shuffle, editable: true } })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Preview failed');
         if (!cancelled) {
           setHtml(data.html);
+          setEditPaths(data.paths || {});
           setPreviewError('');
         }
       })
@@ -119,11 +145,19 @@ export default function WebsiteBuilderPage() {
     };
   }, [previewContent, themeId, shuffle]);
 
-  const downloadWebsite = () => {
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  const downloadWebsite = async () => {
+    if (!content) return;
+    // The download is the plain page, without the editing markup the preview uses.
+    const response = await apiFetch('/api/sites/preview', { method: 'POST', json: { content, themeId, shuffle } });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Could not download the website');
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([data.html], { type: 'text/html' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${(content?.brand.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`;
+    link.download = `${(content.brand.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -282,7 +316,8 @@ export default function WebsiteBuilderPage() {
                 <div className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3">
                   <p className="text-sm font-medium text-white">You can change all of this at any time.</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Edits show in the preview straight away. To update your published site, click Update live site in the Publish panel.
+                    Double-click any text in the preview to edit it. You can also change the style, contact details and photos from the tabs below.
+                    To update your published site, click Update live site in the Publish panel.
                   </p>
                 </div>
 
@@ -310,13 +345,28 @@ export default function WebsiteBuilderPage() {
                 {previewError && <p className="text-sm text-red-400">{previewError}</p>}
 
                 {view === 'preview' && (
-                  <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
-                    <iframe
-                      title="Website preview"
-                      srcDoc={html}
-                      className="w-full h-full min-h-[70vh] bg-black"
-                    />
-                  </div>
+                  <>
+                    {editingPath && (
+                      <TextEditPanel
+                        key={editingPath.join('.')}
+                        label={describePath(content, editingPath)}
+                        initialText={String(getAt(content, editingPath) ?? '')}
+                        multiline={editingPath.includes('paragraphs') || editingPath.includes('description')}
+                        onSave={saveEdit}
+                        onCancel={() => setEditingPath(null)}
+                      />
+                    )}
+                    {/* Scripts are allowed only so double-clicks can be reported. Without same-origin access, the preview cannot reach this page. */}
+                    <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
+                      <iframe
+                        ref={frameRef}
+                        title="Website preview"
+                        srcDoc={html}
+                        sandbox="allow-scripts"
+                        className="w-full h-full min-h-[70vh] bg-black"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {view === 'style' && (

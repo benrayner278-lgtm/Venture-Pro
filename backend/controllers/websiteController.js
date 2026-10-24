@@ -112,4 +112,42 @@ Specific requests: ${requests || 'none'}`;
   }
 };
 
-module.exports = { generateWebsite };
+const PROOFREAD_PROMPT = `You check text for spelling and punctuation mistakes. Fix only spelling, capitalisation, punctuation and obvious typos. Keep the meaning, wording, tone and British English spelling. Do not rephrase anything.
+
+Respond with only a JSON object, no markdown or code fences:
+{"corrected": string, "changes": [{"from": string, "to": string}]}
+If the text is already correct, return it unchanged with an empty changes array.`;
+
+const MAX_PROOFREAD_CHARS = 2000;
+
+const proofreadText = async (req, res) => {
+  try {
+    const text = typeof req.body?.text === 'string' ? req.body.text : '';
+    if (!text.trim()) return res.status(400).json({ error: 'There is no text to check' });
+    if (text.length > MAX_PROOFREAD_CHARS) {
+      return res.status(400).json({ error: `Check up to ${MAX_PROOFREAD_CHARS} characters at a time` });
+    }
+
+    const response = await getAnthropic().messages.create({
+      model: 'claude-sonnet-5-5',
+      max_tokens: 2000,
+      system: PROOFREAD_PROMPT,
+      messages: [{ role: 'user', content: text }],
+    });
+    if (response.stop_reason === 'max_tokens') throw new Error('Proofread response was cut off');
+    const reply = response.content.find((block) => block.type === 'text')?.text || '';
+    const cleaned = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+    const result = JSON.parse(cleaned);
+    if (typeof result.corrected !== 'string') throw new Error('Proofread response had no corrected text');
+
+    const changes = (Array.isArray(result.changes) ? result.changes : [])
+      .filter((change) => change && typeof change.from === 'string' && typeof change.to === 'string')
+      .slice(0, 20);
+    res.json({ corrected: result.corrected, changes });
+  } catch (error) {
+    console.error('Proofread error:', error);
+    res.status(500).json({ error: 'Could not check the text' });
+  }
+};
+
+module.exports = { generateWebsite, proofreadText };

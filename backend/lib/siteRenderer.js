@@ -331,4 +331,41 @@ const designKey = (content, themeId, shuffle) => {
   return crypto.createHash('sha256').update(`${css}|${structure}`).digest('hex').slice(0, 24);
 };
 
-module.exports = { renderSite, designKey };
+// Builder preview only. Each piece of text is wrapped so the builder can find the field it came from when it is double-clicked.
+const EDIT_SKIP_KEYS = new Set(['type', 'style', 'design', 'nav', 'image', 'brand']);
+const TEXT_TOKEN = /\u0001(\d+)\u0002/g;
+const EDIT_HELPERS = `<style>[data-edit]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px;transition:outline-color .2s}[data-edit]:hover{outline-color:currentColor}</style>
+<script>document.addEventListener('dblclick',function(e){var el=e.target.closest&&e.target.closest('[data-edit]');if(!el)return;var s=window.getSelection();if(s)s.removeAllRanges();parent.postMessage({type:'edit-text',id:el.getAttribute('data-edit')},'*')});</script>
+`;
+
+// Swaps each non-empty text value for a marker, keeping the path to where it came from.
+const markText = (value, path, leaves) => {
+  if (Array.isArray(value)) return value.map((item, i) => markText(item, [...path, i], leaves));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, EDIT_SKIP_KEYS.has(key) ? item : markText(item, [...path, key], leaves)]),
+    );
+  }
+  if (typeof value === 'string' && value.trim()) {
+    leaves.push({ path, text: value });
+    return `\u0001${leaves.length - 1}\u0002`;
+  }
+  return value;
+};
+
+const renderEditablePreview = (content, themeId = 'midnight', shuffle = 0) => {
+  const leaves = [];
+  const marked = markText(content, [], leaves);
+  const html = renderSite(marked, themeId, shuffle);
+  // Markers in the title stay plain text. Markers between tags get a span the builder can click.
+  const headEnd = html.indexOf('</head>');
+  const page = html.replace(TEXT_TOKEN, (token, n, offset, all) => {
+    const escaped = escapeHtml(leaves[Number(n)].text);
+    const betweenTags = offset > headEnd && all[offset - 1] === '>' && all[offset + token.length] === '<';
+    return betweenTags ? `<span data-edit="${n}">${escaped}</span>` : escaped;
+  });
+  const paths = Object.fromEntries(leaves.map((leaf, i) => [i, leaf.path]));
+  return { html: page.replace('</body>', `${EDIT_HELPERS}</body>`), paths };
+};
+
+module.exports = { renderSite, designKey, renderEditablePreview };

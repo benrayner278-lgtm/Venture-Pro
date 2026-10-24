@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
-const { renderSite, designKey } = require('../lib/siteRenderer');
+const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
 const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
 
@@ -89,10 +89,13 @@ const checkSlug = async (req, res) => {
 };
 
 const previewSite = async (req, res) => {
-  const { themeId, shuffle } = req.body;
+  const { themeId, shuffle, editable } = req.body;
   const content = cleanContent(req.body.content);
   if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
-  res.json({ html: renderSite(content, PRESET_IDS.includes(themeId) ? themeId : 'midnight', shuffle) });
+  const preset = PRESET_IDS.includes(themeId) ? themeId : 'midnight';
+  // The builder asks for the editable preview. Published sites never use it.
+  if (editable) return res.json(renderEditablePreview(content, preset, shuffle));
+  res.json({ html: renderSite(content, preset, shuffle) });
 };
 
 const createSite = async (req, res) => {
