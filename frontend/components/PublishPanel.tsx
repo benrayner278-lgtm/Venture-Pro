@@ -16,10 +16,12 @@ export default function PublishPanel({
   content,
   themeId,
   shuffle,
+  onShuffleChange,
 }: {
   content: WebsiteContent;
   themeId: string;
   shuffle: number;
+  onShuffleChange: (seed: number) => void;
 }) {
   const [slug, setSlug] = useState('');
   const [check, setCheck] = useState<SlugCheck | null>(null);
@@ -63,6 +65,7 @@ export default function PublishPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not publish the site');
       setLive(data.site);
+      if (data.site.shuffle !== shuffle) onShuffleChange(data.site.shuffle);
       setMessage('Your site is live.');
       loadSites();
     } catch (error) {
@@ -83,6 +86,7 @@ export default function PublishPanel({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not update the site');
+      if (data.site.shuffle !== shuffle) onShuffleChange(data.site.shuffle);
       setMessage('Live site updated.');
       loadSites();
     } catch (error) {

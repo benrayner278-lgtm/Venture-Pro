@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { WEBSITE_THEMES, WebsiteContent } from '@/lib/websiteTemplates';
+import { WEBSITE_PRESETS, WebsiteContent, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 
@@ -18,7 +18,7 @@ export default function WebsiteBuilderPage() {
     requests: '',
   });
   const [content, setContent] = useState<WebsiteContent | null>(null);
-  const [themeId, setThemeId] = useState(WEBSITE_THEMES[0].id);
+  const [themeId, setThemeId] = useState(WEBSITE_PRESETS[0].id);
   const [shuffle, setShuffle] = useState(0);
   const [tweak, setTweak] = useState('');
   const [tweaking, setTweaking] = useState(false);
@@ -45,6 +45,7 @@ export default function WebsiteBuilderPage() {
     setStep('generating');
     try {
       setContent(await requestContent({}));
+      setShuffle(randomLayoutSeed());
       setStep('result');
     } catch (error) {
       console.error('Error generating website:', error);
@@ -58,7 +59,12 @@ export default function WebsiteBuilderPage() {
     if (!content || !tweak.trim()) return;
     setTweaking(true);
     try {
-      setContent(await requestContent({ currentContent: content, instruction: tweak.trim() }));
+      const updated = await requestContent({ currentContent: content, instruction: tweak.trim() });
+      if (JSON.stringify(updated) === JSON.stringify(content)) {
+        alert('The AI did not change anything. Try describing the change more specifically.');
+        return;
+      }
+      setContent(updated);
       setTweak('');
     } catch (error) {
       console.error('Error applying change:', error);
@@ -199,7 +205,7 @@ export default function WebsiteBuilderPage() {
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</p>
                   <div className="space-y-1.5">
-                    {WEBSITE_THEMES.map((theme) => {
+                    {WEBSITE_PRESETS.map((theme) => {
                       const selected = theme.id === themeId;
                       return (
                         <button
@@ -225,7 +231,7 @@ export default function WebsiteBuilderPage() {
 
                 <div className="space-y-2">
                   <button
-                    onClick={() => setShuffle((n) => n + 1)}
+                    onClick={() => setShuffle(randomLayoutSeed())}
                     className="w-full border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl transition font-medium text-sm"
                   >
                     Shuffle layout
@@ -247,7 +253,7 @@ export default function WebsiteBuilderPage() {
                   </button>
                 </div>
 
-                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} />
+                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} />
               </aside>
 
               <div className="flex-1 min-w-0 flex flex-col gap-4">
