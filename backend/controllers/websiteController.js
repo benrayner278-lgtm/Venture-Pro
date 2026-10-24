@@ -84,7 +84,7 @@ Specific requests: ${requests || 'none'}`;
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       });
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      const text = response.content.find((block) => block.type === 'text')?.text || '';
       try {
         if (response.stop_reason === 'max_tokens') {
           throw new Error('Response was cut off before the JSON finished');
