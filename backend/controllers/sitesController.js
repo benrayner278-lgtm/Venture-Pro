@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey } = require('../lib/siteRenderer');
 const { PRESET_IDS } = require('../lib/designPresets');
+const { cleanStyle } = require('../lib/styleOptions');
 
 const prisma = new PrismaClient();
 
@@ -30,6 +31,7 @@ const slugProblem = (slug) => {
 const cleanContent = (content) => {
   if (!content || typeof content !== 'object') return content;
   const next = { ...content };
+  if (content.style) next.style = cleanStyle(content.style);
   if (content.contact && typeof content.contact === 'object') {
     const contact = content.contact;
     next.contact = {
@@ -206,7 +208,7 @@ const publicSite = async (req, res) => {
   res
     .set({
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'public, max-age=60',
     })

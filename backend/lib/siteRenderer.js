@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { PRESETS, EFFECTS } = require('./designPresets');
+const { applyStyle, googleFontsLink } = require('./styleOptions');
 
 const escapeHtml = (text) =>
   String(text ?? '')
@@ -93,7 +94,9 @@ const renderSection = (section, index, seed, brand) => {
           : `<div class="thumb thumb-${i % 3}"><span class="tag">${escapeHtml(item.tag || 'Project')}</span></div>`;
         return `<div class="tile${wide ? ' wide' : ''}">${thumb}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p></div>`;
       };
-      const variant = v(['grid', 'featured', 'list']);
+      // Photos only show in the grid and featured layouts, so a portfolio with photos never uses the text-only list.
+      const hasPhotos = items.some((item) => safeImage(item.image));
+      const variant = hasPhotos ? v(['grid', 'featured']) : v(['grid', 'featured', 'list']);
       if (variant === 'featured' && items.length > 1) {
         const [first, ...rest] = items;
         return `<section><div class="wrap">${title(section.title)}${intro}<div class="gallery">${tile(first, 0, true)}${rest.map((item, i) => tile(item, i + 1)).join('')}</div></div></section>`;
@@ -150,9 +153,9 @@ const renderSection = (section, index, seed, brand) => {
 };
 
 const themeCss = (t) => `
-:root{--bg:${t.bg};--surface:${t.surface};--text:${t.text};--muted:${t.muted};--accent:${t.accent};--accent-text:${t.accentText};--border:${t.border};--radius:${t.radius}}
+:root{--bg:${t.bg};--surface:${t.surface};--text:${t.text};--muted:${t.muted};--accent:${t.accent};--accent-text:${t.accentText};--border:${t.border};--radius:${t.radius};--space:${t.space}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:${t.font};line-height:1.6;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);color:var(--text);font-family:${t.font};line-height:1.6;-webkit-font-smoothing:antialiased;filter:${t.filter}}
 a{color:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 .narrow{max-width:760px}
@@ -162,8 +165,8 @@ nav .links{display:flex;gap:24px;font-size:14px;color:var(--muted)}
 .btn{display:inline-block;padding:14px 26px;border-radius:var(--radius);font-weight:600;text-decoration:none;font-size:15px}
 .btn-primary{background:var(--accent);color:var(--accent-text)}
 .btn-secondary{border:1px solid var(--border)}
-section{padding:96px 0;border-top:1px solid var(--border)}
-.hero{padding:120px 0 104px;border-top:none}
+section{padding:calc(96px * var(--space)) 0;border-top:1px solid var(--border)}
+.hero{padding:120px 0 104px;border-top:none;background:${t.heroBackground}}
 .hero-centred{text-align:center}
 .hero-editorial .wrap{max-width:820px}
 .hero-split .split{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}
@@ -273,7 +276,7 @@ const compose = (content) => {
 
 // Builds the page parts shared by the public page and the design fingerprint.
 const buildPage = (content, themeId, shuffle) => {
-  const t = PRESETS.find((preset) => preset.id === themeId) || PRESETS[0];
+  const t = applyStyle(PRESETS.find((preset) => preset.id === themeId) || PRESETS[0], content.style);
   const brand = content.brand?.name || 'Website';
   const seed = Number(shuffle) || 0;
   const effect = EFFECTS.includes(content.design?.effect) ? content.design.effect : EFFECTS[mix(seed, 'effect') % EFFECTS.length];
@@ -308,6 +311,7 @@ const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(brand)}</title>
+${googleFontsLink(content.style)}
 <style>${css}</style>
 </head>
 <body class="effect-${effect}">
