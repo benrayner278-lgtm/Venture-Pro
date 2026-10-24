@@ -256,34 +256,79 @@ export default function WebsiteBuilderPage() {
           )}
 
           {step === 'result' && content && (
-            <div className="flex gap-6 h-full">
-              <aside className="w-60 shrink-0 space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <aside className="w-full lg:w-96 shrink-0 space-y-6">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</p>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</label>
+                  <select
+                    value={themeId}
+                    onChange={(e) => setThemeId(e.target.value)}
+                    className="w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition"
+                  >
+                    {WEBSITE_PRESETS.map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.name}: {theme.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Edit your site</p>
                   <div className="space-y-1.5">
-                    {WEBSITE_PRESETS.map((theme) => {
-                      const selected = theme.id === themeId;
-                      return (
-                        <button
-                          key={theme.id}
-                          onClick={() => setThemeId(theme.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition ${
-                            selected ? 'bg-white/[0.07] text-white' : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-200'
-                          }`}
-                        >
-                          <span
-                            className="w-7 h-7 rounded-full border border-white/15 shrink-0"
-                            style={{ background: `linear-gradient(135deg, ${theme.bg} 50%, ${theme.accent} 50%)` }}
-                          />
-                          <span>
-                            <span className="block text-sm font-medium">{theme.name}</span>
-                            <span className="block text-xs text-gray-500">{theme.description}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
+                    {(
+                      [
+                        { id: 'style', label: 'Edit style and fonts' },
+                        { id: 'contact', label: 'Edit contact details' },
+                        { id: 'portfolio', label: 'Edit portfolio and photos' },
+                      ] as { id: View; label: string }[]
+                    ).map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setEditingPath(null);
+                          if (view === tab.id) return setView('preview');
+                          if (tab.id === 'portfolio') return openPortfolio();
+                          setView(tab.id);
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-lg text-left text-sm transition ${
+                          view === tab.id ? 'bg-white text-black font-medium' : 'border border-white/10 text-gray-300 hover:bg-white/5'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
+
+                {editingPath && (
+                  <TextEditPanel
+                    key={editingPath.join('.')}
+                    label={describePath(content, editingPath)}
+                    initialText={String(getAt(content, editingPath) ?? '')}
+                    multiline={editingPath.includes('paragraphs') || editingPath.includes('description')}
+                    onSave={saveEdit}
+                    onCancel={() => setEditingPath(null)}
+                  />
+                )}
+                {!editingPath && view === 'preview' && (
+                  <p className="text-xs text-gray-500">Double-click any text in the preview to edit it.</p>
+                )}
+                {!editingPath && view === 'style' && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+                    <StyleEditor value={content.style || {}} onChange={(style) => setContent({ ...content, style })} />
+                  </div>
+                )}
+                {!editingPath && view === 'contact' && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+                    <ContactEditor value={content.contact || {}} onChange={(contact) => setContent({ ...content, contact })} />
+                  </div>
+                )}
+                {!editingPath && view === 'portfolio' && content.portfolio && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+                    <PortfolioEditor value={content.portfolio} onChange={(portfolio) => setContent({ ...content, portfolio })} />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <button
@@ -312,80 +357,26 @@ export default function WebsiteBuilderPage() {
                 <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} />
               </aside>
 
-              <div className="flex-1 min-w-0 flex flex-col gap-4">
+              <div className="flex-1 min-w-0 flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
                 <div className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3">
                   <p className="text-sm font-medium text-white">You can change all of this at any time.</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Double-click any text in the preview to edit it. You can also change the style, contact details and photos from the tabs below.
-                    To update your published site, click Update live site in the Publish panel.
+                    The preview stays here while you edit. To update your published site, click Update live site in the Publish panel.
                   </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      { id: 'preview', label: 'Preview' },
-                      { id: 'style', label: 'Edit style and fonts' },
-                      { id: 'contact', label: 'Edit contact details' },
-                      { id: 'portfolio', label: 'Edit portfolio and photos' },
-                    ] as { id: View; label: string }[]
-                  ).map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => (tab.id === 'portfolio' ? openPortfolio() : setView(tab.id))}
-                      className={`px-4 py-2 rounded-lg text-sm transition ${
-                        view === tab.id ? 'bg-white text-black font-medium' : 'border border-white/10 text-gray-300 hover:bg-white/5'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
                 </div>
 
                 {previewError && <p className="text-sm text-red-400">{previewError}</p>}
 
-                {view === 'preview' && (
-                  <>
-                    {editingPath && (
-                      <TextEditPanel
-                        key={editingPath.join('.')}
-                        label={describePath(content, editingPath)}
-                        initialText={String(getAt(content, editingPath) ?? '')}
-                        multiline={editingPath.includes('paragraphs') || editingPath.includes('description')}
-                        onSave={saveEdit}
-                        onCancel={() => setEditingPath(null)}
-                      />
-                    )}
-                    {/* Scripts are allowed only so double-clicks can be reported. Without same-origin access, the preview cannot reach this page. */}
-                    <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
-                      <iframe
-                        ref={frameRef}
-                        title="Website preview"
-                        srcDoc={html}
-                        sandbox="allow-scripts"
-                        className="w-full h-full min-h-[70vh] bg-black"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {view === 'style' && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-                    <StyleEditor value={content.style || {}} onChange={(style) => setContent({ ...content, style })} />
-                  </div>
-                )}
-
-                {view === 'contact' && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-                    <ContactEditor value={content.contact || {}} onChange={(contact) => setContent({ ...content, contact })} />
-                  </div>
-                )}
-
-                {view === 'portfolio' && content.portfolio && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-                    <PortfolioEditor value={content.portfolio} onChange={(portfolio) => setContent({ ...content, portfolio })} />
-                  </div>
-                )}
+                {/* Scripts are allowed only so double-clicks can be reported. Without same-origin access, the preview cannot reach this page. */}
+                <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] h-[60vh] lg:h-[calc(100vh-15rem)] min-h-[480px]">
+                  <iframe
+                    ref={frameRef}
+                    title="Website preview"
+                    srcDoc={html}
+                    sandbox="allow-scripts"
+                    className="w-full h-full bg-black"
+                  />
+                </div>
 
                 <form onSubmit={handleTweak} className="relative">
                   <input
