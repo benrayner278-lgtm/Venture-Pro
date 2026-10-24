@@ -11,8 +11,12 @@ const RESERVED_SLUGS = new Set([
   'dashboard', 'login', 'signup', 'billing', 'status', 'docs', 'account', 'settings',
 ]);
 const PLAN_LIMITS = { free: 0, starter: 1, professional: 5, enterprise: Infinity };
-const MAX_CONTENT_BYTES = 200 * 1024;
+const MAX_CONTENT_BYTES = 4 * 1024 * 1024;
 const MAX_DESIGN_TRIES = 25;
+const MAX_PHOTOS = 8;
+// Photos are stored inside the site content as small JPEGs. The frontend resizes them to fit.
+const PHOTO_PATTERN = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,400000}$/;
+const clip = (value, max) => String(value ?? '').slice(0, max);
 
 const randomSeed = () => crypto.randomInt(1, 2147483647);
 
@@ -20,6 +24,34 @@ const slugProblem = (slug) => {
   if (!SLUG_PATTERN.test(slug)) return 'Use 3 to 40 letters, numbers or hyphens, starting and ending with a letter or number.';
   if (RESERVED_SLUGS.has(slug)) return 'That address is reserved. Please choose another.';
   return null;
+};
+
+// Keeps only the owner's contact details and portfolio fields, with length limits and valid photos.
+const cleanContent = (content) => {
+  if (!content || typeof content !== 'object') return content;
+  const next = { ...content };
+  if (content.contact && typeof content.contact === 'object') {
+    const contact = content.contact;
+    next.contact = {
+      phone: clip(contact.phone, 40),
+      email: clip(contact.email, 120),
+      address: clip(contact.address, 300),
+      hours: clip(contact.hours, 200),
+    };
+  }
+  if (content.portfolio && typeof content.portfolio === 'object') {
+    const items = Array.isArray(content.portfolio.items) ? content.portfolio.items.slice(0, MAX_PHOTOS) : [];
+    next.portfolio = {
+      title: clip(content.portfolio.title || 'Our work', 80),
+      items: items.map((item) => ({
+        title: clip(item.title, 80),
+        description: clip(item.description, 400),
+        tag: clip(item.tag || 'Project', 40),
+        ...(PHOTO_PATTERN.test(item.image || '') ? { image: item.image } : {}),
+      })),
+    };
+  }
+  return next;
 };
 
 const validContent = (content) =>
@@ -55,14 +87,16 @@ const checkSlug = async (req, res) => {
 };
 
 const previewSite = async (req, res) => {
-  const { content, themeId, shuffle } = req.body;
+  const { themeId, shuffle } = req.body;
+  const content = cleanContent(req.body.content);
   if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
   res.json({ html: renderSite(content, PRESET_IDS.includes(themeId) ? themeId : 'midnight', shuffle) });
 };
 
 const createSite = async (req, res) => {
   try {
-    const { slug: rawSlug, content, themeId, shuffle } = req.body;
+    const { slug: rawSlug, themeId, shuffle } = req.body;
+    const content = cleanContent(req.body.content);
     const slug = String(rawSlug || '').toLowerCase();
     const problem = slugProblem(slug);
     if (problem) return res.status(400).json({ error: problem });
@@ -127,7 +161,8 @@ const updateSite = async (req, res) => {
   try {
     const site = await findOwnedSite(req, res);
     if (!site) return;
-    const { content, themeId, shuffle } = req.body;
+    const { themeId, shuffle } = req.body;
+    const content = cleanContent(req.body.content);
     if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
 
     const preset = PRESET_IDS.includes(themeId) ? themeId : site.themeId;

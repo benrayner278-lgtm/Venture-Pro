@@ -86,8 +86,13 @@ const renderSection = (section, index, seed, brand) => {
     case 'gallery': {
       const intro = section.intro ? `<p class="lead">${escapeHtml(section.intro)}</p>` : '';
       const items = section.items || [];
-      const tile = (item, i, wide = false) =>
-        `<div class="tile${wide ? ' wide' : ''}"><div class="thumb thumb-${i % 3}"><span class="tag">${escapeHtml(item.tag || 'Project')}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p></div>`;
+      const tile = (item, i, wide = false) => {
+        const photo = safeImage(item.image);
+        const thumb = photo
+          ? `<div class="thumb has-image"><img src="${photo}" alt="${escapeHtml(item.title)}"><span class="tag">${escapeHtml(item.tag || 'Project')}</span></div>`
+          : `<div class="thumb thumb-${i % 3}"><span class="tag">${escapeHtml(item.tag || 'Project')}</span></div>`;
+        return `<div class="tile${wide ? ' wide' : ''}">${thumb}<h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p></div>`;
+      };
       const variant = v(['grid', 'featured', 'list']);
       if (variant === 'featured' && items.length > 1) {
         const [first, ...rest] = items;
@@ -119,6 +124,8 @@ const renderSection = (section, index, seed, brand) => {
       const details = [
         section.email ? `<a href="mailto:${escapeHtml(section.email)}">${escapeHtml(section.email)}</a>` : '',
         section.phone ? `<span>${escapeHtml(section.phone)}</span>` : '',
+        section.address ? `<span>${escapeHtml(section.address)}</span>` : '',
+        section.hours ? `<span>${escapeHtml(section.hours)}</span>` : '',
       ].filter(Boolean).join('');
       if (v(['centred', 'split']) === 'split') {
         return `<section><div class="wrap text-cols"><div>${title(section.title)}<p class="lead">${escapeHtml(section.body)}</p></div><div class="card contact-card">${details}</div></div></section>`;
@@ -200,6 +207,9 @@ h2{font-size:clamp(28px,4vw,44px);margin:0 0 20px}
 .tile.wide .thumb{aspect-ratio:21/9}
 .tag{display:inline-block;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
 .thumb .tag{position:absolute;left:14px;bottom:14px;background:var(--bg)}
+.thumb.has-image{overflow:hidden;background:var(--surface)}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.footer-contact{margin-top:10px;font-size:13px}
 .tile h3{font-size:18px;text-transform:none;font-weight:600;margin:0 0 6px}
 .tile p{margin:0;color:var(--muted);font-size:15px}
 .price-card ul{list-style:none;padding:0;margin:18px 0 0;color:var(--muted);font-size:15px;text-align:left}
@@ -223,13 +233,51 @@ footer{padding:40px 0;border-top:1px solid var(--border);color:var(--muted);font
 @media (prefers-reduced-motion:reduce){.effect-reveal section>.wrap,.effect-stack section{animation:none}}
 `;
 
+// Only JPEG photos stored in the site content are shown. Anything else is dropped.
+const SAFE_IMAGE = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
+const safeImage = (src) => (SAFE_IMAGE.test(src || '') ? src : '');
+
+// Applies the owner's contact details and portfolio on top of the AI's sections.
+const compose = (content) => {
+  const contact = content.contact || {};
+  const hasContact = Object.values(contact).some(Boolean);
+  let sections = Array.isArray(content.sections)
+    ? content.sections.map((s) =>
+        s.type === 'contact' ? { ...s, email: contact.email || s.email, phone: contact.phone || s.phone, address: contact.address, hours: contact.hours } : s,
+      )
+    : [];
+  if (hasContact && !sections.some((s) => s.type === 'contact')) {
+    sections = [
+      ...sections,
+      { type: 'contact', title: 'Contact us', body: 'Get in touch and we will get back to you.', email: contact.email, phone: contact.phone, address: contact.address, hours: contact.hours },
+    ];
+  }
+
+  const portfolio = content.portfolio;
+  if (portfolio && typeof portfolio === 'object') {
+    const items = Array.isArray(portfolio.items) ? portfolio.items : [];
+    const block = items.length ? { type: 'gallery', title: portfolio.title || 'Our work', intro: '', items } : null;
+    const first = sections.findIndex((s) => s.type === 'gallery');
+    if (first === -1) {
+      if (block) {
+        const cta = sections.findIndex((s) => s.type === 'cta');
+        const at = cta === -1 ? sections.length : cta;
+        sections = [...sections.slice(0, at), block, ...sections.slice(at)];
+      }
+    } else {
+      sections = sections.flatMap((s, i) => (s.type !== 'gallery' ? [s] : i === first && block ? [block] : []));
+    }
+  }
+  return { sections, contact };
+};
+
 // Builds the page parts shared by the public page and the design fingerprint.
 const buildPage = (content, themeId, shuffle) => {
   const t = PRESETS.find((preset) => preset.id === themeId) || PRESETS[0];
   const brand = content.brand?.name || 'Website';
   const seed = Number(shuffle) || 0;
   const effect = EFFECTS.includes(content.design?.effect) ? content.design.effect : EFFECTS[mix(seed, 'effect') % EFFECTS.length];
-  const sections = Array.isArray(content.sections) ? content.sections : [];
+  const { sections, contact } = compose(content);
 
   const primary = sections.find((s) => s.type === 'hero');
   const navLinks = (content.nav || []).slice(0, 5).map((label) => `<a href="#">${escapeHtml(label)}</a>`).join('');
@@ -244,8 +292,9 @@ const buildPage = (content, themeId, shuffle) => {
   ${navCta}
 </nav>
 </div>`;
+  const footerContact = [contact.email, contact.phone, contact.address].filter(Boolean).map(escapeHtml).join(' · ');
   const footer = `<footer>
-<div class="wrap">${escapeHtml(content.footer?.note)}</div>
+<div class="wrap">${escapeHtml(content.footer?.note)}${footerContact ? `<div class="footer-contact">${footerContact}</div>` : ''}</div>
 </footer>`;
   return { brand, effect, css, navHtml, body, footer };
 };
@@ -273,7 +322,8 @@ ${footer}
 // Two sites with the same fingerprint would look the same to a visitor.
 const designKey = (content, themeId, shuffle) => {
   const { effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle);
-  const structure = `${effect}|${navHtml}${body}${footer}`.replace(/>[^<]+</g, '><');
+  // Photo data is left out so two sites with the same layout still match, whatever photos they use.
+  const structure = `${effect}|${navHtml}${body}${footer}`.replace(/>[^<]+</g, '><').replace(/src="[^"]*"/g, 'src=""');
   return crypto.createHash('sha256').update(`${css}|${structure}`).digest('hex').slice(0, 24);
 };
 

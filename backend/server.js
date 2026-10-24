@@ -21,7 +21,7 @@ const { handleWebhook } = require('./controllers/checkoutController');
 app.post('/api/checkout/webhook', express.raw({ type: 'application/json' }), handleWebhook);
 
 // Regular JSON middleware
-app.use(express.json({ limit: '300kb' }));
+app.use(express.json({ limit: '5mb' }));
 
 // Routes
 const authRoutes = require('./routes/auth');
