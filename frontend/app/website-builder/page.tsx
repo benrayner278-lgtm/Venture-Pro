@@ -6,9 +6,10 @@ import { WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } fro
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
+import StyleEditor from '@/components/StyleEditor';
 
 type Step = 'form' | 'generating' | 'result';
-type View = 'preview' | 'contact' | 'portfolio';
+type View = 'preview' | 'style' | 'contact' | 'portfolio';
 
 export default function WebsiteBuilderPage() {
   const [step, setStep] = useState<Step>('form');
@@ -62,13 +63,13 @@ export default function WebsiteBuilderPage() {
     setTweaking(true);
     try {
       // Contact details and photos are kept by the builder, so they are not sent to the AI.
-      const { contact, portfolio, ...siteOnly } = content;
+      const { contact, portfolio, style, ...siteOnly } = content;
       const updated = await requestContent({ currentContent: siteOnly, instruction: tweak.trim() });
       if (JSON.stringify(updated) === JSON.stringify(siteOnly)) {
         alert('The AI did not change anything. Try describing the change more specifically.');
         return;
       }
-      setContent({ ...updated, contact, portfolio });
+      setContent({ ...updated, contact, portfolio, style });
       setTweak('');
     } catch (error) {
       console.error('Error applying change:', error);
@@ -289,6 +290,7 @@ export default function WebsiteBuilderPage() {
                   {(
                     [
                       { id: 'preview', label: 'Preview' },
+                      { id: 'style', label: 'Edit style and fonts' },
                       { id: 'contact', label: 'Edit contact details' },
                       { id: 'portfolio', label: 'Edit portfolio and photos' },
                     ] as { id: View; label: string }[]
@@ -314,6 +316,12 @@ export default function WebsiteBuilderPage() {
                       srcDoc={html}
                       className="w-full h-full min-h-[70vh] bg-black"
                     />
+                  </div>
+                )}
+
+                {view === 'style' && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+                    <StyleEditor value={content.style || {}} onChange={(style) => setContent({ ...content, style })} />
                   </div>
                 )}
 

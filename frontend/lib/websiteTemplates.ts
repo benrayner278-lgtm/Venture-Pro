@@ -31,6 +31,20 @@ export type Portfolio = {
   items: PortfolioItem[];
 };
 
+export type StyleSettings = {
+  headingFont?: string | null;
+  bodyFont?: string | null;
+  headingCase?: 'preset' | 'none' | 'uppercase' | 'capitalize';
+  gradient?: { enabled: boolean; from: string; to: string; angle: number };
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  // 0 is very rounded, 100 is square-cornered. Null keeps the preset's corners.
+  corners?: number | null;
+  // Space between sections, as a percentage of the preset's spacing.
+  spacing?: number;
+};
+
 export type WebsiteContent = {
   brand: { name: string; tagline: string };
   nav?: string[];
@@ -40,10 +54,48 @@ export type WebsiteContent = {
   // Set by the owner in the builder. The AI never changes these.
   contact?: ContactDetails;
   portfolio?: Portfolio;
+  style?: StyleSettings;
 };
 
 // Keep in step with MAX_PHOTOS in backend/controllers/sitesController.js.
 export const MAX_PHOTOS = 8;
+
+// Keys must match FONTS in backend/lib/styleOptions.js. Null means the preset's own font.
+export const FONT_OPTIONS: { key: string; label: string }[] = [
+  { key: 'system', label: 'System default' },
+  { key: 'georgia', label: 'Georgia (classic serif)' },
+  { key: 'inter', label: 'Inter (clean sans)' },
+  { key: 'montserrat', label: 'Montserrat (geometric)' },
+  { key: 'poppins', label: 'Poppins (friendly)' },
+  { key: 'nunito', label: 'Nunito (rounded)' },
+  { key: 'space', label: 'Space Grotesk (technical)' },
+  { key: 'oswald', label: 'Oswald (condensed)' },
+  { key: 'bebas', label: 'Bebas Neue (poster)' },
+  { key: 'playfair', label: 'Playfair Display (elegant serif)' },
+  { key: 'lora', label: 'Lora (book serif)' },
+  { key: 'merriweather', label: 'Merriweather (readable serif)' },
+  { key: 'dmserif', label: 'DM Serif Display (bold serif)' },
+  { key: 'mono', label: 'Roboto Mono (monospace)' },
+];
+
+export const HEADING_CASE_OPTIONS: { value: StyleSettings['headingCase']; label: string }[] = [
+  { value: 'preset', label: 'Preset default' },
+  { value: 'none', label: 'Normal' },
+  { value: 'uppercase', label: 'UPPERCASE' },
+  { value: 'capitalize', label: 'Capitalise Each Word' },
+];
+
+export const DEFAULT_STYLE: StyleSettings = {
+  headingFont: null,
+  bodyFont: null,
+  headingCase: 'preset',
+  gradient: { enabled: false, from: '#1e3a8a', to: '#0f172a', angle: 135 },
+  brightness: 100,
+  contrast: 100,
+  saturation: 100,
+  corners: null,
+  spacing: 100,
+};
 
 // Ids and names must match backend/lib/designPresets.js. Only the swatch colours are needed here.
 export type WebsitePreset = {
