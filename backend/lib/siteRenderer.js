@@ -1,10 +1,5 @@
-const THEMES = [
-  { id: 'midnight', bg: '#05070d', surface: '#0d1220', text: '#e5e7eb', muted: '#94a3b8', accent: '#60a5fa', accentText: '#05070d', border: 'rgba(148,163,184,0.18)', font: "Inter, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif", radius: '16px', headingWeight: 700, headingTransform: 'none' },
-  { id: 'paper', bg: '#faf7f2', surface: '#ffffff', text: '#1c1917', muted: '#78716c', accent: '#1c1917', accentText: '#faf7f2', border: '#e7e5e4', font: "Georgia, 'Times New Roman', serif", radius: '4px', headingWeight: 600, headingTransform: 'none' },
-  { id: 'bold', bg: '#000000', surface: '#111111', text: '#ffffff', muted: '#a3a3a3', accent: '#facc15', accentText: '#000000', border: '#262626', font: "Inter, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif", radius: '0px', headingWeight: 900, headingTransform: 'uppercase' },
-  { id: 'minimal', bg: '#ffffff', surface: '#fafafa', text: '#111111', muted: '#6b7280', accent: '#111111', accentText: '#ffffff', border: '#e5e7eb', font: "Inter, system-ui, -apple-system, 'Segoe UI', Arial, sans-serif", radius: '10px', headingWeight: 600, headingTransform: 'none' },
-  { id: 'warm', bg: '#2a1f17', surface: '#3a2b20', text: '#fdf6ec', muted: '#d6c3ab', accent: '#f59e0b', accentText: '#2a1f17', border: 'rgba(253,246,236,0.14)', font: "'Trebuchet MS', Arial, sans-serif", radius: '20px', headingWeight: 700, headingTransform: 'none' },
-];
+const crypto = require('crypto');
+const { PRESETS, EFFECTS } = require('./designPresets');
 
 const escapeHtml = (text) =>
   String(text ?? '')
@@ -13,7 +8,21 @@ const escapeHtml = (text) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const pick = (options, index) => options[((index % options.length) + options.length) % options.length];
+// Deterministic hash, so each layout choice is independent but the same seed always gives the same page.
+const mix = (...parts) => {
+  let hash = 2166136261;
+  for (const char of parts.join(':')) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  // Final avalanche so the low bits, which the modulo picks use, depend on every input bit.
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+  return hash >>> 0;
+};
 
 const ctaButtons = (primary, secondary, alignLeft) =>
   `<div class="actions${alignLeft ? ' left' : ''}"><a class="btn btn-primary" href="#get-started">${escapeHtml(primary)}</a>${
@@ -36,7 +45,8 @@ const renderHero = (s, variant, brand) => {
 };
 
 const renderSection = (section, index, seed, brand) => {
-  const v = (options) => pick(options, seed + index);
+  let slot = 0;
+  const v = (options) => options[mix(seed, index, slot++) % options.length];
   const title = (text) => `<h2>${escapeHtml(text)}</h2>`;
   switch (section.type) {
     case 'hero':
@@ -150,9 +160,9 @@ section{padding:96px 0;border-top:1px solid var(--border)}
 .hero-centred{text-align:center}
 .hero-editorial .wrap{max-width:820px}
 .hero-split .split{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}
-.visual{aspect-ratio:4/3;border-radius:var(--radius);background:linear-gradient(135deg,var(--surface),var(--accent));display:flex;align-items:center;justify-content:center;color:var(--accent-text);font-size:64px;font-weight:${t.headingWeight};letter-spacing:-0.04em}
+.visual{aspect-ratio:4/3;border-radius:var(--radius);background:linear-gradient(135deg,var(--surface),var(--accent));display:flex;align-items:center;justify-content:center;color:var(--accent-text);font-size:64px;font-family:${t.headingFont};font-weight:${t.headingWeight};letter-spacing:-0.04em}
 .eyebrow{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 18px}
-h1,h2,h3{font-weight:${t.headingWeight};text-transform:${t.headingTransform};letter-spacing:-0.02em;line-height:1.1}
+h1,h2,h3{font-family:${t.headingFont};font-weight:${t.headingWeight};text-transform:${t.headingTransform};letter-spacing:-0.02em;line-height:1.1}
 h1{font-size:clamp(40px,6vw,72px);margin:0 0 22px}
 h2{font-size:clamp(28px,4vw,44px);margin:0 0 20px}
 .sub{font-size:19px;color:var(--muted);max-width:640px;margin:0 auto 36px}
@@ -194,7 +204,7 @@ h2{font-size:clamp(28px,4vw,44px);margin:0 0 20px}
 .tile p{margin:0;color:var(--muted);font-size:15px}
 .price-card ul{list-style:none;padding:0;margin:18px 0 0;color:var(--muted);font-size:15px;text-align:left}
 .price-card li{padding:6px 0;border-top:1px solid var(--border)}
-.price{font-size:32px;font-weight:${t.headingWeight};margin:8px 0 12px;letter-spacing:-0.02em}
+.price{font-family:${t.headingFont};font-size:32px;font-weight:${t.headingWeight};margin:8px 0 12px;letter-spacing:-0.02em}
 .contact-card{text-align:left;display:flex;flex-direction:column;gap:12px;font-size:16px}
 .contact-line{display:flex;gap:24px;justify-content:center;margin-top:24px;color:var(--muted);flex-wrap:wrap}
 .cta-banner{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
@@ -202,15 +212,23 @@ details{border-bottom:1px solid var(--border);padding:22px 0}
 summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none}
 details p{color:var(--muted);margin:12px 0 0}
 footer{padding:40px 0;border-top:1px solid var(--border);color:var(--muted);font-size:14px;text-align:center}
-@media (max-width:760px){section{padding:64px 0}.hero{padding:80px 0 64px}.hero-split .split,.text-cols,.row{grid-template-columns:1fr;gap:20px}nav{flex-direction:column;align-items:flex-start}}
+@media (max-width:760px){section{padding:64px 0}.hero{padding:80px 0 64px}.hero-split .split,.text-cols,.row{grid-template-columns:1fr;gap:20px}nav{flex-direction:column;align-items:flex-start}.effect-stack section{margin-top:0}}
+@supports (animation-timeline: view()){
+.effect-reveal section>.wrap{animation:rise linear both;animation-timeline:view();animation-range:entry 0% cover 35%}
+.effect-stack section{position:relative;margin-top:-56px;border-radius:var(--radius) var(--radius) 0 0;box-shadow:0 -24px 48px rgba(0,0,0,0.28);animation:lift linear both;animation-timeline:view();animation-range:entry 0% cover 40%}
+.effect-stack section:not(.cta-banner){background:var(--bg)}
+}
+@keyframes rise{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+@keyframes lift{from{transform:translateY(96px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.effect-reveal section>.wrap,.effect-stack section{animation:none}}
 `;
 
-// Renders the structured site content as a standalone page. Output contains no scripts.
-const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
-  const themeIndex = Math.max(0, THEMES.findIndex((theme) => theme.id === themeId));
-  const t = THEMES[themeIndex];
+// Builds the page parts shared by the public page and the design fingerprint.
+const buildPage = (content, themeId, shuffle) => {
+  const t = PRESETS.find((preset) => preset.id === themeId) || PRESETS[0];
   const brand = content.brand?.name || 'Website';
-  const seed = themeIndex + Number(shuffle || 0);
+  const seed = Number(shuffle) || 0;
+  const effect = EFFECTS.includes(content.design?.effect) ? content.design.effect : EFFECTS[mix(seed, 'effect') % EFFECTS.length];
   const sections = Array.isArray(content.sections) ? content.sections : [];
 
   const primary = sections.find((s) => s.type === 'hero');
@@ -218,28 +236,45 @@ const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
   const navCta = primary ? `<a class="btn btn-primary" href="#get-started">${escapeHtml(primary.primaryCta)}</a>` : '';
   const body = sections.map((section, index) => renderSection(section, index, seed, brand)).join('\n');
 
+  const css = themeCss(t);
+  const navHtml = `<div class="wrap">
+<nav>
+  <div class="brand">${escapeHtml(brand)}</div>
+  ${navLinks ? `<div class="links">${navLinks}</div>` : ''}
+  ${navCta}
+</nav>
+</div>`;
+  const footer = `<footer>
+<div class="wrap">${escapeHtml(content.footer?.note)}</div>
+</footer>`;
+  return { brand, effect, css, navHtml, body, footer };
+};
+
+// Renders the structured site content as a standalone page. Output contains no scripts.
+const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
+  const { brand, effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle);
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(brand)}</title>
-<style>${themeCss(t)}</style>
+<style>${css}</style>
 </head>
-<body>
-<div class="wrap">
-<nav>
-  <div class="brand">${escapeHtml(brand)}</div>
-  ${navLinks ? `<div class="links">${navLinks}</div>` : ''}
-  ${navCta}
-</nav>
-</div>
+<body class="effect-${effect}">
+${navHtml}
 ${body}
-<footer>
-<div class="wrap">${escapeHtml(content.footer?.note)}</div>
-</footer>
+${footer}
 </body>
 </html>`;
 };
 
-module.exports = { renderSite, THEMES };
+// A fingerprint of how the page looks: its CSS and layout, without the text.
+// Two sites with the same fingerprint would look the same to a visitor.
+const designKey = (content, themeId, shuffle) => {
+  const { effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle);
+  const structure = `${effect}|${navHtml}${body}${footer}`.replace(/>[^<]+</g, '><');
+  return crypto.createHash('sha256').update(`${css}|${structure}`).digest('hex').slice(0, 24);
+};
+
+module.exports = { renderSite, designKey };

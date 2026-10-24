@@ -1,6 +1,6 @@
 const { getAnthropic } = require('../lib/anthropic');
 const prisma = require('../lib/prisma');
-
+const { EFFECTS } = require('../lib/designPresets');
 
 const SECTION_TYPES = [
   'hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom',
@@ -13,8 +13,11 @@ Respond with only a JSON object, no markdown or code fences:
   "brand": { "name": string, "tagline": string },
   "nav": [string],
   "sections": [ Section ],
-  "footer": { "note": string }
+  "footer": { "note": string },
+  "design": { "effect": "none" | "reveal" | "stack" }
 }
+
+The "design" field is optional. Set "effect" to "reveal" when the owner asks for sections to fade or rise in as the visitor scrolls. Set it to "stack" when they ask for sections to overlap or slide over each other as the visitor scrolls. Use "none" when they ask for no motion. Leave it out otherwise.
 
 Each Section is one of these shapes (the "type" field is required):
 - { "type": "hero", "eyebrow": string, "headline": string, "subheadline": string, "primaryCta": string, "secondaryCta": string }
@@ -46,6 +49,9 @@ const parseContent = (text) => {
   if (content.sections.length === 0) {
     throw new Error('No valid sections returned');
   }
+  if (!EFFECTS.includes(content.design?.effect)) {
+    delete content.design;
+  }
   return content;
 };
 
@@ -72,7 +78,7 @@ Main call to action: ${callToAction}
 Specific requests: ${requests || 'none'}`;
 
     const userMessage = currentContent && instruction
-      ? `Here is the current website as JSON:\n${JSON.stringify(currentContent)}\n\nMake this change, keeping everything else that still fits, and return the full updated JSON: ${instruction}\n\nBusiness brief:\n${brief}`
+      ? `Here is the current website as JSON:\n${JSON.stringify(currentContent)}\n\nApply this change to the website and return the full updated JSON. The returned JSON must differ from the current one in the part the change is about. Keep everything else that still fits. Change: ${instruction}\n\nBusiness brief:\n${brief}`
       : `Plan and write the website for this business:\n${brief}`;
 
     let content;

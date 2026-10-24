@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
-const { renderSite } = require('../lib/siteRenderer');
+const { renderSite, designKey } = require('../lib/siteRenderer');
+const { PRESET_IDS } = require('../lib/designPresets');
 
 const prisma = new PrismaClient();
 
@@ -10,7 +12,9 @@ const RESERVED_SLUGS = new Set([
 ]);
 const PLAN_LIMITS = { free: 0, starter: 1, professional: 5, enterprise: Infinity };
 const MAX_CONTENT_BYTES = 200 * 1024;
-const THEME_IDS = ['midnight', 'paper', 'bold', 'minimal', 'warm'];
+const MAX_DESIGN_TRIES = 25;
+
+const randomSeed = () => crypto.randomInt(1, 2147483647);
 
 const slugProblem = (slug) => {
   if (!SLUG_PATTERN.test(slug)) return 'Use 3 to 40 letters, numbers or hyphens, starting and ending with a letter or number.';
@@ -21,6 +25,26 @@ const slugProblem = (slug) => {
 const validContent = (content) =>
   content && typeof content === 'object' && content.brand && Array.isArray(content.sections) && content.sections.length > 0 &&
   JSON.stringify(content).length <= MAX_CONTENT_BYTES;
+
+// Finds a seed whose design no other live site uses. Sites that look the same are not allowed.
+const uniqueDesign = async ({ content, themeId, seed, excludeId }) => {
+  let current = seed;
+  for (let attempt = 0; attempt < MAX_DESIGN_TRIES; attempt++) {
+    const key = designKey(content, themeId, current);
+    const taken = await prisma.site.findFirst({
+      where: {
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+        content: { path: ['design', 'key'], equals: key },
+      },
+      select: { id: true },
+    });
+    if (!taken) return { shuffle: current, key };
+    current = randomSeed();
+  }
+  throw new Error('Could not find a unique design for this site');
+};
+
+const withDesignKey = (content, key) => ({ ...content, design: { ...(content.design || {}), key } });
 
 const checkSlug = async (req, res) => {
   const slug = String(req.query.slug || '').toLowerCase();
@@ -33,7 +57,7 @@ const checkSlug = async (req, res) => {
 const previewSite = async (req, res) => {
   const { content, themeId, shuffle } = req.body;
   if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
-  res.json({ html: renderSite(content, THEME_IDS.includes(themeId) ? themeId : 'midnight', shuffle) });
+  res.json({ html: renderSite(content, PRESET_IDS.includes(themeId) ? themeId : 'midnight', shuffle) });
 };
 
 const createSite = async (req, res) => {
@@ -55,14 +79,22 @@ const createSite = async (req, res) => {
       });
     }
 
+    const preset = PRESET_IDS.includes(themeId) ? themeId : 'midnight';
+    const { shuffle: finalShuffle, key } = await uniqueDesign({
+      content,
+      themeId: preset,
+      seed: Number.isInteger(shuffle) ? shuffle : randomSeed(),
+      excludeId: null,
+    });
+
     const site = await prisma.site.create({
       data: {
         userId: user.id,
         slug,
         title: content.brand.name || slug,
-        content,
-        themeId: THEME_IDS.includes(themeId) ? themeId : 'midnight',
-        shuffle: Number.isInteger(shuffle) ? shuffle : 0,
+        content: withDesignKey(content, key),
+        themeId: preset,
+        shuffle: finalShuffle,
       },
     });
     res.status(201).json({ site: { ...site, url: `https://${site.slug}.venture-pro.io` } });
@@ -92,20 +124,34 @@ const findOwnedSite = async (req, res) => {
 };
 
 const updateSite = async (req, res) => {
-  const site = await findOwnedSite(req, res);
-  if (!site) return;
-  const { content, themeId, shuffle } = req.body;
-  if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
-  const updated = await prisma.site.update({
-    where: { id: site.id },
-    data: {
+  try {
+    const site = await findOwnedSite(req, res);
+    if (!site) return;
+    const { content, themeId, shuffle } = req.body;
+    if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
+
+    const preset = PRESET_IDS.includes(themeId) ? themeId : site.themeId;
+    const { shuffle: finalShuffle, key } = await uniqueDesign({
       content,
-      title: content.brand.name || site.title,
-      themeId: THEME_IDS.includes(themeId) ? themeId : site.themeId,
-      shuffle: Number.isInteger(shuffle) ? shuffle : site.shuffle,
-    },
-  });
-  res.json({ site: { ...updated, url: `https://${updated.slug}.venture-pro.io` } });
+      themeId: preset,
+      seed: Number.isInteger(shuffle) ? shuffle : site.shuffle,
+      excludeId: site.id,
+    });
+
+    const updated = await prisma.site.update({
+      where: { id: site.id },
+      data: {
+        content: withDesignKey(content, key),
+        title: content.brand.name || site.title,
+        themeId: preset,
+        shuffle: finalShuffle,
+      },
+    });
+    res.json({ site: { ...updated, url: `https://${updated.slug}.venture-pro.io` } });
+  } catch (error) {
+    console.error('Update site error:', error);
+    res.status(500).json({ error: 'Could not update the site' });
+  }
 };
 
 const deleteSite = async (req, res) => {
@@ -132,4 +178,4 @@ const publicSite = async (req, res) => {
     .send(html);
 };
 
-module.exports = { checkSlug, previewSite, createSite, listSites, updateSite, deleteSite, publicSite };
+module.exports = { checkSlug, previewSite, createSite, listSites, updateSite, deleteSite, publicSite, randomSeed };
