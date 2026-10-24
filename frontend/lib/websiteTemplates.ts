@@ -12,13 +12,38 @@ export type WebsiteSection =
   | { type: 'cta'; headline: string; body?: string; button: string }
   | { type: 'custom'; title?: string; paragraphs: string[] };
 
+export type ContactDetails = {
+  phone?: string;
+  email?: string;
+  address?: string;
+  hours?: string;
+};
+
+export type PortfolioItem = {
+  title: string;
+  description: string;
+  tag?: string;
+  image?: string;
+};
+
+export type Portfolio = {
+  title: string;
+  items: PortfolioItem[];
+};
+
 export type WebsiteContent = {
   brand: { name: string; tagline: string };
   nav?: string[];
   sections: WebsiteSection[];
   footer: { note: string };
   design?: { effect?: 'none' | 'reveal' | 'stack'; key?: string };
+  // Set by the owner in the builder. The AI never changes these.
+  contact?: ContactDetails;
+  portfolio?: Portfolio;
 };
+
+// Keep in step with MAX_PHOTOS in backend/controllers/sitesController.js.
+export const MAX_PHOTOS = 8;
 
 // Ids and names must match backend/lib/designPresets.js. Only the swatch colours are needed here.
 export type WebsitePreset = {

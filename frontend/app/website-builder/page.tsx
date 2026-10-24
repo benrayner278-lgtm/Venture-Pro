@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { WEBSITE_PRESETS, WebsiteContent, randomLayoutSeed } from '@/lib/websiteTemplates';
+import { WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
+import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
 
 type Step = 'form' | 'generating' | 'result';
+type View = 'preview' | 'contact' | 'portfolio';
 
 export default function WebsiteBuilderPage() {
   const [step, setStep] = useState<Step>('form');
@@ -59,12 +61,14 @@ export default function WebsiteBuilderPage() {
     if (!content || !tweak.trim()) return;
     setTweaking(true);
     try {
-      const updated = await requestContent({ currentContent: content, instruction: tweak.trim() });
-      if (JSON.stringify(updated) === JSON.stringify(content)) {
+      // Contact details and photos are kept by the builder, so they are not sent to the AI.
+      const { contact, portfolio, ...siteOnly } = content;
+      const updated = await requestContent({ currentContent: siteOnly, instruction: tweak.trim() });
+      if (JSON.stringify(updated) === JSON.stringify(siteOnly)) {
         alert('The AI did not change anything. Try describing the change more specifically.');
         return;
       }
-      setContent(updated);
+      setContent({ ...updated, contact, portfolio });
       setTweak('');
     } catch (error) {
       console.error('Error applying change:', error);
@@ -74,13 +78,30 @@ export default function WebsiteBuilderPage() {
     }
   };
 
+  const [view, setView] = useState<View>('preview');
+  const [previewContent, setPreviewContent] = useState<WebsiteContent | null>(null);
   const [html, setHtml] = useState('');
   const [previewError, setPreviewError] = useState('');
 
+  // Wait for a pause in editing before asking the server for a new preview.
   useEffect(() => {
+    const timer = setTimeout(() => setPreviewContent(content), 400);
+    return () => clearTimeout(timer);
+  }, [content]);
+
+  const openPortfolio = () => {
     if (!content) return;
+    if (!content.portfolio) {
+      const gallery = content.sections.find((s): s is Extract<WebsiteSection, { type: 'gallery' }> => s.type === 'gallery');
+      setContent({ ...content, portfolio: { title: gallery?.title || 'Our work', items: gallery?.items || [] } });
+    }
+    setView('portfolio');
+  };
+
+  useEffect(() => {
+    if (!previewContent) return;
     let cancelled = false;
-    apiFetch('/api/sites/preview', { method: 'POST', json: { content, themeId, shuffle } })
+    apiFetch('/api/sites/preview', { method: 'POST', json: { content: previewContent, themeId, shuffle } })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Preview failed');
@@ -95,7 +116,7 @@ export default function WebsiteBuilderPage() {
     return () => {
       cancelled = true;
     };
-  }, [content, themeId, shuffle]);
+  }, [previewContent, themeId, shuffle]);
 
   const downloadWebsite = () => {
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
@@ -257,14 +278,56 @@ export default function WebsiteBuilderPage() {
               </aside>
 
               <div className="flex-1 min-w-0 flex flex-col gap-4">
-                {previewError && <p className="text-sm text-red-400">{previewError}</p>}
-                <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
-                  <iframe
-                    title="Website preview"
-                    srcDoc={html}
-                    className="w-full h-full min-h-[70vh] bg-black"
-                  />
+                <div className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3">
+                  <p className="text-sm font-medium text-white">You can change all of this at any time.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Edits show in the preview straight away. To update your published site, click Update live site in the Publish panel.
+                  </p>
                 </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { id: 'preview', label: 'Preview' },
+                      { id: 'contact', label: 'Edit contact details' },
+                      { id: 'portfolio', label: 'Edit portfolio and photos' },
+                    ] as { id: View; label: string }[]
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => (tab.id === 'portfolio' ? openPortfolio() : setView(tab.id))}
+                      className={`px-4 py-2 rounded-lg text-sm transition ${
+                        view === tab.id ? 'bg-white text-black font-medium' : 'border border-white/10 text-gray-300 hover:bg-white/5'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {previewError && <p className="text-sm text-red-400">{previewError}</p>}
+
+                {view === 'preview' && (
+                  <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] flex-1 min-h-[70vh]">
+                    <iframe
+                      title="Website preview"
+                      srcDoc={html}
+                      className="w-full h-full min-h-[70vh] bg-black"
+                    />
+                  </div>
+                )}
+
+                {view === 'contact' && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+                    <ContactEditor value={content.contact || {}} onChange={(contact) => setContent({ ...content, contact })} />
+                  </div>
+                )}
+
+                {view === 'portfolio' && content.portfolio && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+                    <PortfolioEditor value={content.portfolio} onChange={(portfolio) => setContent({ ...content, portfolio })} />
+                  </div>
+                )}
 
                 <form onSubmit={handleTweak} className="relative">
                   <input
