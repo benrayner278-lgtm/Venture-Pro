@@ -80,12 +80,15 @@ Specific requests: ${requests || 'none'}`;
     for (let attempt = 0; attempt < 2 && !content; attempt++) {
       const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-5-5',
-        max_tokens: 6000,
+        max_tokens: 16000,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       });
       const text = response.content[0].type === 'text' ? response.content[0].text : '';
       try {
+        if (response.stop_reason === 'max_tokens') {
+          throw new Error('Response was cut off before the JSON finished');
+        }
         content = parseContent(text);
       } catch (error) {
         lastError = error;
