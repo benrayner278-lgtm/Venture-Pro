@@ -22,7 +22,26 @@ model User {
   projects   Project[]
   sites      Site[]
   chatUsage  ChatDailyUsage[]
+  builds     BuilderProject[]
   @@map("users")
+}
+
+// One logo or website being built with the AI. Keeps the brief, the current version and what has been asked for so far,
+// so later requests build on earlier ones.
+model BuilderProject {
+  id        String   @id @default(uuid())
+  userId    String
+  kind      String   // "logo" or "website"
+  brief     Json
+  state     Json
+  history   Json?    // recent requests, replies and changes, oldest first
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@map("builder_projects")
 }
 
 model ChatDailyUsage {

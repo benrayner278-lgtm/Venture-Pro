@@ -28,6 +28,9 @@ export default function WebsiteBuilderPage() {
   const [shuffle, setShuffle] = useState(0);
   const [tweak, setTweak] = useState('');
   const [tweaking, setTweaking] = useState(false);
+  // The saved build on the server. Changes build on it, so the AI remembers earlier requests.
+  const [buildId, setBuildId] = useState<string | null>(null);
+  const [tweakReply, setTweakReply] = useState('');
   const [plan, setPlan] = useState('free');
   const portfolioAllowed = PORTFOLIO_PLANS.includes(plan);
 
@@ -45,7 +48,7 @@ export default function WebsiteBuilderPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const requestContent = async (extra: { currentContent?: WebsiteContent; instruction?: string }) => {
+  const requestContent = async (extra: { currentContent?: WebsiteContent; instruction?: string; buildId?: string }) => {
     const response = await apiFetch('/api/website/generate', {
       method: 'POST',
       json: { ...formData, ...extra },
@@ -54,14 +57,17 @@ export default function WebsiteBuilderPage() {
     if (!response.ok || !data.content) {
       throw new Error(data.error || 'No content returned');
     }
-    return data.content as WebsiteContent;
+    return { content: data.content as WebsiteContent, buildId: (data.buildId as string) || null, reply: (data.reply as string) || '' };
   };
 
   const handleGenerateWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
     setStep('generating');
     try {
-      setContent(await requestContent({}));
+      const result = await requestContent({});
+      setContent(result.content);
+      setBuildId(result.buildId);
+      setTweakReply(result.reply);
       setShuffle(randomLayoutSeed());
       setStep('result');
     } catch (error) {
@@ -79,12 +85,14 @@ export default function WebsiteBuilderPage() {
     try {
       // Contact details and photos are kept by the builder, so they are not sent to the AI.
       const { contact, portfolio, style, ...siteOnly } = content;
-      const updated = await requestContent({ currentContent: siteOnly, instruction: tweak.trim() });
-      if (JSON.stringify(updated) === JSON.stringify(siteOnly)) {
+      const result = await requestContent({ currentContent: siteOnly, instruction: tweak.trim(), buildId: buildId || undefined });
+      setBuildId(result.buildId);
+      setTweakReply(result.reply);
+      if (JSON.stringify(result.content) === JSON.stringify(siteOnly)) {
         alert('The AI did not change anything. Try describing the change more specifically.');
         return;
       }
-      setContent({ ...updated, contact, portfolio, style });
+      setContent({ ...result.content, contact, portfolio, style });
       setTweak('');
     } catch (error) {
       console.error('Error applying change:', error);
@@ -374,6 +382,8 @@ export default function WebsiteBuilderPage() {
                     onClick={() => {
                       setStep('form');
                       setContent(null);
+                      setBuildId(null);
+                      setTweakReply('');
                     }}
                     className="w-full border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl transition font-medium text-sm"
                   >
@@ -405,6 +415,7 @@ export default function WebsiteBuilderPage() {
                   />
                 </div>
 
+                {tweakReply && <p className="text-sm text-gray-300 mb-2">{tweakReply}</p>}
                 <form onSubmit={handleTweak} className="relative">
                   <input
                     type="text"

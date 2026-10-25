@@ -3,10 +3,31 @@ const prisma = require('../lib/prisma');
 const { FONTS } = require('../lib/styleOptions');
 const { sanitizeDesign, sanitizeSections } = require('../lib/designBrief');
 const { randomCreativeBrief } = require('../lib/creativeBrief');
+const { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('../lib/websiteEdits');
+const { runToolLoop } = require('../lib/agentLoop');
+const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 
-const SECTION_TYPES = [
-  'hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom',
-];
+const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
+
+Work with the section tools. Sections are numbered from 0. Use update_section to rewrite a section in place, add_section and remove_section to change what is on the page, move_section to reorder, and update_site for the brand name, tagline, navigation, footer or design. Make all the changes you need before you reply. Write copy that is clear, confident and specific to this business, in British English. Do not invent testimonials, client names, statistics, awards or prices.
+
+When the changes are done, call reply_to_user with one or two plain sentences saying what you changed. If the request is unclear, choose the most sensible reading and say what you chose. If the user refers to something from an earlier request, use the earlier requests to find it.`;
+
+// Keeps only the parts of a site the AI may change, and makes them safe to store and render.
+const cleanSiteState = (content) => {
+  const { design, ...rest } = content && typeof content === 'object' ? content : {};
+  const sections = (Array.isArray(rest.sections) ? rest.sections : []).filter((section) => SECTION_TYPES.includes(section?.type));
+  const cleanDesign = sanitizeDesign(design);
+  return {
+    ...rest,
+    brand: rest.brand && typeof rest.brand === 'object' ? rest.brand : { name: '', tagline: '' },
+    sections: sanitizeSections(sections),
+    ...(cleanDesign ? { design: cleanDesign } : {}),
+  };
+};
+
+const outlineOf = (sections) =>
+  sections.map((section, index) => `${index}: ${section.type}${section.layout ? ` (${section.layout})` : ''}${section.title || section.headline ? ` - ${section.title || section.headline}` : ''}`).join('\n');
 
 const SYSTEM_PROMPT = `You design and write websites for small businesses. Before writing, think about this business and every request in the brief: what the site must show, who it is for, and what action the visitor should take. Then build a page plan of sections that fits that business, in a sensible order. Do not use a fixed template.
 
@@ -74,7 +95,7 @@ const parseContent = (text) => {
 
 const generateWebsite = async (req, res) => {
   try {
-    const { businessName, tagline, features, callToAction, requests, currentContent, instruction } = req.body || {};
+    const { businessName, tagline, features, callToAction, requests, currentContent, instruction, buildId } = req.body || {};
 
     // If a project is given, it must belong to the caller
     const { projectId } = req.body || {};
@@ -88,15 +109,57 @@ const generateWebsite = async (req, res) => {
       return res.status(400).json({ error: 'Business name, tagline, features and call to action are required' });
     }
 
+    const briefFields = { businessName, tagline, features, callToAction, requests: requests || '' };
     const brief = `Business name: ${businessName}
 Tagline: ${tagline}
 What the business offers: ${features}
 Main call to action: ${callToAction}
 Specific requests: ${requests || 'none'}`;
 
-    const userMessage = currentContent && instruction
-      ? `Here is the current website as JSON:\n${JSON.stringify(currentContent)}\n\nApply this change to the website and return the full updated JSON. The returned JSON must differ from the current one in the part the change is about. Keep everything else that still fits. Change: ${instruction}\n\nBusiness brief:\n${brief}`
-      : `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBusiness brief:\n${brief}`;
+    // A change to an existing website goes through the section tools, with the build's earlier requests as memory.
+    const isChange = Boolean(instruction) && Boolean(currentContent || buildId);
+    if (isChange) {
+      const build = await openBuild({
+        userId: req.userId,
+        kind: 'website',
+        buildId: typeof buildId === 'string' ? buildId : undefined,
+        brief: briefFields,
+        state: currentContent ? cleanSiteState(currentContent) : undefined,
+      });
+      let content = cleanSiteState(build.state);
+      if (content.sections.length === 0) return res.status(400).json({ error: 'Build a website first, then ask for changes' });
+
+      const context = `Business brief:
+${brief}
+
+Earlier requests on this website, oldest first:
+${historyForPrompt(build)}
+
+Current website, sections numbered from 0:
+${outlineOf(content.sections)}
+
+Full website as JSON:
+${JSON.stringify(content)}`;
+
+      const outcome = await runToolLoop({
+        system: EDIT_PROMPT,
+        context,
+        request: `Change request: ${instruction}`,
+        tools: WEBSITE_EDIT_TOOLS,
+        label: 'website edit',
+        apply: (name, input) => {
+          const result = applyWebsiteTool(content, name, input);
+          if (result.content) content = result.content;
+          return result;
+        },
+      });
+
+      const reply = outcome.reply || (outcome.actions.length ? 'I made the changes you asked for.' : 'I could not make that change. Try describing it more specifically.');
+      await recordChange(build, { request: instruction, reply, actions: outcome.actions, state: content });
+      return res.json({ content, buildId: build.id, reply });
+    }
+
+    const userMessage = `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBusiness brief:\n${brief}`;
 
     let content;
     let lastError;
@@ -122,8 +185,12 @@ Specific requests: ${requests || 'none'}`;
       throw lastError;
     }
 
-    res.json({ content });
+    const reply = `Built a new website for ${businessName}.`;
+    const build = await openBuild({ userId: req.userId, kind: 'website', brief: briefFields, state: content });
+    await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['built the website'], state: content });
+    res.json({ content, buildId: build.id, reply });
   } catch (error) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
     console.error('Generate website error:', error);
     res.status(500).json({ error: 'Failed to generate website' });
   }

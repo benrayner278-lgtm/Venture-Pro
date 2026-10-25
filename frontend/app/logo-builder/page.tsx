@@ -55,6 +55,9 @@ export default function LogoBuilderPage() {
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
+  // The saved build on the server. Changes build on it, so the AI remembers earlier requests.
+  const [buildId, setBuildId] = useState<string | null>(null);
+  const [reply, setReply] = useState('');
 
   const svg = useMemo(() => buildLogoSvg(settings), [settings]);
   const set = (patch: Partial<LogoSettings>) => setSettings((current) => ({ ...current, ...patch }));
@@ -63,14 +66,17 @@ export default function LogoBuilderPage() {
   const askAi = async (mode: 'create' | 'change') => {
     setDrafting(true);
     setDraftError('');
+    setReply('');
     try {
       const response = await apiFetch('/api/logo/generate', {
         method: 'POST',
-        json: mode === 'create' ? { description } : { current: settings, instruction },
+        json: mode === 'create' ? { description } : { current: settings, instruction, buildId },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not create the logo');
       setSettings({ ...DEFAULT_LOGO, ...data.logo });
+      setBuildId(data.buildId || null);
+      setReply(data.reply || '');
       setHasDraft(true);
       if (mode === 'change') setInstruction('');
     } catch (err) {
@@ -159,6 +165,8 @@ export default function LogoBuilderPage() {
                         onClick={() => {
                           setHasDraft(false);
                           setDescription('');
+                          setBuildId(null);
+                          setReply('');
                         }}
                         className="border border-white/10 hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-sm"
                       >
@@ -168,6 +176,7 @@ export default function LogoBuilderPage() {
                   </>
                 )}
                 {draftError && <p className="text-sm text-red-400">{draftError}</p>}
+                {reply && <p className="text-sm text-gray-300">{reply}</p>}
                 <p className="text-xs text-gray-500">The fine-tuning controls below change anything the AI made.</p>
               </div>
 
