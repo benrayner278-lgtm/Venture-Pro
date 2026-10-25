@@ -2,6 +2,7 @@ const { getAnthropic } = require('../lib/anthropic');
 const prisma = require('../lib/prisma');
 const { FONTS } = require('../lib/styleOptions');
 const { sanitizeDesign, sanitizeSections } = require('../lib/designBrief');
+const { randomCreativeBrief } = require('../lib/creativeBrief');
 
 const SECTION_TYPES = [
   'hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom',
@@ -95,7 +96,7 @@ Specific requests: ${requests || 'none'}`;
 
     const userMessage = currentContent && instruction
       ? `Here is the current website as JSON:\n${JSON.stringify(currentContent)}\n\nApply this change to the website and return the full updated JSON. The returned JSON must differ from the current one in the part the change is about. Keep everything else that still fits. Change: ${instruction}\n\nBusiness brief:\n${brief}`
-      : `Plan and write the website for this business:\n${brief}`;
+      : `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBusiness brief:\n${brief}`;
 
     let content;
     let lastError;

@@ -10,6 +10,7 @@ interface Plan {
   name: string;
   price: number;
   interval: string;
+  summary?: string;
   features: string[];
 }
 
@@ -324,7 +325,8 @@ export default function BillingPage() {
                         </div>
                       )}
 
-                      <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                      <h3 className="text-2xl font-bold text-white mb-1">{plan.name}</h3>
+                      {plan.summary && <p className="text-sm text-gray-400 mb-5 min-h-[2.5rem]">{plan.summary}</p>}
                       <div className="mb-6">
                         <span className="text-4xl font-bold text-white">
                           £{(plan.price / 100).toFixed(2)}
@@ -332,10 +334,11 @@ export default function BillingPage() {
                         <span className="text-gray-400 ml-2">/ {plan.interval}</span>
                       </div>
 
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Includes</p>
                       <ul className="flex-1 space-y-3 mb-8">
                         {plan.features.map((feature, idx) => (
                           <li key={idx} className="text-gray-300 text-sm flex items-start gap-2">
-                            <span className="text-white mt-1">✓</span>
+                            <span className="text-emerald-300 mt-0.5">✓</span>
                             <span>{feature}</span>
                           </li>
                         ))}

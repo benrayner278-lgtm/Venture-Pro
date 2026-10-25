@@ -3,10 +3,20 @@
 export type LogoLayout = 'side' | 'stacked' | 'wordmark';
 export type LogoBackground = 'transparent' | 'light' | 'dark';
 
+// A shape the AI drew for a custom icon. Coordinates are inside a 100 by 100 box.
+export type LogoShape =
+  | { type: 'path'; d: string }
+  | { type: 'circle'; cx: number; cy: number; r: number }
+  | { type: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
+  | { type: 'rect'; x: number; y: number; width: number; height: number; rx: number }
+  | { type: 'polygon'; points: string }
+  | { type: 'line'; x1: number; y1: number; x2: number; y2: number };
+
 export type LogoSettings = {
   name: string;
   tagline: string;
   icon: string;
+  shapes?: LogoShape[];
   layout: LogoLayout;
   font: string;
   primary: string;
@@ -70,6 +80,23 @@ export const LOGO_HEIGHT = 400;
 const escapeXml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+const shapeMarkup = (shape: LogoShape, accent: string) => {
+  switch (shape.type) {
+    case 'path':
+      return `<path d="${escapeXml(shape.d)}" fill="${accent}"/>`;
+    case 'circle':
+      return `<circle cx="${shape.cx}" cy="${shape.cy}" r="${shape.r}" fill="${accent}"/>`;
+    case 'ellipse':
+      return `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx}" ry="${shape.ry}" fill="${accent}"/>`;
+    case 'rect':
+      return `<rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${shape.rx}" fill="${accent}"/>`;
+    case 'polygon':
+      return `<polygon points="${escapeXml(shape.points)}" fill="${accent}"/>`;
+    case 'line':
+      return `<line x1="${shape.x1}" y1="${shape.y1}" x2="${shape.x2}" y2="${shape.y2}" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>`;
+  }
+};
+
 // Shrinks the text so a long name still fits in the space for it.
 const fitSize = (text: string, maxSize: number, maxWidth: number) => {
   const width = Math.max(text.length, 1) * maxSize * 0.62;
@@ -78,6 +105,7 @@ const fitSize = (text: string, maxSize: number, maxWidth: number) => {
 
 export function buildLogoSvg(settings: LogoSettings): string {
   const icon = LOGO_ICONS.find((item) => item.key === settings.icon);
+  const hasMark = settings.icon === 'custom' ? Boolean(settings.shapes?.length) : Boolean(icon);
   const font = LOGO_FONTS.find((item) => item.key === settings.font) || LOGO_FONTS[0];
   const name = settings.uppercase ? settings.name.toUpperCase() : settings.name;
   const shownName = name || 'Your name';
@@ -90,15 +118,17 @@ export function buildLogoSvg(settings: LogoSettings): string {
         ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="#0b0b10"/>`
         : '';
 
-  const iconSvg = (x: number, y: number, size: number) =>
-    icon
-      ? `<g transform="translate(${x} ${y}) scale(${size / 100})" fill="${settings.accent}">${icon.shape}</g>`
-      : '';
+  const iconSvg = (x: number, y: number, size: number) => {
+    const inner = settings.icon === 'custom' && settings.shapes?.length
+      ? settings.shapes.map((shape) => shapeMarkup(shape, settings.accent)).join('')
+      : icon?.shape ?? '';
+    return inner ? `<g transform="translate(${x} ${y}) scale(${size / 100})" fill="${settings.accent}">${inner}</g>` : '';
+  };
 
   let body = '';
   if (settings.layout === 'side') {
     const iconX = 110;
-    const textX = icon ? 320 : 110;
+    const textX = hasMark ? 320 : 110;
     const size = fitSize(shownName, 84, LOGO_WIDTH - textX - 40);
     const nameY = tagline ? 190 : 225;
     body += iconSvg(iconX, 110, 160);

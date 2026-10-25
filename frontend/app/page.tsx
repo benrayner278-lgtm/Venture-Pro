@@ -32,11 +32,12 @@ const STEPS = [
   { n: '03', title: 'Ship it', body: 'Download your site or plan and take it live wherever you host.' },
 ];
 
+// Keep in step with backend/lib/plans.js.
 const PLANS = [
-  { name: 'Standard', price: '£30', description: 'For a single business with its own website.', features: ['100 chatbot messages a day', 'Hosting for 1 website', 'Website editing tools'], featured: false },
-  { name: 'Premium', price: '£45', description: 'For founders who want to show their work.', features: ['500 chatbot messages a day', 'Portfolio maker', 'Hosting for 1 website'], featured: true },
-  { name: 'Business', price: '£60', description: 'For growing businesses that take bookings.', features: ['1,000 chatbot messages a day', 'Everything in Premium', 'Hosting for 3 websites', 'Custom booking system (coming soon)'], featured: false },
-  { name: 'Corporate', price: '£179.99', description: 'For teams running several sites.', features: ['Up to 5 websites', 'Everything in Business', 'Custom booking system (coming soon)'], featured: false },
+  { name: 'Standard', price: '£29.99', description: 'Your business online, with one live website.', features: ['100 chatbot messages a day', 'Publish 1 live website on your own address', 'AI website design, with fonts, colours and style controls', 'AI logo builder', 'Business plan, email and legal templates'], featured: false },
+  { name: 'Premium', price: '£44.99', description: 'Everything in Standard, plus a portfolio to show your work.', features: ['500 chatbot messages a day', 'Publish 1 live website', 'Portfolio maker with photo uploads', 'Everything in Standard'], featured: true },
+  { name: 'Business', price: '£59.99', description: 'Take bookings and run up to three websites.', features: ['1,000 chatbot messages a day', 'Publish up to 3 live websites', 'Online booking on your website: your hours, services and time zone', 'Everything in Premium'], featured: false },
+  { name: 'Corporate', price: '£179.99', description: 'For teams and brands that need five websites.', features: ['Up to 5 live websites', '1,000 chatbot messages a day', 'Online booking on every website', 'Everything in Business'], featured: false },
 ];
 
 const grid = {

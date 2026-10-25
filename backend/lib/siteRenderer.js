@@ -278,7 +278,7 @@ const compose = (content) => {
 };
 
 // Builds the page parts shared by the public page and the design fingerprint.
-const buildPage = (content, themeId, shuffle) => {
+const buildPage = (content, themeId, shuffle, extras = {}) => {
   const brief = sanitizeDesign(content.design);
   const preset = applyBrief(PRESETS.find((item) => item.id === themeId) || PRESETS[0], brief);
   const t = applyStyle(preset, mergeStyle(brief, content.style));
@@ -292,14 +292,19 @@ const buildPage = (content, themeId, shuffle) => {
   const contactIndex = sections.findIndex((section) => section.type === 'contact');
   const ctaIndex = sections.findIndex((section) => section.type === 'cta');
   const actionIndex = contactIndex !== -1 ? contactIndex : ctaIndex;
+  // With the booking form on, every booking button and the "Book" menu item go to the form.
+  const bookingOn = Boolean(extras.booking);
   const links = {
-    action: actionIndex === -1 ? '#top' : `#s${actionIndex}`,
+    action: bookingOn ? '#book' : actionIndex === -1 ? '#top' : `#s${actionIndex}`,
     contact: contactIndex === -1 ? '#top' : `#s${contactIndex}`,
     next: sections.length > 1 ? '#s1' : '#top',
   };
   const navLinks = (content.nav || [])
     .slice(0, 5)
-    .map((label, i) => `<a href="${sections.length > i + 1 ? `#s${i + 1}` : '#top'}">${escapeHtml(label)}</a>`)
+    .map((label, i) => {
+      const target = bookingOn && /book/i.test(label) ? '#book' : sections.length > i + 1 ? `#s${i + 1}` : '#top';
+      return `<a href="${target}">${escapeHtml(label)}</a>`;
+    })
     .join('');
   const navCta = primary ? `<a class="btn btn-primary" href="${links.action}">${escapeHtml(primary.primaryCta)}</a>` : '';
   const body = sections
@@ -347,7 +352,7 @@ const renderBooking = (view) => {
 // Renders the structured site content as a standalone page. Output contains no scripts.
 // extras.booking adds the booking form. Pass it only for published sites.
 const renderSite = (content, themeId = 'midnight', shuffle = 0, extras = {}) => {
-  const { brand, effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle);
+  const { brand, effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle, extras);
   const booking = extras.booking ? renderBooking(extras.booking) : '';
   return `<!doctype html>
 <html lang="en">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import {
   DEFAULT_LOGO,
@@ -49,8 +50,35 @@ export default function LogoBuilderPage() {
     loadLogoFonts();
   }, []);
 
+  const [description, setDescription] = useState('');
+  const [instruction, setInstruction] = useState('');
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
+
   const svg = useMemo(() => buildLogoSvg(settings), [settings]);
   const set = (patch: Partial<LogoSettings>) => setSettings((current) => ({ ...current, ...patch }));
+
+  // Asks the AI to design a logo from a description, or to change the current one.
+  const askAi = async (mode: 'create' | 'change') => {
+    setDrafting(true);
+    setDraftError('');
+    try {
+      const response = await apiFetch('/api/logo/generate', {
+        method: 'POST',
+        json: mode === 'create' ? { description } : { current: settings, instruction },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not create the logo');
+      setSettings({ ...DEFAULT_LOGO, ...data.logo });
+      setHasDraft(true);
+      if (mode === 'change') setInstruction('');
+    } catch (err) {
+      setDraftError(err instanceof Error ? err.message : 'Could not create the logo');
+    } finally {
+      setDrafting(false);
+    }
+  };
 
   // Gives a new combination to start from. The user keeps any name or tagline they typed.
   const shuffle = () => {
@@ -87,6 +115,62 @@ export default function LogoBuilderPage() {
         <div className="flex-1 overflow-y-auto p-8">
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-96 shrink-0 space-y-6">
+              <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
+                {!hasDraft ? (
+                  <>
+                    <label className={labelClass}>Describe your business</label>
+                    <textarea
+                      className={`${inputClass} w-full resize-none h-24`}
+                      value={description}
+                      maxLength={600}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. A friendly pottery studio for beginners in a village, warm and hands-on"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => askAi('create')}
+                      disabled={drafting || description.trim().length < 5}
+                      className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
+                    >
+                      {drafting ? 'Designing your logo...' : 'Design my logo'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label className={labelClass}>Ask for a change</label>
+                    <input
+                      className={`${inputClass} w-full`}
+                      value={instruction}
+                      maxLength={400}
+                      onChange={(e) => setInstruction(e.target.value)}
+                      placeholder="e.g. make the icon simpler and use a softer green"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => askAi('change')}
+                        disabled={drafting || !instruction.trim()}
+                        className="flex-1 bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
+                      >
+                        {drafting ? 'Updating...' : 'Apply change'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasDraft(false);
+                          setDescription('');
+                        }}
+                        className="border border-white/10 hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-sm"
+                      >
+                        Start again
+                      </button>
+                    </div>
+                  </>
+                )}
+                {draftError && <p className="text-sm text-red-400">{draftError}</p>}
+                <p className="text-xs text-gray-500">The fine-tuning controls below change anything the AI made.</p>
+              </div>
+
               <div>
                 <label className={labelClass}>Business name</label>
                 <input className={inputClass} value={settings.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. CloudSync" />
@@ -104,7 +188,7 @@ export default function LogoBuilderPage() {
                       key={icon.key}
                       type="button"
                       title={icon.label}
-                      onClick={() => set({ icon: icon.key })}
+                      onClick={() => set({ icon: icon.key, shapes: [] })}
                       className={`aspect-square rounded-xl border p-2 transition ${
                         settings.icon === icon.key ? 'border-white bg-white/10' : 'border-white/10 hover:bg-white/5'
                       }`}

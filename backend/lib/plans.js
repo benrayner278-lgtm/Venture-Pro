@@ -1,55 +1,87 @@
-// The plan list, shared by checkout, billing, site publishing and chat limits.
-// Prices are in pence (GBP). Keep in step with the plan list on the landing page (frontend/app/page.tsx).
+// The plan list, shared by checkout, billing, site publishing, bookings and chat limits.
+// Prices are in pence (GBP). Keep the descriptions in step with the landing page (frontend/app/page.tsx).
 const PLANS = {
   free: {
     name: 'Free',
     price: 0,
     interval: 'month',
+    summary: 'Try the builder, the chatbot and the logo maker before you pay.',
     sites: 0,
     chatPerDay: 40,
     portfolio: false,
     booking: false,
-    features: ['40 chatbot messages a day', 'One free mockup', 'No hosting'],
+    features: [
+      '40 chatbot messages a day',
+      'AI website designs and previews',
+      'AI logo builder',
+      'Business plan, email and legal templates',
+      'Publishing a website needs a paid plan',
+    ],
   },
   standard: {
     name: 'Standard',
-    price: 3000,
+    price: 2999,
     interval: 'month',
+    summary: 'Your business online, with one live website.',
     sites: 1,
     chatPerDay: 100,
     portfolio: false,
     booking: false,
-    features: ['100 chatbot messages a day', 'Hosting for 1 website', 'Website editing tools'],
+    features: [
+      '100 chatbot messages a day',
+      'Publish 1 live website on your own address',
+      'AI website design, with fonts, colours and style controls',
+      'AI logo builder',
+      'Business plan, email and legal templates',
+    ],
   },
   premium: {
     name: 'Premium',
-    price: 4500,
+    price: 4499,
     interval: 'month',
+    summary: 'Everything in Standard, plus a portfolio to show your work.',
     sites: 1,
     chatPerDay: 500,
     portfolio: true,
     booking: false,
-    features: ['500 chatbot messages a day', 'Portfolio maker', 'Hosting for 1 website'],
+    features: [
+      '500 chatbot messages a day',
+      'Publish 1 live website',
+      'Portfolio maker with photo uploads',
+      'Everything in Standard',
+    ],
   },
   business: {
     name: 'Business',
-    price: 6000,
+    price: 5999,
     interval: 'month',
+    summary: 'Take bookings and run up to three websites.',
     sites: 3,
     chatPerDay: 1000,
     portfolio: true,
     booking: true,
-    features: ['1,000 chatbot messages a day', 'Everything in Premium', 'Hosting for 3 websites', 'Custom booking system (coming soon)'],
+    features: [
+      '1,000 chatbot messages a day',
+      'Publish up to 3 live websites',
+      'Online booking on your website: your hours, services and time zone',
+      'Everything in Premium',
+    ],
   },
   corporate: {
     name: 'Corporate',
     price: 17999,
     interval: 'month',
+    summary: 'For teams and brands that need five websites.',
     sites: 5,
     chatPerDay: 1000,
     portfolio: true,
     booking: true,
-    features: ['Up to 5 websites', 'Everything in Business', 'Custom booking system (coming soon)'],
+    features: [
+      'Up to 5 live websites',
+      '1,000 chatbot messages a day',
+      'Online booking on every website',
+      'Everything in Business',
+    ],
   },
 };
 
@@ -60,7 +92,8 @@ const PAID_PLANS = Object.fromEntries(Object.entries(PLANS).filter(([, plan]) =>
 const LEGACY_PLAN_KEYS = { starter: 'standard', professional: 'premium', enterprise: 'corporate' };
 
 // Subscriptions bought before the rename were charged these amounts (US cents), so the webhook still recognises them.
-const LEGACY_PRICE_KEYS = { 2999: 'standard', 7999: 'premium', 19999: 'corporate' };
+// The 2999 amount is the same as the new Standard price, so it is already matched above.
+const LEGACY_PRICE_KEYS = { 7999: 'premium', 19999: 'corporate' };
 
 // Turns any stored plan name into a current plan key. Unknown names count as Free.
 const planKey = (plan) => {
