@@ -38,6 +38,10 @@ const processMessage = async (req, res) => {
       ],
     });
 
+    // Token counts for working out cost per message. The message text itself is not logged.
+    const { input_tokens, output_tokens, cache_read_input_tokens = 0, cache_creation_input_tokens = 0 } = response.usage;
+    console.log('Chat usage:', JSON.stringify({ userId: req.userId, model: response.model, input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens }));
+
     const aiMessage = response.content[0].type === 'text' ? response.content[0].text : '';
 
     res.json({ message: aiMessage });
