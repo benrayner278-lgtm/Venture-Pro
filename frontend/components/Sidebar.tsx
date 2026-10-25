@@ -12,6 +12,7 @@ const ICON_PATHS: Record<string, string[]> = {
   mail: ['M3 5h18v14H3z', 'M3 7l9 6 9-6'],
   legal: ['M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z', 'M14 3v6h6', 'M8 13h8', 'M8 17h8'],
   billing: ['M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z', 'M2 10h20', 'M6 15h4'],
+  logo: ['M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z'],
   settings: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
 };
 
@@ -52,6 +53,7 @@ export default function Sidebar() {
     { href: '/projects', label: 'Projects', icon: 'projects' },
     { href: '/business-plan', label: 'Business Plan', icon: 'plan' },
     { href: '/website-builder', label: 'Website Builder', icon: 'web' },
+    { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
     { href: '/email-templates', label: 'Email Templates', icon: 'mail' },
     { href: '/legal-documents', label: 'Legal Docs', icon: 'legal' },
     { href: '/billing', label: 'Billing', icon: 'billing' },
