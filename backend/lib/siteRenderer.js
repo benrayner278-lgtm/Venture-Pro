@@ -26,34 +26,35 @@ const mix = (...parts) => {
   return hash >>> 0;
 };
 
-const ctaButtons = (primary, secondary, alignLeft) =>
-  `<div class="actions${alignLeft ? ' left' : ''}"><a class="btn btn-primary" href="#get-started">${escapeHtml(primary)}</a>${
-    secondary ? `<a class="btn btn-secondary" href="#s1">${escapeHtml(secondary)}</a>` : ''
+// Links point at section ids on the page, so every button and menu link goes somewhere.
+const ctaButtons = (primary, secondary, alignLeft, links) =>
+  `<div class="actions${alignLeft ? ' left' : ''}"><a class="btn btn-primary" href="${links.action}">${escapeHtml(primary)}</a>${
+    secondary ? `<a class="btn btn-secondary" href="${links.next}">${escapeHtml(secondary)}</a>` : ''
   }</div>`;
 
 const cardGrid = (items) =>
   items.map((item) => `<div class="card"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p></div>`).join('');
 
-const renderHero = (s, variant, brand) => {
+const renderHero = (s, variant, brand, links) => {
   const eyebrow = s.eyebrow ? `<p class="eyebrow">${escapeHtml(s.eyebrow)}</p>` : '';
   if (variant === 'split') {
     const initials = escapeHtml(brand.split(/\s+/).map((w) => w[0] || '').join('').slice(0, 3).toUpperCase());
-    return `<header class="hero hero-split"><div class="wrap split"><div>${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true)}</div><div class="visual"><span>${initials}</span></div></div></header>`;
+    return `<header class="hero hero-split"><div class="wrap split"><div>${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}</div><div class="visual"><span>${initials}</span></div></div></header>`;
   }
   if (variant === 'editorial') {
-    return `<header class="hero hero-editorial"><div class="wrap">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true)}</div></header>`;
+    return `<header class="hero hero-editorial"><div class="wrap">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}</div></header>`;
   }
-  return `<header class="hero hero-centred"><div class="wrap centre">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, false)}</div></header>`;
+  return `<header class="hero hero-centred"><div class="wrap centre">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, false, links)}</div></header>`;
 };
 
-const renderSection = (section, index, seed, brand) => {
+const renderSection = (section, index, seed, brand, links) => {
   let slot = 0;
   // The AI's layout for this section wins when it fits the section. Otherwise the seed picks one.
   const v = (options) => (options.includes(section.layout) ? section.layout : options[mix(seed, index, slot++) % options.length]);
   const title = (text) => `<h2>${escapeHtml(text)}</h2>`;
   switch (section.type) {
     case 'hero':
-      return renderHero(section, v(['centred', 'split', 'editorial']), brand);
+      return renderHero(section, v(['centred', 'split', 'editorial']), brand, links);
 
     case 'text': {
       const paragraphs = section.paragraphs || [];
@@ -141,7 +142,7 @@ const renderSection = (section, index, seed, brand) => {
     case 'cta': {
       const body = section.body ? `<p class="lead">${escapeHtml(section.body)}</p>` : '';
       const banner = v(['banner', 'inline']) === 'banner' ? ' cta-banner' : '';
-      return `<section class="${banner.trim()}" id="get-started"><div class="wrap centre"><h2>${escapeHtml(section.headline)}</h2>${body}<div class="actions"><a class="btn btn-primary" href="#">${escapeHtml(section.button)}</a></div></div></section>`;
+      return `<section class="${banner.trim()}"><div class="wrap centre"><h2>${escapeHtml(section.headline)}</h2>${body}<div class="actions"><a class="btn btn-primary" href="${links.contact}">${escapeHtml(section.button)}</a></div></div></section>`;
     }
 
     case 'custom': {
@@ -287,12 +288,26 @@ const buildPage = (content, themeId, shuffle) => {
   const { sections, contact } = compose(content);
 
   const primary = sections.find((s) => s.type === 'hero');
-  const navLinks = (content.nav || []).slice(0, 5).map((label) => `<a href="#">${escapeHtml(label)}</a>`).join('');
-  const navCta = primary ? `<a class="btn btn-primary" href="#get-started">${escapeHtml(primary.primaryCta)}</a>` : '';
-  const body = sections.map((section, index) => renderSection(section, index, seed, brand)).join('\n');
+  // Each section has an id (s0, s1, ...). Menu links go to the section after the hero, in order.
+  const contactIndex = sections.findIndex((section) => section.type === 'contact');
+  const ctaIndex = sections.findIndex((section) => section.type === 'cta');
+  const actionIndex = contactIndex !== -1 ? contactIndex : ctaIndex;
+  const links = {
+    action: actionIndex === -1 ? '#top' : `#s${actionIndex}`,
+    contact: contactIndex === -1 ? '#top' : `#s${contactIndex}`,
+    next: sections.length > 1 ? '#s1' : '#top',
+  };
+  const navLinks = (content.nav || [])
+    .slice(0, 5)
+    .map((label, i) => `<a href="${sections.length > i + 1 ? `#s${i + 1}` : '#top'}">${escapeHtml(label)}</a>`)
+    .join('');
+  const navCta = primary ? `<a class="btn btn-primary" href="${links.action}">${escapeHtml(primary.primaryCta)}</a>` : '';
+  const body = sections
+    .map((section, index) => renderSection(section, index, seed, brand, links).replace(/^<(section|header)/, `<$1 id="s${index}"`))
+    .join('\n');
 
   const css = themeCss(t);
-  const navHtml = `<div class="wrap">
+  const navHtml = `<div class="wrap" id="top">
 <nav>
   <div class="brand">${escapeHtml(brand)}</div>
   ${navLinks ? `<div class="links">${navLinks}</div>` : ''}
@@ -306,9 +321,34 @@ const buildPage = (content, themeId, shuffle) => {
   return { brand, effect, css, navHtml, body, footer };
 };
 
+// The booking form. It works without scripts: the browser posts it straight to the booking API.
+const BOOKING_CSS = `.booking{display:grid;gap:16px;text-align:left;max-width:520px;margin:32px auto 0}.booking label{display:grid;gap:6px;font-size:15px;color:var(--muted)}.booking input,.booking select,.booking textarea{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}.booking textarea{min-height:90px;resize:vertical}.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;
+
+const renderBooking = (view) => {
+  const services = view.services
+    .map((service) => `<option value="${escapeHtml(service.name)}">${escapeHtml(service.name)}${service.minutes ? ` (${service.minutes} min)` : ''}${service.price ? ` · ${escapeHtml(service.price)}` : ''}</option>`)
+    .join('');
+  const times = view.slots.map((slot) => `<option value="${escapeHtml(slot.value)}">${escapeHtml(slot.label)}</option>`).join('');
+  const form = view.slots.length
+    ? `<form class="booking" method="post" action="${escapeHtml(view.action)}">
+<label>Service<select name="service" required>${services}</select></label>
+<label>Time<select name="slot" required>${times}</select></label>
+<label>Your name<input name="name" required maxlength="100" autocomplete="name"></label>
+<label>Email<input type="email" name="email" required maxlength="254" autocomplete="email"></label>
+<label>Phone (optional)<input name="phone" maxlength="40" autocomplete="tel"></label>
+<label>Notes (optional)<textarea name="notes" maxlength="500"></textarea></label>
+<label class="hp" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label>
+<button type="submit" class="btn btn-primary">Request this time</button>
+</form>`
+    : `<p class="lead">No times are free in the next ${escapeHtml(view.daysAhead)} days. Please get in touch.</p>`;
+  return `<section id="book"><div class="wrap narrow centre"><h2>Book a time</h2><p class="lead">Choose a service and a time. We will be in touch to confirm.</p>${form}</div></section>`;
+};
+
 // Renders the structured site content as a standalone page. Output contains no scripts.
-const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
+// extras.booking adds the booking form. Pass it only for published sites.
+const renderSite = (content, themeId = 'midnight', shuffle = 0, extras = {}) => {
   const { brand, effect, css, navHtml, body, footer } = buildPage(content, themeId, shuffle);
+  const booking = extras.booking ? renderBooking(extras.booking) : '';
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -316,11 +356,12 @@ const renderSite = (content, themeId = 'midnight', shuffle = 0) => {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(brand)}</title>
 ${googleFontsLink(content.style)}
-<style>${css}</style>
+<style>${css}${booking ? BOOKING_CSS : ''}</style>
 </head>
 <body class="effect-${effect}">
 ${navHtml}
 ${body}
+${booking}
 ${footer}
 </body>
 </html>`;
@@ -339,7 +380,7 @@ const designKey = (content, themeId, shuffle) => {
 const EDIT_SKIP_KEYS = new Set(['type', 'layout', 'style', 'design', 'nav', 'image', 'brand']);
 const TEXT_TOKEN = /\u0001(\d+)\u0002/g;
 const EDIT_HELPERS = `<style>[data-edit]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px;transition:outline-color .2s}[data-edit]:hover{outline-color:currentColor}</style>
-<script>document.addEventListener('dblclick',function(e){var el=e.target.closest&&e.target.closest('[data-edit]');if(!el)return;var s=window.getSelection();if(s)s.removeAllRanges();parent.postMessage({type:'edit-text',id:el.getAttribute('data-edit')},'*')});</script>
+<script>document.addEventListener('dblclick',function(e){var el=e.target.closest&&e.target.closest('[data-edit]');if(!el)return;var s=window.getSelection();if(s)s.removeAllRanges();parent.postMessage({type:'edit-text',id:el.getAttribute('data-edit')},'*')});document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();var el=document.getElementById(a.getAttribute('href').slice(1));if(el)el.scrollIntoView({behavior:'smooth'});});</script>
 `;
 
 // Swaps each non-empty text value for a marker, keeping the path to where it came from.

@@ -33,9 +33,10 @@ const STEPS = [
 ];
 
 const PLANS = [
-  { name: 'Starter', price: '£29.99', description: 'For getting your first business down on paper.', features: ['Chat assistant', '10 business plans a month', 'Basic templates'], featured: false },
-  { name: 'Professional', price: '£79.99', description: 'For founders building in earnest.', features: ['Unlimited chat', 'Unlimited business plans', 'All templates and website styles', 'Priority support'], featured: true },
-  { name: 'Enterprise', price: '£199.99', description: 'For teams that need more control.', features: ['Everything in Professional', 'Custom integrations', 'Dedicated support', 'API access'], featured: false },
+  { name: 'Standard', price: '£30', description: 'For a single business with its own website.', features: ['100 chatbot messages a day', 'Hosting for 1 website', 'Website editing tools'], featured: false },
+  { name: 'Premium', price: '£45', description: 'For founders who want to show their work.', features: ['500 chatbot messages a day', 'Portfolio maker', 'Hosting for 1 website'], featured: true },
+  { name: 'Business', price: '£60', description: 'For growing businesses that take bookings.', features: ['1,000 chatbot messages a day', 'Everything in Premium', 'Hosting for 3 websites', 'Custom booking system (coming soon)'], featured: false },
+  { name: 'Corporate', price: '£179.99', description: 'For teams running several sites.', features: ['Up to 5 websites', 'Everything in Business', 'Custom booking system (coming soon)'], featured: false },
 ];
 
 const grid = {
@@ -201,7 +202,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <p className="text-sm font-medium text-zinc-500">Pricing</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Simple plans, paid monthly.</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {PLANS.map((plan) => (
               <div
                 key={plan.name}

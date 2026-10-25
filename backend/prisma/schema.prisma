@@ -19,9 +19,20 @@ model User {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  projects Project[]
-  sites    Site[]
+  projects   Project[]
+  sites      Site[]
+  chatUsage  ChatDailyUsage[]
   @@map("users")
+}
+
+model ChatDailyUsage {
+  userId String
+  day    String // YYYY-MM-DD in UTC
+  count  Int    @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@map("chat_daily_usage")
 }
 
 model Site {
@@ -36,8 +47,30 @@ model Site {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  bookingSettings Json?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
   @@map("sites")
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  siteId        String
+  startsAt      DateTime
+  durationMin   Int
+  serviceName   String
+  customerName  String
+  customerEmail String
+  customerPhone String   @default("")
+  notes         String   @default("")
+  status        String   @default("confirmed")
+  createdAt     DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, startsAt])
+  @@index([siteId, startsAt])
+  @@map("bookings")
 }
 
 model Project {

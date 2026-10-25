@@ -32,6 +32,7 @@ const billingRoutes = require('./routes/billing');
 const websiteRoutes = require('./routes/website');
 const sitesRoutes = require('./routes/sites');
 const publicSitesRoutes = require('./routes/publicSites');
+const bookingRoutes = require('./routes/bookings');
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/checkout', checkoutRoutes);
@@ -40,6 +41,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/website', websiteRoutes);
 app.use('/api/sites', sitesRoutes);
 app.use('/api/public/sites', publicSitesRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

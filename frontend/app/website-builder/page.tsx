@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
-import { WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
+import { PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
@@ -27,6 +28,17 @@ export default function WebsiteBuilderPage() {
   const [shuffle, setShuffle] = useState(0);
   const [tweak, setTweak] = useState('');
   const [tweaking, setTweaking] = useState(false);
+  const [plan, setPlan] = useState('free');
+  const portfolioAllowed = PORTFOLIO_PLANS.includes(plan);
+
+  useEffect(() => {
+    apiFetch('/api/billing/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.plan) setPlan(data.plan);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -117,7 +129,7 @@ export default function WebsiteBuilderPage() {
 
   const openPortfolio = () => {
     if (!content) return;
-    if (!content.portfolio) {
+    if (portfolioAllowed && !content.portfolio) {
       const gallery = content.sections.find((s): s is Extract<WebsiteSection, { type: 'gallery' }> => s.type === 'gallery');
       setContent({ ...content, portfolio: { title: gallery?.title || 'Our work', items: gallery?.items || [] } });
     }
@@ -286,7 +298,7 @@ export default function WebsiteBuilderPage() {
                       [
                         { id: 'style', label: 'Edit style and fonts' },
                         { id: 'contact', label: 'Edit contact details' },
-                        { id: 'portfolio', label: 'Edit portfolio and photos' },
+                        { id: 'portfolio', label: portfolioAllowed ? 'Edit portfolio and photos' : 'Edit portfolio and photos (Premium)' },
                       ] as { id: View; label: string }[]
                     ).map((tab) => (
                       <button
@@ -330,7 +342,16 @@ export default function WebsiteBuilderPage() {
                     <ContactEditor value={content.contact || {}} onChange={(contact) => setContent({ ...content, contact })} />
                   </div>
                 )}
-                {!editingPath && view === 'portfolio' && content.portfolio && (
+                {!editingPath && view === 'portfolio' && !portfolioAllowed && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
+                    <p className="text-sm font-medium text-white">The portfolio maker is included in Premium and above.</p>
+                    <p className="text-xs text-gray-400">Upgrade to add your own project pages and photos. Your site keeps its existing gallery.</p>
+                    <Link href="/billing" className="inline-block bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                      See plans
+                    </Link>
+                  </div>
+                )}
+                {!editingPath && view === 'portfolio' && portfolioAllowed && content.portfolio && (
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
                     <PortfolioEditor value={content.portfolio} onChange={(portfolio) => setContent({ ...content, portfolio })} />
                   </div>

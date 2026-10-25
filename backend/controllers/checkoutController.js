@@ -1,27 +1,7 @@
 const { getStripe } = require('../lib/stripe');
 
 const prisma = require('../lib/prisma');
-
-const PLANS = {
-  starter: {
-    name: 'Starter',
-    price: 2999, // $29.99 in cents
-    interval: 'month',
-    features: ['Chat assistant', '10 business plans/month', 'Basic templates'],
-  },
-  professional: {
-    name: 'Professional',
-    price: 7999, // $79.99 in cents
-    interval: 'month',
-    features: ['Unlimited chat', 'Unlimited business plans', 'All templates', 'Priority support'],
-  },
-  enterprise: {
-    name: 'Enterprise',
-    price: 19999, // $199.99 in cents
-    interval: 'month',
-    features: ['Everything in Professional', 'Custom integrations', 'Dedicated support', 'API access'],
-  },
-};
+const { PAID_PLANS, planKeyForAmount } = require('../lib/plans');
 
 const createCheckoutSession = async (req, res) => {
   try {
@@ -32,11 +12,11 @@ const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: 'Plan ID is required' });
     }
 
-    if (!PLANS[planId]) {
+    if (!PAID_PLANS[planId]) {
       return res.status(400).json({ error: 'Invalid plan ID' });
     }
 
-    const plan = PLANS[planId];
+    const plan = PAID_PLANS[planId];
 
     // Create or retrieve customer
     const user = await prisma.user.findUnique({
@@ -118,14 +98,12 @@ const handleWebhook = async (req, res) => {
         const userId = subscription.metadata?.userId;
 
         if (userId) {
-          const plan = Object.keys(PLANS).find(
-            (key) => PLANS[key].price === subscription.items.data[0].price.unit_amount
-          );
+          const plan = planKeyForAmount(subscription.items.data[0].price.unit_amount);
 
           await prisma.user.update({
             where: { id: userId },
             data: {
-              plan: plan || 'starter',
+              plan: plan || 'standard',
               subscriptionStatus: 'active',
               stripeSubscriptionId: subscription.id,
             },
@@ -141,14 +119,12 @@ const handleWebhook = async (req, res) => {
         const userId = subscription.metadata?.userId;
 
         if (userId && subscription.status === 'active') {
-          const plan = Object.keys(PLANS).find(
-            (key) => PLANS[key].price === subscription.items.data[0].price.unit_amount
-          );
+          const plan = planKeyForAmount(subscription.items.data[0].price.unit_amount);
 
           await prisma.user.update({
             where: { id: userId },
             data: {
-              plan: plan || 'starter',
+              plan: plan || 'standard',
               subscriptionStatus: subscription.status,
               stripeSubscriptionId: subscription.id,
             },
@@ -208,7 +184,7 @@ const handleWebhook = async (req, res) => {
 };
 
 const getPlans = async (req, res) => {
-  res.json(PLANS);
+  res.json(PAID_PLANS);
 };
 
 module.exports = { createCheckoutSession, handleWebhook, getPlans };

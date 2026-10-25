@@ -73,6 +73,10 @@ export type WebsiteContent = {
   style?: StyleSettings;
 };
 
+// Plans that include the portfolio maker. Older plan names are listed because existing accounts still store them.
+// Keep in step with backend/lib/plans.js.
+export const PORTFOLIO_PLANS = ['premium', 'business', 'corporate', 'professional', 'enterprise'];
+
 // Keep in step with MAX_PHOTOS in backend/controllers/sitesController.js.
 export const MAX_PHOTOS = 8;
 

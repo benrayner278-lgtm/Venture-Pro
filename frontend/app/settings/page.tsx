@@ -16,9 +16,13 @@ type Account = {
 
 const PLAN_NAMES: Record<string, string> = {
   free: 'Free',
-  starter: 'Starter',
-  professional: 'Professional',
-  enterprise: 'Enterprise',
+  standard: 'Standard',
+  premium: 'Premium',
+  business: 'Business',
+  corporate: 'Corporate',
+  starter: 'Standard',
+  professional: 'Premium',
+  enterprise: 'Corporate',
 };
 
 const inputClass =

@@ -306,17 +306,17 @@ export default function BillingPage() {
 
               {/* Plans Tab */}
               {activeTab === 'plans' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
                   {Object.entries(plans).map(([planId, plan]) => (
                     <div
                       key={planId}
                       className={`rounded-2xl p-8 flex flex-col transition ${
-                        planId === 'professional'
+                        planId === 'premium'
                           ? 'bg-gradient-to-br from-white/10 to-white/5 border border-white/20 ring-2 ring-white/25'
                           : 'bg-gray-900/50 border border-gray-800/50 hover:border-gray-700'
                       }`}
                     >
-                      {planId === 'professional' && (
+                      {planId === 'premium' && (
                         <div className="mb-4">
                           <span className="text-xs font-bold text-white bg-white/10 px-3 py-1 rounded-full">
                             RECOMMENDED
@@ -345,7 +345,7 @@ export default function BillingPage() {
                         onClick={() => handleCheckout(planId)}
                         disabled={checkoutLoading === planId}
                         className={`w-full py-3 rounded-lg font-semibold text-sm transition ${
-                          planId === 'professional'
+                          planId === 'premium'
                             ? 'bg-white hover:bg-gray-200 text-black'
                             : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700'
                         } disabled:opacity-60 disabled:cursor-not-allowed`}

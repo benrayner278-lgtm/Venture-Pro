@@ -1,6 +1,7 @@
 const { getStripe } = require('../lib/stripe');
 
 const prisma = require('../lib/prisma');
+const { PAID_PLANS } = require('../lib/plans');
 
 // Get user's billing information
 const getBillingInfo = async (req, res) => {
@@ -82,32 +83,7 @@ const getInvoices = async (req, res) => {
 // Get available plans
 const getPlans = async (req, res) => {
   try {
-    const plans = {
-      free: {
-        name: 'Free',
-        price: 0,
-        interval: 'month',
-        features: ['1 business plan/month', 'Basic email templates', 'Community support', '5GB storage'],
-      },
-      starter: {
-        name: 'Starter',
-        price: 2999,
-        interval: 'month',
-        features: ['Chat assistant', '10 business plans/month', 'Basic templates'],
-      },
-      professional: {
-        name: 'Professional',
-        price: 7999,
-        interval: 'month',
-        features: ['Unlimited chat', 'Unlimited business plans', 'All templates', 'Priority support'],
-      },
-      enterprise: {
-        name: 'Enterprise',
-        price: 19999,
-        interval: 'month',
-        features: ['Everything in Professional', 'Custom integrations', 'Dedicated support', 'API access'],
-      },
-    };
+    const plans = PAID_PLANS;
 
     res.json(plans);
   } catch (error) {

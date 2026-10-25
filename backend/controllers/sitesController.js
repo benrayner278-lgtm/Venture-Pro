@@ -3,6 +3,8 @@ const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
 const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
+const { PLANS, planKey } = require('../lib/plans');
+const { API_ORIGIN, publicBookingView } = require('./bookingController');
 
 const prisma = new PrismaClient();
 
@@ -11,7 +13,6 @@ const RESERVED_SLUGS = new Set([
   'www', 'api', 'app', 'admin', 'mail', 'support', 'help', 'blog', 'static', 'cdn', 'ftp',
   'dashboard', 'login', 'signup', 'billing', 'status', 'docs', 'account', 'settings',
 ]);
-const PLAN_LIMITS = { free: 0, starter: 1, professional: 5, enterprise: Infinity };
 const MAX_CONTENT_BYTES = 4 * 1024 * 1024;
 const MAX_DESIGN_TRIES = 25;
 const MAX_PHOTOS = 8;
@@ -28,7 +29,8 @@ const slugProblem = (slug) => {
 };
 
 // Keeps only the owner's contact details and portfolio fields, with length limits and valid photos.
-const cleanContent = (content) => {
+// The portfolio maker is left out when the plan does not include it.
+const cleanContent = (content, allowPortfolio = true) => {
   if (!content || typeof content !== 'object') return content;
   const next = { ...content };
   if (content.style) next.style = cleanStyle(content.style);
@@ -41,7 +43,8 @@ const cleanContent = (content) => {
       hours: clip(contact.hours, 200),
     };
   }
-  if (content.portfolio && typeof content.portfolio === 'object') {
+  if (!allowPortfolio) delete next.portfolio;
+  else if (content.portfolio && typeof content.portfolio === 'object') {
     const items = Array.isArray(content.portfolio.items) ? content.portfolio.items.slice(0, MAX_PHOTOS) : [];
     next.portfolio = {
       title: clip(content.portfolio.title || 'Our work', 80),
@@ -101,16 +104,17 @@ const previewSite = async (req, res) => {
 const createSite = async (req, res) => {
   try {
     const { slug: rawSlug, themeId, shuffle } = req.body;
-    const content = cleanContent(req.body.content);
     const slug = String(rawSlug || '').toLowerCase();
     const problem = slugProblem(slug);
     if (problem) return res.status(400).json({ error: problem });
-    if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
 
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const content = cleanContent(req.body.content, PLANS[planKey(user.plan)].portfolio);
+    if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
 
-    const limit = PLAN_LIMITS[user.plan] ?? 0;
+    const plan = PLANS[planKey(user.plan)];
+    const limit = plan.sites;
     const count = await prisma.site.count({ where: { userId: user.id } });
     if (count >= limit) {
       return res.status(403).json({
@@ -167,7 +171,8 @@ const updateSite = async (req, res) => {
     const site = await findOwnedSite(req, res);
     if (!site) return;
     const { themeId, shuffle } = req.body;
-    const content = cleanContent(req.body.content);
+    const owner = await prisma.user.findUnique({ where: { id: site.userId } });
+    const content = cleanContent(req.body.content, PLANS[planKey(owner?.plan)].portfolio);
     if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
 
     const preset = PRESET_IDS.includes(themeId) ? themeId : site.themeId;
@@ -207,11 +212,14 @@ const publicSite = async (req, res) => {
   if (!site) {
     return res.status(404).type('html').send('<!doctype html><title>Not found</title><p>This site does not exist.</p>');
   }
-  const html = renderSite(site.content, site.themeId, site.shuffle);
+  const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
+  const booking = await publicBookingView(site, owner?.plan);
+  const html = renderSite(site.content, site.themeId, site.shuffle, { booking });
+  // Forms may only post to the booking API. Scripts stay blocked.
   res
     .set({
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action ${API_ORIGIN}; frame-ancestors 'none'`,
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'public, max-age=60',
     })
