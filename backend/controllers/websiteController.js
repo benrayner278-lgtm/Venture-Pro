@@ -6,6 +6,7 @@ const { randomCreativeBrief } = require('../lib/creativeBrief');
 const { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('../lib/websiteEdits');
 const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
+const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
 
 const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
 
@@ -132,6 +133,9 @@ Specific requests: ${requests || 'none'}`;
       const context = `Business brief:
 ${brief}
 
+Brand kit:
+${kitForPrompt(build.brief?.kit)}
+
 Earlier requests on this website, oldest first:
 ${historyForPrompt(build)}
 
@@ -159,7 +163,8 @@ ${JSON.stringify(content)}`;
       return res.json({ content, buildId: build.id, reply });
     }
 
-    const userMessage = `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBusiness brief:\n${brief}`;
+    const kit = await createBrandKit(brief);
+    const userMessage = `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBrand kit:\n${kitForPrompt(kit)}\n\nBusiness brief:\n${brief}`;
 
     let content;
     let lastError;
@@ -186,7 +191,7 @@ ${JSON.stringify(content)}`;
     }
 
     const reply = `Built a new website for ${businessName}.`;
-    const build = await openBuild({ userId: req.userId, kind: 'website', brief: briefFields, state: content });
+    const build = await openBuild({ userId: req.userId, kind: 'website', brief: { ...briefFields, kit }, state: content });
     await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['built the website'], state: content });
     res.json({ content, buildId: build.id, reply });
   } catch (error) {

@@ -6,7 +6,7 @@ const LAYOUTS = ['side', 'stacked', 'wordmark'];
 const BACKGROUNDS = ['light', 'dark', 'transparent'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const PATH_DATA = /^[MmLlHhVvCcSsQqTtZz0-9 ,.\-]{1,400}$/;
-const MAX_SHAPES = 8;
+const MAX_SHAPES = 16;
 
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 const coord = (value, fallback = 50) => {

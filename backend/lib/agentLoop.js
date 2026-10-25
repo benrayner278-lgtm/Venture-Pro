@@ -61,9 +61,20 @@ const runToolLoop = async ({ system, context, request, tools, apply, label }) =>
       }
       const outcome = apply(call.name, call.input || {});
       if (outcome.action) actions.push(outcome.action);
-      results.push({ type: 'tool_result', tool_use_id: call.id, content: outcome.text, is_error: Boolean(outcome.error) });
+      // A tool can return an image (a preview) as well as text, so the model can see what it made.
+      const content = outcome.image
+        ? [
+            { type: 'text', text: outcome.text },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: outcome.image.toString('base64') } },
+          ]
+        : outcome.text;
+      results.push({ type: 'tool_result', tool_use_id: call.id, content, is_error: Boolean(outcome.error) });
     }
     if (reply) break;
+    // Before the last allowed step, ask for the reply, so the loop always ends with a message for the user.
+    if (steps + 1 === MAX_STEPS) {
+      results.push({ type: 'text', text: 'This is your last step. Make no more changes; call reply_to_user now.' });
+    }
     messages.push({ role: 'user', content: results });
   }
 
