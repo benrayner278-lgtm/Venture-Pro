@@ -1,6 +1,7 @@
 const { getAnthropic } = require('../lib/anthropic');
 const prisma = require('../lib/prisma');
-const { EFFECTS } = require('../lib/designPresets');
+const { FONTS } = require('../lib/styleOptions');
+const { sanitizeDesign, sanitizeSections } = require('../lib/designBrief');
 
 const SECTION_TYPES = [
   'hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom',
@@ -14,12 +15,27 @@ Respond with only a JSON object, no markdown or code fences:
   "nav": [string],
   "sections": [ Section ],
   "footer": { "note": string },
-  "design": { "effect": "none" | "reveal" | "stack" }
+  "design": Design
 }
 
-The "design" field is optional. Set "effect" to "reveal" when the owner asks for sections to fade or rise in as the visitor scrolls. Set it to "stack" when they ask for sections to overlap or slide over each other as the visitor scrolls. Use "none" when they ask for no motion. Leave it out otherwise.
+Design is the design brief for this business. Design the site around this business: its character, its customers and what the visitor should do. Do not fall back to a generic look. Every site must look different from the others. Use this shape:
+{
+  "mood": string,                       // three or four words, e.g. "warm, rustic, small-batch"
+  "palette": { "bg": hex, "surface": hex, "text": hex, "muted": hex, "accent": hex, "accentText": hex, "border": hex },
+  "fonts": { "heading": FontKey, "body": FontKey },
+  "headingCase": "none" | "uppercase" | "capitalize",
+  "headingWeight": 500 | 600 | 700 | 800 | 900,
+  "radius": number,                     // corner roundness in pixels, 0 (square) to 32 (very round)
+  "density": "airy" | "balanced" | "dense",
+  "effect": "none" | "reveal" | "stack"
+}
+FontKey is one of: ${Object.keys(FONTS).join(', ')}.
+Palette rules: every colour is a six-digit hex code like #1e3a8a. Text must read clearly on the background (at least 4.5 to 1 contrast). accentText must read clearly on accent (at least 3 to 1). Choose colours that suit the business, not the same ones every time. Always include the design field.
+
+Effect: set "reveal" when the owner asks for sections to fade or rise in as the visitor scrolls, and "stack" when they ask for sections to overlap. Use "none" otherwise, unless motion clearly suits the business.
 
 Each Section is one of these shapes (the "type" field is required):
+Every section may also have a "layout" string, chosen from the list for its type. Pick the layout that suits the content, and vary layouts so the page does not repeat the same arrangement. Layouts by type: hero (centred, split, editorial), text (centred, columns), cards (grid, list, numbered), steps (timeline, columns), gallery (grid, featured, list), pricing (cards, rows), faq (accordion, columns), contact (centred, split), cta (banner, inline).
 - { "type": "hero", "eyebrow": string, "headline": string, "subheadline": string, "primaryCta": string, "secondaryCta": string }
 - { "type": "text", "title": string, "paragraphs": [string] }
 - { "type": "cards", "title": string, "intro": string, "items": [{ "title": string, "description": string }] }  (use for features, benefits, services, values)
@@ -49,9 +65,9 @@ const parseContent = (text) => {
   if (content.sections.length === 0) {
     throw new Error('No valid sections returned');
   }
-  if (!EFFECTS.includes(content.design?.effect)) {
-    delete content.design;
-  }
+  content.sections = sanitizeSections(content.sections);
+  content.design = sanitizeDesign(content.design);
+  if (!content.design) delete content.design;
   return content;
 };
 

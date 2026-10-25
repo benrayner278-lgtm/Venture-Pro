@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { PRESETS, EFFECTS } = require('./designPresets');
 const { applyStyle, googleFontsLink } = require('./styleOptions');
+const { sanitizeDesign, applyBrief, mergeStyle } = require('./designBrief');
 
 const escapeHtml = (text) =>
   String(text ?? '')
@@ -47,7 +48,8 @@ const renderHero = (s, variant, brand) => {
 
 const renderSection = (section, index, seed, brand) => {
   let slot = 0;
-  const v = (options) => options[mix(seed, index, slot++) % options.length];
+  // The AI's layout for this section wins when it fits the section. Otherwise the seed picks one.
+  const v = (options) => (options.includes(section.layout) ? section.layout : options[mix(seed, index, slot++) % options.length]);
   const title = (text) => `<h2>${escapeHtml(text)}</h2>`;
   switch (section.type) {
     case 'hero':
@@ -276,10 +278,12 @@ const compose = (content) => {
 
 // Builds the page parts shared by the public page and the design fingerprint.
 const buildPage = (content, themeId, shuffle) => {
-  const t = applyStyle(PRESETS.find((preset) => preset.id === themeId) || PRESETS[0], content.style);
+  const brief = sanitizeDesign(content.design);
+  const preset = applyBrief(PRESETS.find((item) => item.id === themeId) || PRESETS[0], brief);
+  const t = applyStyle(preset, mergeStyle(brief, content.style));
   const brand = content.brand?.name || 'Website';
   const seed = Number(shuffle) || 0;
-  const effect = EFFECTS.includes(content.design?.effect) ? content.design.effect : EFFECTS[mix(seed, 'effect') % EFFECTS.length];
+  const effect = brief?.effect ?? EFFECTS[mix(seed, 'effect') % EFFECTS.length];
   const { sections, contact } = compose(content);
 
   const primary = sections.find((s) => s.type === 'hero');
@@ -332,7 +336,7 @@ const designKey = (content, themeId, shuffle) => {
 };
 
 // Builder preview only. Each piece of text is wrapped so the builder can find the field it came from when it is double-clicked.
-const EDIT_SKIP_KEYS = new Set(['type', 'style', 'design', 'nav', 'image', 'brand']);
+const EDIT_SKIP_KEYS = new Set(['type', 'layout', 'style', 'design', 'nav', 'image', 'brand']);
 const TEXT_TOKEN = /\u0001(\d+)\u0002/g;
 const EDIT_HELPERS = `<style>[data-edit]{cursor:pointer;outline:1px dashed transparent;outline-offset:4px;transition:outline-color .2s}[data-edit]:hover{outline-color:currentColor}</style>
 <script>document.addEventListener('dblclick',function(e){var el=e.target.closest&&e.target.closest('[data-edit]');if(!el)return;var s=window.getSelection();if(s)s.removeAllRanges();parent.postMessage({type:'edit-text',id:el.getAttribute('data-edit')},'*')});</script>

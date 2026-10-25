@@ -261,10 +261,16 @@ export default function WebsiteBuilderPage() {
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</label>
                   <select
-                    value={themeId}
-                    onChange={(e) => setThemeId(e.target.value)}
+                    value={content.design?.palette ? 'brief' : themeId}
+                    onChange={(e) => {
+                      if (e.target.value === 'brief') return;
+                      // Picking a preset replaces the colours and fonts the AI chose for this business.
+                      setThemeId(e.target.value);
+                      setContent({ ...content, design: { ...content.design, palette: undefined, fonts: undefined } });
+                    }}
                     className="w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition"
                   >
+                    {content.design?.palette && <option value="brief">Designed for your business</option>}
                     {WEBSITE_PRESETS.map((theme) => (
                       <option key={theme.id} value={theme.id}>
                         {theme.name}: {theme.description}

@@ -1,6 +1,6 @@
 type Item = { title: string; description: string };
 
-export type WebsiteSection =
+type SectionShape =
   | { type: 'hero'; eyebrow?: string; headline: string; subheadline: string; primaryCta: string; secondaryCta?: string }
   | { type: 'text'; title: string; paragraphs: string[] }
   | { type: 'cards'; title: string; intro?: string; items: Item[] }
@@ -11,6 +11,9 @@ export type WebsiteSection =
   | { type: 'contact'; title: string; body: string; email?: string; phone?: string }
   | { type: 'cta'; headline: string; body?: string; button: string }
   | { type: 'custom'; title?: string; paragraphs: string[] };
+
+// The layout the AI chose for this section. It is one of the layouts for the section's type.
+export type WebsiteSection = SectionShape & { layout?: string };
 
 export type ContactDetails = {
   phone?: string;
@@ -45,12 +48,25 @@ export type StyleSettings = {
   spacing?: number;
 };
 
+export type DesignBrief = {
+  effect?: 'none' | 'reveal' | 'stack';
+  key?: string;
+  mood?: string;
+  palette?: { bg: string; surface: string; text: string; muted: string; accent: string; accentText: string; border: string };
+  fonts?: { heading: string | null; body: string | null };
+  headingCase?: 'none' | 'uppercase' | 'capitalize';
+  headingWeight?: number;
+  radius?: number;
+  density?: 'airy' | 'balanced' | 'dense';
+};
+
 export type WebsiteContent = {
   brand: { name: string; tagline: string };
   nav?: string[];
   sections: WebsiteSection[];
   footer: { note: string };
-  design?: { effect?: 'none' | 'reveal' | 'stack'; key?: string };
+  // The AI's design brief. Palette and fonts are cleared when the owner picks a preset instead.
+  design?: DesignBrief;
   // Set by the owner in the builder. The AI never changes these.
   contact?: ContactDetails;
   portfolio?: Portfolio;
