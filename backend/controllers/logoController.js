@@ -9,7 +9,7 @@ const DESIGN_PROMPT = `You design logos for small businesses, the way a good ind
 
 How to work:
 1. Turn the logo idea into a simple mark. Draw it with update_logo, using icon "custom" and a few shapes (usually three to eight). Keep it bold and readable at small sizes.
-2. Choose the font, colours, layout and background to suit the personality. Text must read clearly on the background.
+2. Keep the font from the brand kit (the logo starts with it). Change it only if the mark cannot work in that font, and say why in your reply. Choose the colours, layout and background to suit the personality. Text must read clearly on the background.
 3. Call preview_logo to see the result. If the mark is unclear, the text is cramped or too small, or the colours clash, fix it with update_logo and preview again. Stop when it works.
 4. Call reply_to_user with one or two plain sentences: the idea behind the logo and what you chose.
 
@@ -38,7 +38,7 @@ const generateLogo = async (req, res) => {
     let request;
     if (!isChange) {
       const kit = await createBrandKit(`Business description: ${description}`);
-      build = await openBuild({ userId, kind: 'logo', brief: { description, kit }, state: cleanLogo({}) });
+      build = await openBuild({ userId, kind: 'logo', brief: { description, kit }, state: cleanLogo({ font: kit?.logoFont }) });
       context = `Business: ${description}\n\nBrand kit:\n${kitForPrompt(kit)}`;
       request = 'Design the logo for this business.';
     } else {

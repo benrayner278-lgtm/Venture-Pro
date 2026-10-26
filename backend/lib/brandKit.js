@@ -11,12 +11,22 @@ Respond with only a JSON object, no markdown or code fences:
   "personality": [string],            // three or four words, e.g. "warm", "precise", "playful"
   "voice": string,                    // how the copy should sound, one sentence
   "palette": { "primary": "#rrggbb", "accent": "#rrggbb", "background": "#rrggbb", "rationale": string },
-  "logoFont": ${FONT_KEYS.map((key) => `"${key}"`).join(' | ')},
+  "logoFont": ${FONT_KEYS.map((key) => `"${key}"`).join(' | ')},   // see the font guide below
   "logoIdea": string,                 // one memorable visual idea for the logo, tied to the business
   "motifs": [string],                 // two or three visual motifs for the website
   "avoid": [string]                   // two or three things this brand should not look like
 }
-Palette rules: text colour (primary) must read clearly on the background, with a contrast ratio of at least 4.5 to 1. The accent is for the logo mark and highlights.`;
+Palette rules: text colour (primary) must read clearly on the background, with a contrast ratio of at least 4.5 to 1. The accent is for the logo mark and highlights.
+Font guide, so the logo font is chosen for this business and not by habit:
+- inter: neutral, modern sans; tech, software, clinics, professional services
+- montserrat: wide, confident sans; fitness, sport, friendly brands with presence
+- poppins: rounded geometric sans; warm, approachable, youthful, kids
+- space: quirky grotesk with character; creative, independent, tech-led
+- oswald: tall condensed sans; trades, garages, bold industrial or sporting names
+- bebas: tall all-caps display; loud, short names, strong signage feel
+- playfair: high-contrast serif; elegant, romantic, heritage, premium
+- dmserif: sturdy display serif; artisan, food, family, traditional craft
+Choose the font whose character matches the personality. Do not reach for the serif fonts unless the personality calls for them.`;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
