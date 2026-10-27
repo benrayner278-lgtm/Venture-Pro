@@ -7,6 +7,8 @@ const { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('../lib/
 const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
+const { createPage, revisePage } = require('../lib/pageGenerator');
+const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { logUsage } = require('../lib/usageLog');
 
 const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
@@ -30,6 +32,23 @@ const cleanSiteState = (content) => {
 
 const outlineOf = (sections) =>
   sections.map((section, index) => `${index}: ${section.type}${section.layout ? ` (${section.layout})` : ''}${section.title || section.headline ? ` - ${section.title || section.headline}` : ''}`).join('\n');
+
+// New websites use the page format unless WEBSITE_FORMAT=sections is set, which keeps the section builder available.
+const SITE_FORMAT = process.env.WEBSITE_FORMAT === 'sections' ? 'sections' : 'page';
+
+// Keeps only what a page needs to be edited and rendered, with the markup and styles made safe.
+const cleanPageState = (content) => ({
+  format: 'page',
+  brand: content.brand && typeof content.brand === 'object' ? content.brand : { name: '', tagline: '' },
+  nav: Array.isArray(content.nav) ? content.nav : [],
+  palette: content.palette,
+  fonts: content.fonts,
+  body: sanitizeBody(content.body),
+  css: sanitizeCss(content.css),
+  images: content.images && typeof content.images === 'object' ? content.images : {},
+});
+
+const imageListOf = (images) => Object.keys(images || {}).map((key) => ({ key, label: 'uploaded photo' }));
 
 const SYSTEM_PROMPT = `You design and write websites for small businesses. Before writing, think about this business and every request in the brief: what the site must show, who it is for, and what action the visitor should take. Then build a page plan of sections that fits that business, in a sensible order. Do not use a fixed template.
 
@@ -126,8 +145,23 @@ Specific requests: ${requests || 'none'}`;
         kind: 'website',
         buildId: typeof buildId === 'string' ? buildId : undefined,
         brief: briefFields,
-        state: currentContent ? cleanSiteState(currentContent) : undefined,
+        state: currentContent ? (currentContent.format === 'page' ? cleanPageState(currentContent) : cleanSiteState(currentContent)) : undefined,
       });
+      if (build.state?.format === 'page') {
+        const current = build.state;
+        const { page } = await revisePage({
+          current,
+          instruction,
+          briefText: brief,
+          kitText: kitForPrompt(build.brief?.kit),
+          history: historyForPrompt(build),
+          images: imageListOf(current.images),
+        });
+        const content = { ...cleanPageState(page), images: current.images };
+        const reply = `Updated the page for ${content.brand?.name || businessName}.`;
+        await recordChange(build, { request: instruction, reply, actions: ['updated the page'], state: content });
+        return res.json({ content, buildId: build.id, reply });
+      }
       let content = cleanSiteState(build.state);
       if (content.sections.length === 0) return res.status(400).json({ error: 'Build a website first, then ask for changes' });
 
@@ -161,6 +195,16 @@ ${JSON.stringify(content)}`;
 
       const reply = outcome.reply || (outcome.actions.length ? 'I made the changes you asked for.' : 'I could not make that change. Try describing it more specifically.');
       await recordChange(build, { request: instruction, reply, actions: outcome.actions, state: content });
+      return res.json({ content, buildId: build.id, reply });
+    }
+
+    if (SITE_FORMAT === 'page') {
+      const kit = await createBrandKit(brief);
+      const { page } = await createPage({ briefText: `${brief}\n\n${randomCreativeBrief()}`, kitText: kitForPrompt(kit) });
+      const content = cleanPageState({ ...page, images: {} });
+      const reply = `Designed a new page for ${content.brand?.name || businessName}. Ask for changes below.`;
+      const build = await openBuild({ userId: req.userId, kind: 'website', brief: { ...briefFields, kit }, state: content });
+      await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['designed the page'], state: content });
       return res.json({ content, buildId: build.id, reply });
     }
 

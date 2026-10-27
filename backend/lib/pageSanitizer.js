@@ -4,7 +4,7 @@ const sanitizeHtml = require('sanitize-html');
 
 const SVG_TAGS = ['svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'lineargradient', 'radialgradient', 'stop', 'pattern', 'clippath', 'use', 'symbol', 'title'];
 const PAGE_TAGS = [
-  'section', 'header', 'footer', 'nav', 'main', 'article', 'aside', 'div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'section', 'header', 'footer', 'nav', 'main', 'article', 'aside', 'div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img',
   'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'small', 'br', 'hr', 'blockquote', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'details', 'summary', 'code', 'label', 'time',
 ];
 const SVG_ATTRIBUTES = ['viewbox', 'xmlns', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'fill-opacity', 'stroke-opacity', 'transform', 'points', 'offset', 'stop-color', 'stop-opacity', 'gradientunits', 'gradienttransform', 'id', 'preserveaspectratio', 'font-family', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'clip-path', 'role', 'aria-hidden', 'focusable'];
@@ -18,12 +18,13 @@ const sanitizeBody = (html) => {
     allowedAttributes: {
       '*': ['class', 'id', 'role', 'aria-label', 'aria-hidden', 'title'],
       a: ['href', 'title'],
+      img: ['alt', 'data-image', 'data-stock', 'width', 'height'],
       ...Object.fromEntries(SVG_TAGS.map((tag) => [tag, SVG_ATTRIBUTES])),
     },
     allowedSchemes: ['http', 'https', 'mailto', 'tel'],
-    allowedSchemesByTag: {},
     allowProtocolRelative: false,
     allowedSchemesAppliedToAttributes: ['href'],
+    allowedSchemesByTag: { img: ['data'] },
     allowVulnerableTags: false,
     disallowedTagsMode: 'discard',
     transformTags: {

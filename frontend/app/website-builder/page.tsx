@@ -138,7 +138,7 @@ export default function WebsiteBuilderPage() {
   const openPortfolio = () => {
     if (!content) return;
     if (portfolioAllowed && !content.portfolio) {
-      const gallery = content.sections.find((s): s is Extract<WebsiteSection, { type: 'gallery' }> => s.type === 'gallery');
+      const gallery = (content.sections ?? []).find((s): s is Extract<WebsiteSection, { type: 'gallery' }> => s.type === 'gallery');
       setContent({ ...content, portfolio: { title: gallery?.title || 'Our work', items: gallery?.items || [] } });
     }
     setView('portfolio');
@@ -167,8 +167,8 @@ export default function WebsiteBuilderPage() {
 
   const downloadWebsite = async () => {
     if (!content) return;
-    // The download is the plain page, without the editing markup the preview uses.
-    const response = await apiFetch('/api/sites/preview', { method: 'POST', json: { content, themeId, shuffle } });
+    // The download is the plain page, without the editing markup the preview uses. Free accounts are refused here.
+    const response = await apiFetch('/api/sites/download', { method: 'POST', json: { content, themeId, shuffle } });
     const data = await response.json();
     if (!response.ok) {
       alert(data.error || 'Could not download the website');

@@ -1,6 +1,9 @@
 const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
+const { renderPage } = require('../lib/pageRenderer');
+const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
+const { renderTeaser } = require('../lib/teaser');
 const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
 const { PLANS, planKey } = require('../lib/plans');
@@ -19,6 +22,14 @@ const MAX_PHOTOS = 8;
 // Photos are stored inside the site content as small JPEGs. The frontend resizes them to fit.
 const PHOTO_PATTERN = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,400000}$/;
 const clip = (value, max) => String(value ?? '').slice(0, max);
+// Page images are keyed img1, img2 and so on, and each is a small JPEG.
+const IMAGE_KEY = /^img[1-9][0-9]?$/;
+const cleanImages = (images) =>
+  Object.fromEntries(
+    Object.entries(images && typeof images === 'object' ? images : {})
+      .filter(([key, value]) => IMAGE_KEY.test(key) && PHOTO_PATTERN.test(value))
+      .slice(0, MAX_PHOTOS),
+  );
 
 const randomSeed = () => crypto.randomInt(1, 2147483647);
 
@@ -34,6 +45,11 @@ const cleanContent = (content, allowPortfolio = true) => {
   if (!content || typeof content !== 'object') return content;
   const next = { ...content };
   if (content.style) next.style = cleanStyle(content.style);
+  if (content.format === 'page') {
+    next.body = sanitizeBody(content.body);
+    next.css = sanitizeCss(content.css);
+    next.images = cleanImages(content.images);
+  }
   if (content.contact && typeof content.contact === 'object') {
     const contact = content.contact;
     next.contact = {
@@ -60,8 +76,18 @@ const cleanContent = (content, allowPortfolio = true) => {
 };
 
 const validContent = (content) =>
-  content && typeof content === 'object' && content.brand && Array.isArray(content.sections) && content.sections.length > 0 &&
-  JSON.stringify(content).length <= MAX_CONTENT_BYTES;
+  content && typeof content === 'object' && content.brand && JSON.stringify(content).length <= MAX_CONTENT_BYTES &&
+  (content.format === 'page' ? typeof content.body === 'string' && content.body.length > 0 : Array.isArray(content.sections) && content.sections.length > 0);
+
+// Renders the full site: complete pages from the page format, and section sites from the section renderer.
+const renderContent = (content, themeId, shuffle, extras) =>
+  content.format === 'page' ? renderPage({ brand: content.brand, palette: content.palette, fonts: content.fonts, body: content.body, css: content.css, images: content.images }) : renderSite(content, themeId, shuffle, extras);
+
+// Free accounts only get the teaser. Downloads and the full preview need a paid plan.
+const isPaidUser = async (userId) => {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  return PLANS[planKey(user?.plan)].price > 0;
+};
 
 // Finds a seed whose design no other live site uses. Sites that look the same are not allowed.
 const uniqueDesign = async ({ content, themeId, seed, excludeId }) => {
@@ -96,9 +122,20 @@ const previewSite = async (req, res) => {
   const content = cleanContent(req.body.content);
   if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
   const preset = PRESET_IDS.includes(themeId) ? themeId : 'midnight';
+  if (!(await isPaidUser(req.userId))) return res.json({ html: renderTeaser(content, preset, shuffle), teaser: true });
   // The builder asks for the editable preview. Published sites never use it.
-  if (editable) return res.json(renderEditablePreview(content, preset, shuffle));
-  res.json({ html: renderSite(content, preset, shuffle) });
+  if (editable && content.format !== 'page') return res.json(renderEditablePreview(content, preset, shuffle));
+  res.json({ html: renderContent(content, preset, shuffle) });
+};
+
+// The plain HTML file, for paid plans only.
+const downloadSite = async (req, res) => {
+  if (!(await isPaidUser(req.userId))) return res.status(403).json({ error: 'Downloading the HTML needs a paid plan.' });
+  const { themeId, shuffle } = req.body;
+  const content = cleanContent(req.body.content);
+  if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
+  const preset = PRESET_IDS.includes(themeId) ? themeId : 'midnight';
+  res.json({ html: renderContent(content, preset, shuffle) });
 };
 
 const createSite = async (req, res) => {
@@ -214,7 +251,7 @@ const publicSite = async (req, res) => {
   }
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
-  const html = renderSite(site.content, site.themeId, site.shuffle, { booking });
+  const html = renderContent(site.content, site.themeId, site.shuffle, { booking });
   // Forms may only post to the booking API. Scripts stay blocked.
   res
     .set({
@@ -226,4 +263,4 @@ const publicSite = async (req, res) => {
     .send(html);
 };
 
-module.exports = { checkSlug, previewSite, createSite, listSites, updateSite, deleteSite, publicSite, randomSeed };
+module.exports = { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, publicSite, randomSeed, renderContent };
