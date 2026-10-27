@@ -7,6 +7,7 @@ import { PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, rando
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
+import { PagePhotos } from '@/components/PagePhotos';
 import StyleEditor from '@/components/StyleEditor';
 import TextEditPanel from '@/components/TextEditPanel';
 import { ContentPath, describePath, getAt, setAt } from '@/lib/contentPath';
@@ -77,15 +78,15 @@ export default function WebsiteBuilderPage() {
     }
   };
 
-  const handleTweak = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content || !tweak.trim()) return;
+  // Sends one change to the AI. The photos the owner added are sent with the site, so the AI can place them.
+  const runChange = async (instruction: string) => {
+    if (!content || !instruction.trim()) return;
     setEditingPath(null);
     setTweaking(true);
     try {
       // Contact details and photos are kept by the builder, so they are not sent to the AI.
       const { contact, portfolio, style, ...siteOnly } = content;
-      const result = await requestContent({ currentContent: siteOnly, instruction: tweak.trim(), buildId: buildId || undefined });
+      const result = await requestContent({ currentContent: siteOnly, instruction: instruction.trim(), buildId: buildId || undefined });
       setBuildId(result.buildId);
       setTweakReply(result.reply);
       if (JSON.stringify(result.content) === JSON.stringify(siteOnly)) {
@@ -100,6 +101,11 @@ export default function WebsiteBuilderPage() {
     } finally {
       setTweaking(false);
     }
+  };
+
+  const handleTweak = (e: React.FormEvent) => {
+    e.preventDefault();
+    return runChange(tweak);
   };
 
   const [view, setView] = useState<View>('preview');
@@ -415,6 +421,14 @@ export default function WebsiteBuilderPage() {
                   />
                 </div>
 
+                {content?.format === 'page' && (
+                  <PagePhotos
+                    images={content.images || {}}
+                    onChange={(images) => setContent((current) => (current ? { ...current, images } : current))}
+                    onPlace={() => runChange('Place my uploaded photos where they fit best, replacing the stock picture placeholders.')}
+                    disabled={tweaking}
+                  />
+                )}
                 {tweakReply && <p className="text-sm text-gray-300 mb-2">{tweakReply}</p>}
                 <form onSubmit={handleTweak} className="relative">
                   <input

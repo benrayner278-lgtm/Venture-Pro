@@ -63,7 +63,11 @@ export type DesignBrief = {
 export type WebsiteContent = {
   brand: { name: string; tagline: string };
   nav?: string[];
-  sections: WebsiteSection[];
+  // Complete pages (format 'page') have no sections. Their markup is kept by the backend.
+  format?: 'page' | 'sections';
+  sections?: WebsiteSection[];
+  // Photos the owner added to a page, keyed img1 to img8, as JPEG data URLs.
+  images?: Record<string, string>;
   footer: { note: string };
   // The AI's design brief. Palette and fonts are cleared when the owner picks a preset instead.
   design?: DesignBrief;

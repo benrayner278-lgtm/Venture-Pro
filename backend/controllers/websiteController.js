@@ -36,6 +36,16 @@ const outlineOf = (sections) =>
 // New websites use the page format unless WEBSITE_FORMAT=sections is set, which keeps the section builder available.
 const SITE_FORMAT = process.env.WEBSITE_FORMAT === 'sections' ? 'sections' : 'page';
 
+// Page photos are keyed img1 to img8 and must be JPEG data URLs, the same rule the sites controller applies on save.
+const IMAGE_KEY = /^img[1-9][0-9]?$/;
+const PHOTO_PATTERN = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,400000}$/;
+const cleanImages = (images) =>
+  Object.fromEntries(
+    Object.entries(images && typeof images === 'object' ? images : {})
+      .filter(([key, value]) => IMAGE_KEY.test(key) && PHOTO_PATTERN.test(value))
+      .slice(0, 8),
+  );
+
 // Keeps only what a page needs to be edited and rendered, with the markup and styles made safe.
 const cleanPageState = (content) => ({
   format: 'page',
@@ -45,7 +55,7 @@ const cleanPageState = (content) => ({
   fonts: content.fonts,
   body: sanitizeBody(content.body),
   css: sanitizeCss(content.css),
-  images: content.images && typeof content.images === 'object' ? content.images : {},
+  images: cleanImages(content.images),
 });
 
 const imageListOf = (images) => Object.keys(images || {}).map((key) => ({ key, label: 'uploaded photo' }));
