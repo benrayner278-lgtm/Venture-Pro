@@ -35,7 +35,7 @@ const runToolLoop = async ({ system, context, request, tools, apply, label }) =>
     steps += 1;
     const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-5-5',
-      max_tokens: 4000,
+      max_tokens: 8000,
       system,
       tools: [...tools, REPLY_TOOL],
       messages,

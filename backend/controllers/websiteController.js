@@ -7,6 +7,7 @@ const { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('../lib/
 const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
+const { logUsage } = require('../lib/usageLog');
 
 const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
 
@@ -175,6 +176,7 @@ ${JSON.stringify(content)}`;
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       });
+      logUsage(`website create attempt ${attempt + 1}`, response);
       const text = response.content.find((block) => block.type === 'text')?.text || '';
       try {
         if (response.stop_reason === 'max_tokens') {
@@ -223,6 +225,7 @@ const proofreadText = async (req, res) => {
       system: PROOFREAD_PROMPT,
       messages: [{ role: 'user', content: text }],
     });
+    logUsage('proofread', response);
     if (response.stop_reason === 'max_tokens') throw new Error('Proofread response was cut off');
     const reply = response.content.find((block) => block.type === 'text')?.text || '';
     const cleaned = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();

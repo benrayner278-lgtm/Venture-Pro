@@ -360,7 +360,7 @@ const renderSite = (content, themeId = 'midnight', shuffle = 0, extras = {}) => 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(brand)}</title>
-${googleFontsLink(content.style)}
+${googleFontsLink(mergeStyle(sanitizeDesign(content.design), content.style))}
 <style>${css}${booking ? BOOKING_CSS : ''}</style>
 </head>
 <body class="effect-${effect}">

@@ -1,6 +1,7 @@
 const { getAnthropic } = require('./anthropic');
 const { FONT_KEYS } = require('./logoSpec');
 const { contrast } = require('./designBrief');
+const { logUsage } = require('./usageLog');
 
 const STRATEGY_PROMPT = `You are a brand strategist for small businesses. From the business brief, decide what this brand should feel like before anyone designs it. Be specific to this business. Avoid the obvious choices a template would make.
 
@@ -60,6 +61,7 @@ const createBrandKit = async (briefText) => {
       system: STRATEGY_PROMPT,
       messages: [{ role: 'user', content: briefText }],
     });
+    logUsage('brand kit', response);
     if (response.stop_reason === 'max_tokens') throw new Error('Brand kit was cut off');
     const text = response.content.find((block) => block.type === 'text')?.text || '';
     const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
