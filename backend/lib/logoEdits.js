@@ -16,6 +16,7 @@ const UPDATE_FIELDS = {
   primary: { type: 'string', description: 'Text colour, e.g. #1f2937' },
   accent: { type: 'string', description: 'Icon colour, e.g. #16a34a' },
   background: { type: 'string', enum: BACKGROUNDS },
+  customBackground: { type: 'string', description: 'Background colour used when background is custom, e.g. #f4efe6' },
   uppercase: { type: 'boolean' },
 };
 

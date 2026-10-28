@@ -1,7 +1,7 @@
 // Draws logos as SVG from simple templates. No AI call is needed, so it is instant and free to use.
 
 export type LogoLayout = 'side' | 'stacked' | 'wordmark';
-export type LogoBackground = 'transparent' | 'light' | 'dark';
+export type LogoBackground = 'transparent' | 'light' | 'dark' | 'custom';
 
 // A shape the AI drew for a custom icon. Coordinates are inside a 100 by 100 box.
 export type LogoShape =
@@ -22,6 +22,8 @@ export type LogoSettings = {
   primary: string;
   accent: string;
   background: LogoBackground;
+  // Used when background is 'custom'.
+  customBackground?: string;
   uppercase: boolean;
 };
 
@@ -116,7 +118,9 @@ export function buildLogoSvg(settings: LogoSettings): string {
       ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="#ffffff"/>`
       : settings.background === 'dark'
         ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="#0b0b10"/>`
-        : '';
+        : settings.background === 'custom'
+          ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="${settings.customBackground || '#ffffff'}"/>`
+          : '';
 
   const iconSvg = (x: number, y: number, size: number) => {
     const inner = settings.icon === 'custom' && settings.shapes?.length

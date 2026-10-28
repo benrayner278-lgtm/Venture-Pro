@@ -89,7 +89,9 @@ const buildLogoSvg = (settings) => {
       ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="#ffffff"/>`
       : settings.background === 'dark'
         ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="#0b0b10"/>`
-        : '';
+        : settings.background === 'custom'
+          ? `<rect width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" fill="${settings.customBackground || '#ffffff'}"/>`
+          : '';
 
   const iconSvg = (x, y, size) => {
     const inner = hasCustom

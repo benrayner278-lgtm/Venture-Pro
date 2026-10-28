@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { clearSession } from '@/lib/api';
@@ -41,6 +42,11 @@ function NavIcon({ name }: { name: string }) {
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  // Read after the first render, so the server and the browser show the same text.
+  const [userName, setUserName] = useState('Account');
+  useEffect(() => {
+    setUserName(localStorage.getItem('userName') || 'Account');
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -105,7 +111,7 @@ export default function Sidebar() {
         <div className="px-2">
           <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500">Signed in as</p>
           <p className="text-sm text-gray-200 truncate">
-            {(typeof window !== 'undefined' && localStorage.getItem('userName')) || 'Account'}
+            {userName}
           </p>
         </div>
         <button

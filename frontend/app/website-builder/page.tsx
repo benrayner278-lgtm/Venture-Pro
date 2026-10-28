@@ -284,6 +284,7 @@ export default function WebsiteBuilderPage() {
           {step === 'result' && content && (
             <div className="flex flex-col lg:flex-row gap-6">
               <aside className="w-full lg:w-96 shrink-0 space-y-6">
+                {content.format !== 'page' && (
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</label>
                   <select
@@ -304,7 +305,9 @@ export default function WebsiteBuilderPage() {
                     ))}
                   </select>
                 </div>
+                )}
 
+                {content.format !== 'page' && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Edit your site</p>
                   <div className="space-y-1.5">
@@ -332,6 +335,7 @@ export default function WebsiteBuilderPage() {
                     ))}
                   </div>
                 </div>
+                )}
 
                 {editingPath && (
                   <TextEditPanel
@@ -343,7 +347,7 @@ export default function WebsiteBuilderPage() {
                     onCancel={() => setEditingPath(null)}
                   />
                 )}
-                {!editingPath && view === 'preview' && (
+                {!editingPath && view === 'preview' && content.format !== 'page' && (
                   <p className="text-xs text-gray-500">Double-click any text in the preview to edit it.</p>
                 )}
                 {!editingPath && view === 'style' && (
@@ -372,12 +376,14 @@ export default function WebsiteBuilderPage() {
                 )}
 
                 <div className="space-y-2">
+                  {content.format !== 'page' && (
                   <button
                     onClick={() => setShuffle(randomLayoutSeed())}
                     className="w-full border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl transition font-medium text-sm"
                   >
                     Shuffle layout
                   </button>
+                  )}
                   <button
                     onClick={downloadWebsite}
                     className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl transition font-medium text-sm"

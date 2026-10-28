@@ -29,6 +29,7 @@ const BACKGROUNDS: { value: LogoBackground; label: string }[] = [
   { value: 'light', label: 'White' },
   { value: 'dark', label: 'Dark' },
   { value: 'transparent', label: 'Transparent' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
@@ -265,7 +266,7 @@ export default function LogoBuilderPage() {
 
               <div>
                 <label className={labelClass}>Background</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {BACKGROUNDS.map((background) => (
                     <button
                       key={background.value}
@@ -280,6 +281,17 @@ export default function LogoBuilderPage() {
                   ))}
                 </div>
               </div>
+              {settings.background === 'custom' && (
+                <div className="mt-3 flex items-center gap-3">
+                  <label className={labelClass}>Background colour</label>
+                  <input
+                    type="color"
+                    value={settings.customBackground || '#ffffff'}
+                    onChange={(e) => set({ customBackground: e.target.value })}
+                    className="h-9 w-14 rounded-lg bg-transparent cursor-pointer"
+                  />
+                </div>
+              )}
 
               <label className="flex items-center gap-3 text-sm text-gray-200">
                 <input type="checkbox" checked={settings.uppercase} onChange={(e) => set({ uppercase: e.target.checked })} className="h-4 w-4 accent-white" />
@@ -299,7 +311,7 @@ export default function LogoBuilderPage() {
             <div className="flex-1 min-w-0 space-y-4">
               <div
                 className="rounded-2xl border border-white/[0.08] p-6 flex items-center justify-center min-h-[420px]"
-                style={{ background: settings.background === 'dark' ? '#0b0b10' : settings.background === 'light' ? '#ffffff' : 'repeating-conic-gradient(#1f2937 0% 25%, #111827 0% 50%) 50% / 24px 24px' }}
+                style={{ background: settings.background === 'dark' ? '#0b0b10' : settings.background === 'light' ? '#ffffff' : settings.background === 'custom' ? settings.customBackground || '#ffffff' : 'repeating-conic-gradient(#1f2937 0% 25%, #111827 0% 50%) 50% / 24px 24px' }}
               >
                 <img src={logoDataUri(svg)} alt={`${settings.name || 'Your'} logo`} className="w-full max-w-2xl h-auto" />
               </div>

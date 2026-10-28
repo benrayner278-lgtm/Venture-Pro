@@ -3,7 +3,7 @@
 const ICONS = ['circle', 'square', 'triangle', 'hexagon', 'star', 'diamond', 'bolt', 'leaf', 'shield', 'heart', 'arrow'];
 const FONT_KEYS = ['inter', 'montserrat', 'poppins', 'space', 'oswald', 'bebas', 'playfair', 'dmserif'];
 const LAYOUTS = ['side', 'stacked', 'wordmark'];
-const BACKGROUNDS = ['light', 'dark', 'transparent'];
+const BACKGROUNDS = ['light', 'dark', 'transparent', 'custom'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const PATH_DATA = /^[MmLlHhVvCcSsQqTtZz0-9 ,.\-]{1,400}$/;
 const MAX_SHAPES = 16;
@@ -55,6 +55,7 @@ const cleanLogo = (raw) => {
     primary: HEX.test(source.primary) ? source.primary : '#111111',
     accent: HEX.test(source.accent) ? source.accent : '#2563eb',
     background: BACKGROUNDS.includes(source.background) ? source.background : 'light',
+    customBackground: HEX.test(source.customBackground) ? source.customBackground : '#ffffff',
     uppercase: source.uppercase === true,
   };
 };
