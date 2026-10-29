@@ -3,7 +3,8 @@ const prisma = require('./prisma');
 const HISTORY_LIMIT = 20;
 const HISTORY_IN_PROMPT = 12;
 
-const forbidden = () => Object.assign(new Error('Forbidden'), { status: 403 });
+// Errors the app raises on purpose are marked expose, so their status and message can reach the browser.
+const forbidden = () => Object.assign(new Error('Forbidden'), { status: 403, expose: true });
 
 // Opens the build the browser is working on, or starts a new one. When the browser sends its version of the
 // logo or site, that version becomes the current state, so edits made by hand are kept.

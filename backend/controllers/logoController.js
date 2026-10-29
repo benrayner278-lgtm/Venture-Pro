@@ -77,7 +77,8 @@ ${historyForPrompt(build)}`;
     });
     res.json({ logo, buildId: build.id, reply });
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    // Only our own errors pass through. An AI error (such as a rejected API key, which is also a 401) must not look like a login problem.
+    if (error.expose) return res.status(error.status).json({ error: error.message });
     console.error('Generate logo error:', error);
     res.status(500).json({ error: 'Could not create the logo. Please try again.' });
   }

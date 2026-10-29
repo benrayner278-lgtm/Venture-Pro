@@ -251,7 +251,8 @@ ${JSON.stringify(content)}`;
     await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['built the website'], state: content });
     res.json({ content, buildId: build.id, reply });
   } catch (error) {
-    if (error.status) return res.status(error.status).json({ error: error.message });
+    // Only our own errors pass through. An AI error (such as a rejected API key, which is also a 401) must not look like a login problem.
+    if (error.expose) return res.status(error.status).json({ error: error.message });
     console.error('Generate website error:', error);
     res.status(500).json({ error: 'Failed to generate website' });
   }
