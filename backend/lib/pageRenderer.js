@@ -6,6 +6,7 @@ const { sanitizeBody, sanitizeCss } = require('./pageSanitizer');
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const PHOTO = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
+const STOCK = PHOTO;
 const IMAGE_TAG = /<img\b([^>]*)>/gi;
 const FALLBACK_PALETTE = { bg: '#ffffff', surface: '#f5f5f5', text: '#111111', muted: '#555555', accent: '#2563eb', accentText: '#ffffff', border: '#e5e5e5' };
 
@@ -28,18 +29,22 @@ const cleanFontKey = (key, fallback) => (FONTS[key] ? key : fallback);
 
 const attribute = (attrs, name) => (attrs.match(new RegExp(`\\s${name}="([^"]*)"`, 'i')) || [])[1];
 
-// Puts the owner's uploaded photo in each picture slot. A slot with no upload becomes a neutral block until a stock photo is added.
-const resolveImages = (html, images = {}) =>
+// Puts the owner's uploaded photo in each picture slot. A slot with no upload uses its stock photo when one was found,
+// and otherwise becomes a neutral block.
+const resolveImages = (html, images = {}, stock = {}) =>
   html.replace(IMAGE_TAG, (tag, attrs) => {
     const alt = escapeHtml(attribute(attrs, 'alt') || '');
     const photo = images[attribute(attrs, 'data-image')];
     if (photo && PHOTO.test(photo)) return `<img src="${photo}" alt="${alt}" loading="lazy">`;
-    const stock = attribute(attrs, 'data-stock');
-    return `<div class="img-slot" role="img" aria-label="${alt}"${stock ? ` data-stock="${escapeHtml(stock)}"` : ''}></div>`;
+    const query = attribute(attrs, 'data-stock');
+    const stockPhoto = query && stock[query.trim()];
+    if (stockPhoto && STOCK.test(stockPhoto)) return `<img src="${stockPhoto}" alt="${alt}" loading="lazy">`;
+    return `<div class="img-slot" role="img" aria-label="${alt}"${query ? ` data-stock="${escapeHtml(query)}"` : ''}></div>`;
   });
 
-// Returns the full HTML document for a page. Input: { brand, palette, fonts, body, css, images }, where images maps keys to JPEG data URLs.
-const renderPage = ({ brand, palette, fonts, body, css, images }) => {
+// Returns the full HTML document for a page. Input: { brand, palette, fonts, body, css, images, stock }, where images maps keys
+// to JPEG data URLs and stock maps search words to stock JPEG data URLs.
+const renderPage = ({ brand, palette, fonts, body, css, images, stock }) => {
   const colours = cleanPage(palette);
   const headingFont = cleanFontKey(fonts?.heading, 'inter');
   const bodyFont = cleanFontKey(fonts?.body, 'inter');
@@ -68,7 +73,7 @@ ${sanitizeCss(css)}
 </style>
 </head>
 <body>
-${resolveImages(sanitizeBody(body), images)}
+${resolveImages(sanitizeBody(body), images, stock)}
 </body>
 </html>`;
 };

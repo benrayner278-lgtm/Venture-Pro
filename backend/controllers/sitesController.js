@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
 const { renderPage } = require('../lib/pageRenderer');
+const { cleanStock } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { renderTeaser } = require('../lib/teaser');
 const { PRESET_IDS } = require('../lib/designPresets');
@@ -49,6 +50,7 @@ const cleanContent = (content, allowPortfolio = true) => {
     next.body = sanitizeBody(content.body);
     next.css = sanitizeCss(content.css);
     next.images = cleanImages(content.images);
+    next.stock = cleanStock(content.stock);
   }
   if (content.contact && typeof content.contact === 'object') {
     const contact = content.contact;
@@ -81,7 +83,7 @@ const validContent = (content) =>
 
 // Renders the full site: complete pages from the page format, and section sites from the section renderer.
 const renderContent = (content, themeId, shuffle, extras) =>
-  content.format === 'page' ? renderPage({ brand: content.brand, palette: content.palette, fonts: content.fonts, body: content.body, css: content.css, images: content.images }) : renderSite(content, themeId, shuffle, extras);
+  content.format === 'page' ? renderPage({ brand: content.brand, palette: content.palette, fonts: content.fonts, body: content.body, css: content.css, images: content.images, stock: content.stock }) : renderSite(content, themeId, shuffle, extras);
 
 // Free accounts only get the teaser. Downloads and the full preview need a paid plan.
 const isPaidUser = async (userId) => {

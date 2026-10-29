@@ -8,6 +8,7 @@ const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
 const { createPage, revisePage } = require('../lib/pageGenerator');
+const { cleanStock, fillStockPhotos } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { logUsage } = require('../lib/usageLog');
 
@@ -56,6 +57,7 @@ const cleanPageState = (content) => ({
   body: sanitizeBody(content.body),
   css: sanitizeCss(content.css),
   images: cleanImages(content.images),
+  stock: cleanStock(content.stock),
 });
 
 const imageListOf = (images) => Object.keys(images || {}).map((key) => ({ key, label: 'uploaded photo' }));
@@ -167,7 +169,8 @@ Specific requests: ${requests || 'none'}`;
           history: historyForPrompt(build),
           images: imageListOf(current.images),
         });
-        const content = { ...cleanPageState(page), images: current.images };
+        const stock = await fillStockPhotos(page.body, current.stock);
+        const content = { ...cleanPageState({ ...page, stock }), images: current.images };
         const reply = `Updated the page for ${content.brand?.name || businessName}.`;
         await recordChange(build, { request: instruction, reply, actions: ['updated the page'], state: content });
         return res.json({ content, buildId: build.id, reply });
@@ -211,7 +214,8 @@ ${JSON.stringify(content)}`;
     if (SITE_FORMAT === 'page') {
       const kit = await createBrandKit(brief);
       const { page } = await createPage({ briefText: `${brief}\n\n${randomCreativeBrief()}`, kitText: kitForPrompt(kit) });
-      const content = cleanPageState({ ...page, images: {} });
+      const stock = await fillStockPhotos(page.body, {});
+      const content = cleanPageState({ ...page, images: {}, stock });
       const reply = `Designed a new page for ${content.brand?.name || businessName}. Ask for changes below.`;
       const build = await openBuild({ userId: req.userId, kind: 'website', brief: { ...briefFields, kit }, state: content });
       await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['designed the page'], state: content });
