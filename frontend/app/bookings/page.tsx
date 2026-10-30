@@ -131,16 +131,16 @@ export default function BookingsPage() {
   };
 
   return (
-    <div className="min-h-screen app-bg flex">
+    <div className="min-h-screen app-bg flex pt-14 md:pt-0">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-8 py-4">
+        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
           <h1 className="text-base font-semibold text-white tracking-tight">Bookings</h1>
           <p className="text-gray-500 text-xs mt-0.5">Let visitors book a time on your website.</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {!allowed ? (
             <div className={`${cardClass} max-w-xl space-y-3`}>
               <p className="text-sm font-medium text-white">Online booking is included in Business and above.</p>

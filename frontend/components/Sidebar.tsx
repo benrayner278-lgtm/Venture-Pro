@@ -42,6 +42,8 @@ function NavIcon({ name }: { name: string }) {
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  // On phones the sidebar is a drawer that opens from the top bar. On desktop it is always shown.
+  const [open, setOpen] = useState(false);
   // Read after the first render, so the server and the browser show the same text.
   const [userName, setUserName] = useState('Account');
   useEffect(() => {
@@ -69,58 +71,88 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 h-screen flex flex-col bg-black border-r border-white/[0.08]">
-      <div className="px-6 pt-7 pb-6">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-white via-zinc-300 to-zinc-500 shadow-[0_0_24px_-4px_rgba(255,255,255,0.35)] flex items-center justify-center">
-            <div className="w-3.5 h-3.5 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-semibold tracking-tight text-white">Venture-Pro</h2>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-gray-500">AI Builder</p>
-          </div>
-        </Link>
-      </div>
-
-      <nav className="flex-1 px-3 space-y-0.5">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                active
-                  ? 'bg-white/[0.06] text-white'
-                  : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'
-              }`}
-            >
-              {active && (
-                <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-              )}
-              <span className={active ? 'text-white' : 'text-gray-500'}>
-                <NavIcon name={item.icon} />
-              </span>
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="px-4 pb-5 pt-4 border-t border-white/[0.06] space-y-3">
-        <div className="px-2">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500">Signed in as</p>
-          <p className="text-sm text-gray-200 truncate">
-            {userName}
-          </p>
-        </div>
+    <>
+      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-white/[0.08] bg-black px-4 md:hidden">
         <button
-          onClick={handleLogout}
-          className="w-full rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+          className="-ml-2 flex h-10 w-10 items-center justify-center rounded-lg text-gray-200 transition hover:bg-white/[0.06]"
         >
-          Log out
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
         </button>
+        <span className="text-[15px] font-semibold tracking-tight text-white">Venture-Pro</span>
       </div>
-    </aside>
+
+      {open && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/[0.08] bg-black transition-transform duration-200 md:static md:h-screen md:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        >
+        <div className="px-6 pt-7 pb-6">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-white via-zinc-300 to-zinc-500 shadow-[0_0_24px_-4px_rgba(255,255,255,0.35)] flex items-center justify-center">
+              <div className="w-3.5 h-3.5 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-semibold tracking-tight text-white">Venture-Pro</h2>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-gray-500">AI Builder</p>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-0.5">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  active
+                    ? 'bg-white/[0.06] text-white'
+                    : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'
+                }`}
+              >
+                {active && (
+                  <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                )}
+                <span className={active ? 'text-white' : 'text-gray-500'}>
+                  <NavIcon name={item.icon} />
+                </span>
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-4 pb-5 pt-4 border-t border-white/[0.06] space-y-3">
+          <div className="px-2">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500">Signed in as</p>
+            <p className="text-sm text-gray-200 truncate">
+              {userName}
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+          >
+            Log out
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

@@ -66,12 +66,12 @@ Format it clearly with headers and bullet points.`;
   };
 
   return (
-    <div className="min-h-screen app-bg flex">
+    <div className="min-h-screen app-bg flex pt-14 md:pt-0">
       <Sidebar />
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-white/[0.06] px-8 py-4">
+        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
           <h1 className="text-base font-semibold text-white tracking-tight">Business Plan Generator</h1>
           <p className="text-gray-500 text-xs mt-0.5">AI-powered business plan creation</p>
         </div>

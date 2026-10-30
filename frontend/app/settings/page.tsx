@@ -247,7 +247,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen app-bg flex">
+    <div className="min-h-screen app-bg flex pt-14 md:pt-0">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
