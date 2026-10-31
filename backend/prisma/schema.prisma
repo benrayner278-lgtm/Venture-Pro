@@ -67,6 +67,10 @@ model Site {
   updatedAt DateTime @updatedAt
 
   bookingSettings Json?
+  // The owner's own domain, such as www.yourbusiness.com. It is served only after the DNS checks pass.
+  customDomain           String?   @unique
+  customDomainToken      String?
+  customDomainVerifiedAt DateTime?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
   @@map("sites")

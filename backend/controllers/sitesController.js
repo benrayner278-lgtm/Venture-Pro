@@ -9,6 +9,7 @@ const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
 const { PLANS, planKey } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView } = require('./bookingController');
+const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
 
 const prisma = new PrismaClient();
 
@@ -191,9 +192,9 @@ const listSites = async (req, res) => {
   const sites = await prisma.site.findMany({
     where: { userId: req.userId },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, slug: true, title: true, themeId: true, shuffle: true, updatedAt: true },
+    select: { id: true, slug: true, title: true, themeId: true, shuffle: true, updatedAt: true, customDomain: true, customDomainToken: true, customDomainVerifiedAt: true },
   });
-  res.json({ sites: sites.map((site) => ({ ...site, url: `https://${site.slug}.venture-pro.io` })) });
+  res.json({ sites: sites.map((site) => ({ ...site, customDomainToken: undefined, url: `https://${site.slug}.venture-pro.io`, domain: domainSetup(site) })) });
 };
 
 const findOwnedSite = async (req, res) => {
@@ -245,12 +246,75 @@ const deleteSite = async (req, res) => {
   res.json({ message: 'Site removed' });
 };
 
-const publicSite = async (req, res) => {
-  const slug = String(req.params.slug || '').toLowerCase();
-  const site = SLUG_PATTERN.test(slug) ? await prisma.site.findUnique({ where: { slug } }) : null;
-  if (!site) {
-    return res.status(404).type('html').send('<!doctype html><title>Not found</title><p>This site does not exist.</p>');
+// Your own domain needs a paid plan, the same as publishing a site.
+const domainAllowed = async (site) => {
+  const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
+  return PLANS[planKey(owner?.plan)].price > 0;
+};
+
+const domainResponse = (site, check) => ({ domain: domainSetup(site), ...(check ? { check } : {}) });
+
+// Saves the owner's domain. Changing it asks for a new verification token and clears the old verification.
+const setCustomDomain = async (req, res) => {
+  try {
+    const site = await findOwnedSite(req, res);
+    if (!site) return;
+    if (!(await domainAllowed(site))) return res.status(403).json({ error: 'Your own domain needs a paid plan.' });
+    const { domain, error } = normaliseDomain(req.body.domain);
+    if (error) return res.status(400).json({ error });
+    const changed = domain !== site.customDomain;
+    const updated = await prisma.site.update({
+      where: { id: site.id },
+      data: {
+        customDomain: domain,
+        customDomainToken: changed || !site.customDomainToken ? newToken() : site.customDomainToken,
+        customDomainVerifiedAt: changed ? null : site.customDomainVerifiedAt,
+      },
+    });
+    res.json(domainResponse(updated));
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'That domain is already used by another site.' });
+    console.error('Set domain error:', error);
+    res.status(500).json({ error: 'Could not save the domain' });
   }
+};
+
+// Runs the DNS checks. The domain goes live only once both the TXT record and the pointing record are in place.
+const checkCustomDomain = async (req, res) => {
+  try {
+    const site = await findOwnedSite(req, res);
+    if (!site) return;
+    if (!site.customDomain) return res.status(400).json({ error: 'Add a domain first.' });
+    const check = await checkDomain({ domain: site.customDomain, token: site.customDomainToken });
+    const ready = check.verified && check.pointing;
+    let updated = site;
+    if (ready && !site.customDomainVerifiedAt) {
+      try {
+        await registerHostname(site.customDomain);
+      } catch (error) {
+        console.error('Custom domain registration error:', error.message);
+        return res.status(502).json({ ...domainResponse(site, { verified: check.verified, pointing: check.pointing, targetAddresses: check.targetAddresses }), error: 'Your DNS is right, but we could not connect the domain yet. Try again in a few minutes.' });
+      }
+      updated = await prisma.site.update({ where: { id: site.id }, data: { customDomainVerifiedAt: new Date() } });
+    }
+    res.json(domainResponse(updated, { verified: check.verified, pointing: check.pointing, targetAddresses: check.targetAddresses }));
+  } catch (error) {
+    console.error('Check domain error:', error);
+    res.status(500).json({ error: 'Could not check the domain' });
+  }
+};
+
+const removeCustomDomain = async (req, res) => {
+  const site = await findOwnedSite(req, res);
+  if (!site) return;
+  await prisma.site.update({
+    where: { id: site.id },
+    data: { customDomain: null, customDomainToken: null, customDomainVerifiedAt: null },
+  });
+  res.json({ domain: null });
+};
+
+const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
   const html = renderContent(site.content, site.themeId, site.shuffle, { booking });
@@ -265,4 +329,21 @@ const publicSite = async (req, res) => {
     .send(html);
 };
 
-module.exports = { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, publicSite, randomSeed, renderContent };
+const notFoundPage = (res) => res.status(404).type('html').send('<!doctype html><title>Not found</title><p>This site does not exist.</p>');
+
+const publicSite = async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const site = SLUG_PATTERN.test(slug) ? await prisma.site.findUnique({ where: { slug } }) : null;
+  if (!site) return notFoundPage(res);
+  return sendPublicSite(res, site);
+};
+
+// Serves a site on the owner's own domain. Only verified domains are served.
+const publicSiteByDomain = async (req, res) => {
+  const host = String(req.params.host || '').toLowerCase();
+  const site = await prisma.site.findUnique({ where: { customDomain: host } });
+  if (!site || !site.customDomainVerifiedAt) return notFoundPage(res);
+  return sendPublicSite(res, site);
+};
+
+module.exports = { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
