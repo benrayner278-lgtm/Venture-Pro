@@ -7,8 +7,10 @@ import { apiFetch } from '@/lib/api';
 
 type Hours = [string, string] | null;
 type Service = { name: string; minutes: number; price: string };
+type Preset = 'instant' | 'approve' | 'calendar' | 'quiet';
 type Settings = {
   enabled: boolean;
+  preset: Preset;
   timezone: string;
   slotMinutes: number;
   daysAhead: number;
@@ -24,6 +26,7 @@ type Booking = {
   customerEmail: string;
   customerPhone: string;
   notes: string;
+  status: 'confirmed' | 'requested';
 };
 type SiteRow = { id: string; slug: string; title: string; url: string };
 
@@ -40,8 +43,36 @@ const TIMEZONES = [
   'Europe/London', 'Europe/Dublin', 'Europe/Paris', 'Europe/Berlin', 'America/New_York',
   'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney',
 ];
-// Plans that include online booking. Older plan names are listed because existing accounts still store them.
-const BOOKING_PLANS = ['business', 'corporate', 'enterprise'];
+// Plans that include online booking.
+const BOOKING_PLANS = ['business', 'corporate'];
+
+// What happens when someone books. The owner picks one; the server applies the same rules.
+const PRESETS: { key: Preset; label: string; description: string; points: string[] }[] = [
+  {
+    key: 'instant',
+    label: 'Instant, and email me',
+    description: 'The booking is confirmed straight away.',
+    points: ['Customer gets a confirmation email with a calendar invite', 'You get an email for each booking', 'Customer sees an Add to Google Calendar button'],
+  },
+  {
+    key: 'approve',
+    label: 'Approve first',
+    description: 'You check each request before it is confirmed.',
+    points: ['Customer gets a "request received" email', 'You get an email, then confirm it in this page', 'Confirming sends the customer their calendar invite'],
+  },
+  {
+    key: 'calendar',
+    label: 'Calendar only',
+    description: 'Bookings are confirmed without any emails.',
+    points: ['No emails to you or the customer', 'Customer sees an Add to Google Calendar button', 'Check this page for new bookings'],
+  },
+  {
+    key: 'quiet',
+    label: 'Quiet',
+    description: 'Bookings are only kept here, with nothing sent.',
+    points: ['No emails, and no calendar button', 'Check this page for new bookings'],
+  },
+];
 
 const inputClass =
   'px-3 py-2 bg-white/[0.04] text-gray-100 rounded-lg border border-white/10 focus:border-white/40 outline-none transition';
@@ -50,6 +81,7 @@ const cardClass = 'rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6';
 
 const defaultSettings = (): Settings => ({
   enabled: false,
+  preset: 'instant',
   timezone: 'Europe/London',
   slotMinutes: 30,
   daysAhead: 14,
@@ -123,6 +155,13 @@ export default function BookingsPage() {
     }
   };
 
+  const confirm = async (id: string) => {
+    const response = await apiFetch(`/api/bookings/${id}/confirm`, { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok) return setError(data.error || 'Could not confirm the booking');
+    setBookings((current) => current.map((booking) => (booking.id === id ? { ...booking, status: 'confirmed' } : booking)));
+  };
+
   const cancel = async (id: string) => {
     if (!window.confirm('Cancel this booking? The time will be free again.')) return;
     const response = await apiFetch(`/api/bookings/${id}`, { method: 'DELETE' });
@@ -163,6 +202,32 @@ export default function BookingsPage() {
                   ))}
                 </select>
               </div>
+
+              <section className={cardClass}>
+                <p className={labelClass}>When someone books</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {PRESETS.map((preset) => {
+                    const chosen = settings.preset === preset.key;
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        onClick={() => set({ preset: preset.key })}
+                        aria-pressed={chosen}
+                        className={`text-left rounded-xl border p-4 transition ${chosen ? 'border-white bg-white/[0.06]' : 'border-white/10 hover:border-white/30'}`}
+                      >
+                        <p className="text-sm font-medium text-white">{preset.label}</p>
+                        <p className="text-xs text-gray-400 mt-1">{preset.description}</p>
+                        <ul className="text-xs text-gray-500 mt-3 space-y-1 list-disc pl-4">
+                          {preset.points.map((point) => (
+                            <li key={point}>{point}</li>
+                          ))}
+                        </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
 
               <section className={`${cardClass} space-y-6`}>
                 <label className="flex items-center gap-3 text-sm text-gray-200">
@@ -274,14 +339,24 @@ export default function BookingsPage() {
                             {formatWhen(booking.startsAt, settings.timezone)} · {booking.serviceName}
                           </p>
                           <p className="text-gray-400">
+                            {booking.status === 'requested' && <span className="text-amber-300 mr-2">Awaiting your confirmation ·</span>}
                             {booking.customerName} · {booking.customerEmail}
                             {booking.customerPhone ? ` · ${booking.customerPhone}` : ''}
                           </p>
                           {booking.notes && <p className="text-gray-500 mt-1">{booking.notes}</p>}
                         </div>
-                        <button type="button" onClick={() => cancel(booking.id)} className="text-sm text-gray-400 hover:text-red-300">
-                          Cancel booking
-                        </button>
+                        <div className="flex items-center gap-4">
+                          {booking.status === 'requested' ? (
+                            <button type="button" onClick={() => confirm(booking.id)} className="text-sm font-medium text-white hover:text-gray-200">
+                              Confirm
+                            </button>
+                          ) : (
+                            <span className="text-xs uppercase tracking-wider text-gray-500">Confirmed</span>
+                          )}
+                          <button type="button" onClick={() => cancel(booking.id)} className="text-sm text-gray-400 hover:text-red-300">
+                            Cancel booking
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

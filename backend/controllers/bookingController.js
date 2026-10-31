@@ -1,6 +1,9 @@
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
 const { DAY_KEYS, toMinutes, slotFits, availableSlots, formatSlot } = require('../lib/bookingTime');
+const { PRESET_KEYS, DEFAULT_PRESET, presetOf } = require('../lib/bookingPresets');
+const { sendEmail } = require('../lib/email');
+const { googleCalendarUrl, ownerMessage, customerConfirmedMessage, customerRequestedMessage } = require('../lib/bookingMessages');
 
 // Where the public booking form posts to. Published sites are served from another domain, so this must be the API's address.
 const API_ORIGIN = process.env.API_PUBLIC_URL || 'https://venture-pro-production.up.railway.app';
@@ -15,6 +18,8 @@ const TIMEZONES = [
 ];
 const SLOT_OPTIONS = [15, 30, 60];
 const MAX_SERVICES = 6;
+// The first site address in FRONTEND_URL, which can list more than one. Used for links in emails.
+const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'https://venture-pro.io').split(',')[0].trim();
 
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 
@@ -45,7 +50,8 @@ const cleanSettings = (input) => {
     .filter((service) => service.name && service.minutes >= 15 && service.minutes <= 480);
   if (services.length === 0) return { error: 'Add at least one service with a length between 15 and 480 minutes' };
 
-  return { value: { enabled: input.enabled === true, timezone, slotMinutes, daysAhead, hours, services } };
+  const preset = PRESET_KEYS.includes(input.preset) ? input.preset : DEFAULT_PRESET;
+  return { value: { enabled: input.enabled === true, preset, timezone, slotMinutes, daysAhead, hours, services } };
 };
 
 // Bookings that already take up time in the window the form covers.
@@ -53,7 +59,7 @@ const bookedRanges = async (siteId, nowMs, daysAhead) => {
   const rows = await prisma.booking.findMany({
     where: {
       siteId,
-      status: 'confirmed',
+      status: { in: ['confirmed', 'requested'] },
       startsAt: { gte: new Date(nowMs - DAY), lte: new Date(nowMs + (daysAhead + 2) * DAY) },
     },
     select: { startsAt: true, durationMin: true },
@@ -112,6 +118,7 @@ const getOwnerBookings = async (req, res) => {
         customerEmail: booking.customerEmail,
         customerPhone: booking.customerPhone,
         notes: booking.notes,
+        status: booking.status,
       })),
     });
   } catch (error) {
@@ -135,6 +142,23 @@ const updateSettings = async (req, res) => {
   } catch (error) {
     console.error('Update booking settings error:', error);
     res.status(500).json({ error: 'Could not save booking settings' });
+  }
+};
+
+const confirmBooking = async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId }, include: { site: true } });
+    if (!booking || booking.site.userId !== req.userId) return res.status(404).json({ error: 'Booking not found' });
+    if (booking.status !== 'requested') return res.status(409).json({ error: 'This booking is already confirmed' });
+    const confirmed = await prisma.booking.update({ where: { id: booking.id }, data: { status: 'confirmed' } });
+    const settings = booking.site.bookingSettings || {};
+    if (presetOf(settings).customerEmail) {
+      sendCustomerEmail({ booking: confirmed, settings, businessName: booking.site.title || booking.site.slug, requested: false });
+    }
+    res.json({ message: 'Booking confirmed', status: 'confirmed' });
+  } catch (error) {
+    console.error('Confirm booking error:', error);
+    res.status(500).json({ error: 'Could not confirm the booking' });
   }
 };
 
@@ -162,6 +186,15 @@ const escapeHtml = (text) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+// Sends the customer an email: a confirmation with a calendar invite, or a receipt for a request that still needs confirming.
+const sendCustomerEmail = ({ booking, settings, businessName, requested }) => {
+  const timezone = settings.timezone || 'Europe/London';
+  const message = requested
+    ? customerRequestedMessage({ booking, timezone, businessName })
+    : customerConfirmedMessage({ booking, timezone, businessName });
+  return sendEmail({ to: booking.customerEmail, ...message });
+};
+
 const createPublicBooking = async (req, res) => {
   try {
     const slug = String(req.params.slug || '').toLowerCase();
@@ -171,6 +204,7 @@ const createPublicBooking = async (req, res) => {
       return res.status(404).type('html').send(page('Not available', '<h1>Booking is not available</h1><p>This site is not taking bookings right now.</p>'));
     }
     const settings = site.bookingSettings;
+    const preset = presetOf(settings);
     const back = `https://${site.slug}.venture-pro.io`;
 
     // A hidden field that people never fill in. Bots usually do, so they get a success page and nothing is saved.
@@ -195,8 +229,9 @@ const createPublicBooking = async (req, res) => {
       return res.status(409).type('html').send(page('Time taken', `<h1>That time is no longer free</h1><p>Please go back and choose another time.</p><p><a href="${back}">Back to the site</a></p>`));
     }
 
+    let booking;
     try {
-      await prisma.booking.create({
+      booking = await prisma.booking.create({
         data: {
           siteId: site.id,
           startsAt: new Date(startMs),
@@ -206,6 +241,7 @@ const createPublicBooking = async (req, res) => {
           customerEmail: email,
           customerPhone: phone,
           notes,
+          status: preset.confirm === 'approve' ? 'requested' : 'confirmed',
         },
       });
     } catch (error) {
@@ -215,16 +251,28 @@ const createPublicBooking = async (req, res) => {
       throw error;
     }
 
-    res.type('html').send(
-      page(
-        'Booking requested',
-        `<h1>Thank you, ${escapeHtml(name)}</h1><p>Your ${escapeHtml(service.name)} is requested for <strong>${escapeHtml(formatSlot(startMs, settings.timezone))}</strong>.</p><p>We will be in touch to confirm.</p><p><a href="${back}">Back to the site</a></p>`,
-      ),
-    );
+    const businessName = site.title || site.slug;
+    const requested = booking.status === 'requested';
+    if (preset.ownerEmail && owner?.email) {
+      sendEmail({ to: owner.email, ...ownerMessage({ booking, timezone: settings.timezone, businessName, requested, manageUrl: `${FRONTEND_ORIGIN}/bookings` }) });
+    }
+    if (preset.customerEmail) {
+      sendCustomerEmail({ booking, settings, businessName, requested });
+    }
+
+    const when = formatSlot(startMs, settings.timezone);
+    const calendarLink =
+      preset.calendarLink && !requested
+        ? `<p><a href="${escapeHtml(googleCalendarUrl({ booking, title: `${service.name} with ${businessName}`, details: `Your booking with ${businessName}.` }))}">Add to Google Calendar</a></p>`
+        : '';
+    const status = requested
+      ? `<p>Your ${escapeHtml(service.name)} is requested for <strong>${escapeHtml(when)}</strong>.</p><p>We will be in touch to confirm.</p>`
+      : `<p>Your ${escapeHtml(service.name)} is booked for <strong>${escapeHtml(when)}</strong>.</p>${calendarLink}`;
+    res.type('html').send(page(requested ? 'Booking requested' : 'Booking confirmed', `<h1>Thank you, ${escapeHtml(name)}</h1>${status}<p><a href="${back}">Back to the site</a></p>`));
   } catch (error) {
     console.error('Public booking error:', error);
     res.status(500).type('html').send(page('Something went wrong', '<h1>Something went wrong</h1><p>Please try again in a moment.</p>'));
   }
 };
 
-module.exports = { API_ORIGIN, publicBookingView, getOwnerBookings, updateSettings, cancelBooking, createPublicBooking, cleanSettings, TIMEZONES };
+module.exports = { API_ORIGIN, publicBookingView, getOwnerBookings, updateSettings, confirmBooking, cancelBooking, createPublicBooking, cleanSettings, TIMEZONES };

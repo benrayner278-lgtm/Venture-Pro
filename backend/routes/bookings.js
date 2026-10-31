@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit').rateLimit;
 const auth = require('../middleware/auth');
-const { getOwnerBookings, updateSettings, cancelBooking, createPublicBooking } = require('../controllers/bookingController');
+const { getOwnerBookings, updateSettings, confirmBooking, cancelBooking, createPublicBooking } = require('../controllers/bookingController');
 
 const router = express.Router();
 
@@ -16,6 +16,7 @@ const bookingLimiter = rateLimit({
 
 router.get('/sites/:siteId', auth, getOwnerBookings);
 router.put('/sites/:siteId/settings', auth, updateSettings);
+router.post('/:bookingId/confirm', auth, confirmBooking);
 router.delete('/:bookingId', auth, cancelBooking);
 router.post('/public/:slug', bookingLimiter, express.urlencoded({ extended: false, limit: '10kb' }), createPublicBooking);
 
