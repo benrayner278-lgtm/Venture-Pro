@@ -12,13 +12,46 @@ const notFound = () =>
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 
+const readOnly = (request) => request.method === 'GET' || request.method === 'HEAD';
+
+const methodNotAllowed = () => new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+
+// Fetches the published site from the backend. The backend answers 404 for unknown or unverified addresses.
+const fetchSite = async (request, path) => {
+  let upstream;
+  try {
+    upstream = await fetch(`${ORIGIN}${path}`, {
+      method: request.method,
+      headers: { Accept: 'text/html' },
+      cf: { cacheTtl: 60, cacheEverything: true },
+    });
+  } catch (error) {
+    return new Response('This site is temporarily unavailable.', { status: 502 });
+  }
+
+  if (upstream.status === 404) {
+    return notFound();
+  }
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: upstream.headers,
+  });
+};
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     const host = url.hostname.toLowerCase();
 
-    if (host === ROOT_DOMAIN || !host.endsWith(`.${ROOT_DOMAIN}`)) {
+    if (host === ROOT_DOMAIN) {
       return fetch(request);
+    }
+
+    // The owner's own domain, such as www.yourbusiness.com. The backend checks that it is verified.
+    if (!host.endsWith(`.${ROOT_DOMAIN}`)) {
+      if (!readOnly(request)) return methodNotAllowed();
+      return fetchSite(request, `/api/public/sites/domain/${host}`);
     }
 
     const slug = host.slice(0, -(ROOT_DOMAIN.length + 1));
@@ -29,28 +62,8 @@ export default {
       return notFound();
     }
 
-    if (request.method !== 'GET' && request.method !== 'HEAD') {
-      return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
-    }
+    if (!readOnly(request)) return methodNotAllowed();
 
-    let upstream;
-    try {
-      upstream = await fetch(`${ORIGIN}/api/public/sites/${slug}`, {
-        method: request.method,
-        headers: { Accept: 'text/html' },
-        cf: { cacheTtl: 60, cacheEverything: true },
-      });
-    } catch (error) {
-      return new Response('This site is temporarily unavailable.', { status: 502 });
-    }
-
-    if (upstream.status === 404) {
-      return notFound();
-    }
-
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: upstream.headers,
-    });
+    return fetchSite(request, `/api/public/sites/${slug}`);
   },
 };
