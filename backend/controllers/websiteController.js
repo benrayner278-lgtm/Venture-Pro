@@ -301,4 +301,42 @@ const proofreadText = async (req, res) => {
   }
 };
 
-module.exports = { generateWebsite, proofreadText };
+// Saves the page the browser is showing, so edits survive leaving the builder (for example to Billing).
+const saveWebsite = async (req, res) => {
+  try {
+    const { buildId, content } = req.body || {};
+    if (typeof buildId !== 'string' || !content || typeof content !== 'object') {
+      return res.status(400).json({ error: 'A build and its content are required' });
+    }
+    if (content.format !== 'page') return res.status(400).json({ error: 'Only page websites are saved here' });
+
+    const build = await prisma.builderProject.findUnique({ where: { id: buildId } });
+    if (!build || build.kind !== 'website') return res.status(404).json({ error: 'Build not found' });
+    if (build.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    // Contact details, portfolio and style are kept with the page so the builder can show them again.
+    const state = { ...cleanPageState(content), contact: content.contact, portfolio: content.portfolio, style: content.style };
+    await prisma.builderProject.update({ where: { id: buildId }, data: { state } });
+    res.json({ saved: true });
+  } catch (error) {
+    console.error('Save website error:', error);
+    res.status(500).json({ error: 'Could not save the website' });
+  }
+};
+
+// Returns the most recently saved page, so the builder opens it again.
+const latestWebsite = async (req, res) => {
+  try {
+    const build = await prisma.builderProject.findFirst({
+      where: { userId: req.userId, kind: 'website', state: { path: ['format'], equals: 'page' } },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (!build) return res.json({ buildId: null, content: null });
+    res.json({ buildId: build.id, content: build.state });
+  } catch (error) {
+    console.error('Load website error:', error);
+    res.status(500).json({ error: 'Could not load the website' });
+  }
+};
+
+module.exports = { generateWebsite, proofreadText, saveWebsite, latestWebsite };

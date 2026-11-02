@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
-import { PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
+import { MAX_PHOTOS, PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
@@ -44,6 +44,42 @@ export default function WebsiteBuilderPage() {
       .catch(() => {});
   }, []);
 
+  // Opens the latest page saved on the server, so the builder picks up where the owner left it.
+  useEffect(() => {
+    apiFetch('/api/website/latest')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.buildId || !data.content) return;
+        setContent(data.content);
+        setBuildId(data.buildId);
+        setStep('result');
+      })
+      .catch(() => {});
+  }, []);
+
+  // Edits are saved to the server shortly after each change, and again when the owner leaves the builder.
+  const pendingSave = useRef<{ buildId: string; content: WebsiteContent } | null>(null);
+  const storeBuild = (target: { buildId: string; content: WebsiteContent }) =>
+    apiFetch('/api/website/save', { method: 'POST', json: target }).catch(() => {});
+
+  useEffect(() => {
+    if (!content || !buildId || content.format !== 'page') return;
+    pendingSave.current = { buildId, content };
+    const timer = setTimeout(() => {
+      const target = pendingSave.current;
+      pendingSave.current = null;
+      if (target) storeBuild(target);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [content, buildId]);
+
+  useEffect(
+    () => () => {
+      if (pendingSave.current) storeBuild(pendingSave.current);
+    },
+    [],
+  );
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -79,13 +115,13 @@ export default function WebsiteBuilderPage() {
   };
 
   // Sends one change to the AI. The photos the owner added are sent with the site, so the AI can place them.
-  const runChange = async (instruction: string) => {
-    if (!content || !instruction.trim()) return;
+  const runChange = async (instruction: string, base: WebsiteContent | null = content) => {
+    if (!base || !instruction.trim()) return;
     setEditingPath(null);
     setTweaking(true);
     try {
-      // Contact details and photos are kept by the builder, so they are not sent to the AI.
-      const { contact, portfolio, style, ...siteOnly } = content;
+      // Contact details, portfolio and style are kept by the builder, so they are not sent to the AI.
+      const { contact, portfolio, style, ...siteOnly } = base;
       const result = await requestContent({ currentContent: siteOnly, instruction: instruction.trim(), buildId: buildId || undefined });
       setBuildId(result.buildId);
       setTweakReply(result.reply);
@@ -148,6 +184,30 @@ export default function WebsiteBuilderPage() {
       setContent({ ...content, portfolio: { title: gallery?.title || 'Our work', items: gallery?.items || [] } });
     }
     setView('portfolio');
+  };
+
+  // Adds the portfolio to a page-format site. Each item's photo joins the page's photos, and the AI places the section.
+  const addPortfolioToPage = () => {
+    if (!content?.portfolio) return;
+    const { title, items } = content.portfolio;
+    const images = { ...(content.images || {}) };
+    const lines = items.map((item) => {
+      let photo = '';
+      if (item.image) {
+        const existing = Object.keys(images).find((key) => images[key] === item.image);
+        const key = existing ?? Array.from({ length: MAX_PHOTOS }, (_, n) => `img${n + 1}`).find((k) => !images[k]);
+        if (key) {
+          images[key] = item.image;
+          photo = `; photo: use ${key}`;
+        }
+      }
+      return `- ${item.title || 'Untitled'}: ${item.description || 'no description'}${photo}`;
+    });
+    const instruction =
+      items.length === 0
+        ? 'Remove the portfolio section from the page.'
+        : `Add a portfolio section titled "${title || 'Our work'}" that shows these projects, each with its photo where one is given. Place it before the call to action. Projects:\n${lines.join('\n')}`;
+    return runChange(instruction, content.format === 'page' ? { ...content, images } : content);
   };
 
   useEffect(() => {
@@ -307,14 +367,18 @@ export default function WebsiteBuilderPage() {
                 </div>
                 )}
 
-                {content.format !== 'page' && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Edit your site</p>
                   <div className="space-y-1.5">
                     {(
                       [
-                        { id: 'style', label: 'Edit style and fonts' },
-                        { id: 'contact', label: 'Edit contact details' },
+                        // Style and contact details are only drawn on section websites for now.
+                        ...(content.format !== 'page'
+                          ? [
+                              { id: 'style', label: 'Edit style and fonts' },
+                              { id: 'contact', label: 'Edit contact details' },
+                            ]
+                          : []),
                         { id: 'portfolio', label: portfolioAllowed ? 'Edit portfolio and photos' : 'Edit portfolio and photos (Premium)' },
                       ] as { id: View; label: string }[]
                     ).map((tab) => (
@@ -335,7 +399,6 @@ export default function WebsiteBuilderPage() {
                     ))}
                   </div>
                 </div>
-                )}
 
                 {editingPath && (
                   <TextEditPanel
@@ -372,6 +435,15 @@ export default function WebsiteBuilderPage() {
                 {!editingPath && view === 'portfolio' && portfolioAllowed && content.portfolio && (
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
                     <PortfolioEditor value={content.portfolio} onChange={(portfolio) => setContent({ ...content, portfolio })} />
+                    {content.format === 'page' && (
+                      <button
+                        onClick={addPortfolioToPage}
+                        disabled={tweaking}
+                        className="mt-4 w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl transition font-medium text-sm disabled:opacity-50"
+                      >
+                        {tweaking ? 'Adding to your page...' : 'Add portfolio to my page'}
+                      </button>
+                    )}
                   </div>
                 )}
 
