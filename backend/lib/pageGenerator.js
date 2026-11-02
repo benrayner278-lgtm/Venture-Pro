@@ -73,9 +73,19 @@ const askForPage = async (label, system, userText) => {
 };
 
 // Writes a new page. `images` is a list of { key, label } for the owner's uploads.
+// A page that is cut off or does not parse is tried once more, as the section builder does.
 const createPage = async ({ briefText, kitText, images = [] }) => {
-  const page = await askForPage('page create', PAGE_PROMPT, `${briefText}\n\nBrand kit:\n${kitText}\n\n${imageList(images)}`);
-  return { page };
+  const userText = `${briefText}\n\nBrand kit:\n${kitText}\n\n${imageList(images)}`;
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return { page: await askForPage('page create', PAGE_PROMPT, userText) };
+    } catch (error) {
+      console.error(`Page create attempt ${attempt + 1} failed:`, error.message);
+      lastError = error;
+    }
+  }
+  throw lastError;
 };
 
 // Changes an existing page as a whole, keeping what the owner did not ask about.
