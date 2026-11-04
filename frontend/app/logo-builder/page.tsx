@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import {
@@ -14,6 +14,7 @@ import {
   buildLogoSvg,
   logoDataUri,
 } from '@/lib/logoSvg';
+import { LOGO_PRESETS, LogoPreset } from '@/lib/logoPresets';
 
 const inputClass =
   'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
@@ -32,7 +33,7 @@ const BACKGROUNDS: { value: LogoBackground; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
+type ChatMessage = { role: 'user' | 'assistant'; text: string };
 
 // Loads every logo font once, so the preview shows the real typefaces.
 const loadLogoFonts = () => {
@@ -45,41 +46,51 @@ const loadLogoFonts = () => {
 };
 
 export default function LogoBuilderPage() {
-  const [settings, setSettings] = useState<LogoSettings>({ ...DEFAULT_LOGO, name: 'Your Business' });
+  const [settings, setSettings] = useState<LogoSettings>({ ...DEFAULT_LOGO });
+  const [presetId, setPresetId] = useState(LOGO_PRESETS[0].id);
 
   useEffect(() => {
     loadLogoFonts();
   }, []);
 
   const [description, setDescription] = useState('');
-  const [instruction, setInstruction] = useState('');
+  const [chatInput, setChatInput] = useState('');
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
   // The saved build on the server. Changes build on it, so the AI remembers earlier requests.
   const [buildId, setBuildId] = useState<string | null>(null);
-  const [reply, setReply] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const chatEnd = useRef<HTMLDivElement>(null);
 
   const svg = useMemo(() => buildLogoSvg(settings), [settings]);
   const set = (patch: Partial<LogoSettings>) => setSettings((current) => ({ ...current, ...patch }));
+  const preset = LOGO_PRESETS.find((item) => item.id === presetId) || LOGO_PRESETS[0];
+  const businessName = settings.name.trim();
 
-  // Asks the AI to design a logo from a description, or to change the current one.
-  const askAi = async (mode: 'create' | 'change') => {
+  useEffect(() => {
+    chatEnd.current?.scrollIntoView({ block: 'nearest' });
+  }, [messages]);
+
+  // Asks the AI to design the logo from the description, or to answer or change it. The business name always
+  // comes from the user, and the server keeps it.
+  const askAi = async (mode: 'create' | 'change', text: string) => {
     setDrafting(true);
     setDraftError('');
-    setReply('');
     try {
       const response = await apiFetch('/api/logo/generate', {
         method: 'POST',
-        json: mode === 'create' ? { description } : { current: settings, instruction, buildId },
+        json:
+          mode === 'create'
+            ? { name: businessName, description: text }
+            : { name: businessName, current: settings, instruction: text, buildId },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not create the logo');
-      setSettings({ ...DEFAULT_LOGO, ...data.logo });
+      setSettings({ ...DEFAULT_LOGO, ...data.logo, name: businessName });
       setBuildId(data.buildId || null);
-      setReply(data.reply || '');
       setHasDraft(true);
-      if (mode === 'change') setInstruction('');
+      setMessages((current) => [...current, { role: 'assistant', text: data.reply || 'Here is your logo.' }]);
     } catch (err) {
       setDraftError(err instanceof Error ? err.message : 'Could not create the logo');
     } finally {
@@ -87,15 +98,25 @@ export default function LogoBuilderPage() {
     }
   };
 
-  // Gives a new combination to start from. The user keeps any name or tagline they typed.
-  const shuffle = () => {
-    const palette = pick(LOGO_PALETTES);
+  const sendChat = () => {
+    const text = chatInput.trim();
+    if (!text || drafting) return;
+    setChatInput('');
+    setMessages((current) => [...current, { role: 'user', text }]);
+    askAi('change', text);
+  };
+
+  // Applies a style preset. The business name and tagline stay as they are.
+  const applyPreset = (item: LogoPreset) => {
     set({
-      icon: pick(LOGO_ICONS).key,
-      layout: pick(LAYOUTS).value,
-      font: pick(LOGO_FONTS).key,
-      primary: palette.primary,
-      accent: palette.accent,
+      icon: item.icon,
+      shapes: [],
+      layout: item.layout,
+      font: item.font,
+      primary: item.primary,
+      accent: item.accent,
+      background: item.background,
+      uppercase: item.uppercase,
     });
   };
 
@@ -122,72 +143,107 @@ export default function LogoBuilderPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-96 shrink-0 space-y-6">
-              <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
-                {!hasDraft ? (
-                  <>
-                    <label className={labelClass}>Describe your business</label>
-                    <textarea
-                      className={`${inputClass} w-full resize-none h-24`}
-                      value={description}
-                      maxLength={600}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="e.g. A friendly pottery studio for beginners in a village, warm and hands-on"
+              {!hasDraft ? (
+                <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
+                  <label className={labelClass}>Business name</label>
+                  <input className={inputClass} value={settings.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Principle Engineering" />
+                  <label className={labelClass}>Describe your business</label>
+                  <textarea
+                    className={`${inputClass} w-full resize-none h-24`}
+                    value={description}
+                    maxLength={600}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. A friendly pottery studio for beginners in a village, warm and hands-on"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => askAi('create', description.trim())}
+                    disabled={drafting || !businessName || description.trim().length < 5}
+                    className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
+                  >
+                    {drafting ? 'Designing your logo...' : 'Design my logo'}
+                  </button>
+                  {draftError && <p className="text-sm text-red-400">{draftError}</p>}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className={labelClass}>Chat about your logo</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasDraft(false);
+                        setDescription('');
+                        setBuildId(null);
+                        setMessages([]);
+                        setSettings((current) => ({ ...DEFAULT_LOGO, name: current.name }));
+                      }}
+                      className="text-xs text-gray-400 hover:text-gray-200"
+                    >
+                      Start again
+                    </button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                    {messages.map((message, index) => (
+                      <div key={index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                        <p
+                          className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                            message.role === 'user' ? 'bg-white text-black' : 'bg-white/[0.06] text-gray-200'
+                          }`}
+                        >
+                          {message.text}
+                        </p>
+                      </div>
+                    ))}
+                    {drafting && <p className="text-xs text-gray-500">Thinking...</p>}
+                    <div ref={chatEnd} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      className={`${inputClass} flex-1`}
+                      value={chatInput}
+                      maxLength={400}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') sendChat();
+                      }}
+                      placeholder="e.g. make the icon simpler, or what colours suit a plumber?"
                     />
                     <button
                       type="button"
-                      onClick={() => askAi('create')}
-                      disabled={drafting || description.trim().length < 5}
-                      className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
+                      onClick={sendChat}
+                      disabled={drafting || !chatInput.trim()}
+                      className="bg-white hover:bg-gray-200 text-black px-4 rounded-xl text-sm font-medium transition disabled:opacity-40"
                     >
-                      {drafting ? 'Designing your logo...' : 'Design my logo'}
+                      Send
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <label className={labelClass}>Ask for a change</label>
-                    <input
-                      className={`${inputClass} w-full`}
-                      value={instruction}
-                      maxLength={400}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      placeholder="e.g. make the icon simpler and use a softer green"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => askAi('change')}
-                        disabled={drafting || !instruction.trim()}
-                        className="flex-1 bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
-                      >
-                        {drafting ? 'Updating...' : 'Apply change'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHasDraft(false);
-                          setDescription('');
-                          setBuildId(null);
-                          setReply('');
-                        }}
-                        className="border border-white/10 hover:bg-white/5 text-gray-300 px-4 py-2.5 rounded-xl text-sm"
-                      >
-                        Start again
-                      </button>
-                    </div>
-                  </>
-                )}
-                {draftError && <p className="text-sm text-red-400">{draftError}</p>}
-                {reply && <p className="text-sm text-gray-300">{reply}</p>}
-                <p className="text-xs text-gray-500">The fine-tuning controls below change anything the AI made.</p>
-              </div>
+                  </div>
+                  {draftError && <p className="text-sm text-red-400">{draftError}</p>}
+                  <p className="text-xs text-gray-500">The business name stays as you typed it. Ask for ideas, or for changes to the logo.</p>
+                </div>
+              )}
 
-              <div>
-                <label className={labelClass}>Business name</label>
-                <input className={inputClass} value={settings.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. CloudSync" />
-              </div>
               <div>
                 <label className={labelClass}>Tagline (optional)</label>
                 <input className={inputClass} value={settings.tagline} maxLength={80} onChange={(e) => set({ tagline: e.target.value })} placeholder="e.g. Storage made simple" />
+              </div>
+
+              <div>
+                <label className={labelClass}>Style presets</label>
+                <select className={inputClass} value={presetId} onChange={(e) => setPresetId(e.target.value)}>
+                  {LOGO_PRESETS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-3 rounded-xl border border-white/10 p-4 space-y-2">
+                  <p className="text-sm text-gray-200">{preset.description}</p>
+                  <p className="text-xs text-gray-500">Works well for: {preset.worksFor.join(', ')}</p>
+                  <button type="button" onClick={() => applyPreset(preset)} className="mt-1 border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2 rounded-xl text-sm font-medium transition">
+                    Use this style
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -298,14 +354,9 @@ export default function LogoBuilderPage() {
                 Capitals for the name
               </label>
 
-              <div className="space-y-2">
-                <button type="button" onClick={shuffle} className="w-full border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium transition">
-                  Shuffle ideas
-                </button>
-                <button type="button" onClick={download} className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
-                  Download logo (SVG)
-                </button>
-              </div>
+              <button type="button" onClick={download} className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                Download logo (SVG)
+              </button>
             </div>
 
             <div className="flex-1 min-w-0 space-y-4">
@@ -313,7 +364,11 @@ export default function LogoBuilderPage() {
                 className="rounded-2xl border border-white/[0.08] p-6 flex items-center justify-center min-h-[420px]"
                 style={{ background: settings.background === 'dark' ? '#0b0b10' : settings.background === 'light' ? '#ffffff' : settings.background === 'custom' ? settings.customBackground || '#ffffff' : 'repeating-conic-gradient(#1f2937 0% 25%, #111827 0% 50%) 50% / 24px 24px' }}
               >
-                <img src={logoDataUri(svg)} alt={`${settings.name || 'Your'} logo`} className="w-full max-w-2xl h-auto" />
+                {businessName ? (
+                  <img src={logoDataUri(svg)} alt={`${settings.name} logo`} className="w-full max-w-2xl h-auto" />
+                ) : (
+                  <p className="text-sm text-gray-500">Enter your business name to see your logo here.</p>
+                )}
               </div>
               <p className="text-xs text-gray-500">
                 The download keeps your chosen font by name. It looks right in design tools that have that font installed.
