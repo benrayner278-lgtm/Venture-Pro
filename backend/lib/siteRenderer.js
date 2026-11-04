@@ -339,9 +339,11 @@ const renderBooking = (view) => {
       .map((slot) => `<label class="time"><input type="radio" name="slot" value="${escapeHtml(slot.value)}" required><span>${escapeHtml(slot.label)}</span></label>`)
       .join('')}</div></fieldset>`)
     .join('');
+  // Class sessions carry their name in the time value, so they need no service choice.
+  const serviceField = view.kind === 'sessions' ? '' : `<label>Service<select name="service" required>${services}</select></label>`;
   const form = view.days.length
     ? `<form class="booking" method="post" action="${escapeHtml(view.action)}">
-<label>Service<select name="service" required>${services}</select></label>
+${serviceField}
 ${timetable}
 <label>Your name<input name="name" required maxlength="100" autocomplete="name"></label>
 <label>Email<input type="email" name="email" required maxlength="254" autocomplete="email"></label>
@@ -351,7 +353,9 @@ ${timetable}
 <button type="submit" class="btn btn-primary">Request this time</button>
 </form>`
     : `<p class="lead">No times are free in the next ${escapeHtml(view.daysAhead)} days. Please get in touch.</p>`;
-  return `<section id="book"><div class="wrap narrow centre"><h2>Book a time</h2><p class="lead">Choose a service and a time. We will be in touch to confirm.</p>${form}</div></section>`;
+  const heading = escapeHtml(view.heading || 'Book a time');
+  const lead = view.kind === 'sessions' ? 'Choose a class and a time. Places are limited.' : view.kind === 'call' ? 'Choose a time for your call. We will be in touch to confirm.' : 'Choose a service and a time. We will be in touch to confirm.';
+  return `<section id="book"><div class="wrap narrow centre"><h2>${heading}</h2><p class="lead">${lead}</p>${form}</div></section>`;
 };
 
 // Renders the structured site content as a standalone page. Output contains no scripts.
