@@ -327,17 +327,22 @@ const buildPage = (content, themeId, shuffle, extras = {}) => {
 };
 
 // The booking form. It works without scripts: the browser posts it straight to the booking API.
-const BOOKING_CSS = `.booking{display:grid;gap:16px;text-align:left;max-width:520px;margin:32px auto 0}.booking label{display:grid;gap:6px;font-size:15px;color:var(--muted)}.booking input,.booking select,.booking textarea{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}.booking textarea{min-height:90px;resize:vertical}.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;
+// Free times are shown as a timetable, one day at a time, and the visitor picks one time button.
+const BOOKING_CSS = `.booking{display:grid;gap:16px;text-align:left;max-width:560px;margin:32px auto 0}.booking label{display:grid;gap:6px;font-size:15px;color:var(--muted)}.booking input,.booking select,.booking textarea{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}.booking textarea{min-height:90px;resize:vertical}.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.booking .day{border:0;padding:0;margin:0;min-width:0}.booking .day legend{font-weight:600;color:var(--text);margin-bottom:10px;padding:0}.booking .times{display:flex;flex-wrap:wrap;gap:8px}.booking .time{position:relative;display:inline-block}.booking .time input{position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0}.booking .time span{display:inline-block;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:15px;cursor:pointer}.booking .time input:checked + span{background:var(--text);color:var(--bg);border-color:var(--text)}.booking .time input:focus-visible + span{outline:2px solid var(--text);outline-offset:2px}`;
 
 const renderBooking = (view) => {
   const services = view.services
     .map((service) => `<option value="${escapeHtml(service.name)}">${escapeHtml(service.name)}${service.minutes ? ` (${service.minutes} min)` : ''}${service.price ? ` · ${escapeHtml(service.price)}` : ''}</option>`)
     .join('');
-  const times = view.slots.map((slot) => `<option value="${escapeHtml(slot.value)}">${escapeHtml(slot.label)}</option>`).join('');
-  const form = view.slots.length
+  const timetable = view.days
+    .map((day) => `<fieldset class="day"><legend>${escapeHtml(day.label)}</legend><div class="times">${day.slots
+      .map((slot) => `<label class="time"><input type="radio" name="slot" value="${escapeHtml(slot.value)}" required><span>${escapeHtml(slot.label)}</span></label>`)
+      .join('')}</div></fieldset>`)
+    .join('');
+  const form = view.days.length
     ? `<form class="booking" method="post" action="${escapeHtml(view.action)}">
 <label>Service<select name="service" required>${services}</select></label>
-<label>Time<select name="slot" required>${times}</select></label>
+${timetable}
 <label>Your name<input name="name" required maxlength="100" autocomplete="name"></label>
 <label>Email<input type="email" name="email" required maxlength="254" autocomplete="email"></label>
 <label>Phone (optional)<input name="phone" maxlength="40" autocomplete="tel"></label>
@@ -418,4 +423,4 @@ const renderEditablePreview = (content, themeId = 'midnight', shuffle = 0) => {
   return { html: page.replace('</body>', `${EDIT_HELPERS}</body>`), paths };
 };
 
-module.exports = { renderSite, designKey, renderEditablePreview };
+module.exports = { BOOKING_CSS, renderBooking, renderSite, designKey, renderEditablePreview };

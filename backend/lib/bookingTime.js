@@ -87,4 +87,10 @@ const availableSlots = ({ settings, nowMs, booked }) => {
 const formatSlot = (startMs, timeZone) =>
   new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(startMs));
 
-module.exports = { DAY_KEYS, toMinutes, zonedToUtc, localDate, slotFits, availableSlots, formatSlot, NOTICE_MINUTES };
+// Labels for the timetable: a day heading such as "Monday 9 November", and a time such as "09:30".
+const dayLabel = (startMs, timeZone) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(startMs));
+const timeLabel = (startMs, timeZone) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(startMs));
+
+module.exports = { DAY_KEYS, toMinutes, zonedToUtc, localDate, slotFits, availableSlots, formatSlot, dayLabel, timeLabel, NOTICE_MINUTES };

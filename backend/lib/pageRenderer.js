@@ -42,9 +42,8 @@ const resolveImages = (html, images = {}, stock = {}) =>
     return `<div class="img-slot" role="img" aria-label="${alt}"${query ? ` data-stock="${escapeHtml(query)}"` : ''}></div>`;
   });
 
-// Returns the full HTML document for a page. Input: { brand, palette, fonts, body, css, images, stock }, where images maps keys
-// to JPEG data URLs and stock maps search words to stock JPEG data URLs.
-const renderPage = ({ brand, palette, fonts, body, css, images, stock }) => {
+// Wraps safe html and css in the full document. Callers must make both safe first.
+const renderDocument = ({ brand, palette, fonts, html, css }) => {
   const colours = cleanPage(palette);
   const headingFont = cleanFontKey(fonts?.heading, 'inter');
   const bodyFont = cleanFontKey(fonts?.body, 'inter');
@@ -69,13 +68,24 @@ p{margin:0 0 1em}
 a{color:inherit}
 img,svg{max-width:100%;height:auto;display:block}
 .img-slot{display:block;width:100%;aspect-ratio:4/3;background:var(--surface);border:1px dashed var(--border);border-radius:12px}
-${sanitizeCss(css)}
+${css}
 </style>
 </head>
 <body>
-${resolveImages(sanitizeBody(body), images, stock)}
+${html}
 </body>
 </html>`;
 };
 
-module.exports = { renderPage };
+// Returns the full HTML document for a page. Input: { brand, palette, fonts, body, css, images, stock }, where images maps keys
+// to JPEG data URLs and stock maps search words to stock JPEG data URLs.
+const renderPage = ({ brand, palette, fonts, body, css, images, stock }) =>
+  renderDocument({
+    brand,
+    palette,
+    fonts,
+    html: resolveImages(sanitizeBody(body), images, stock),
+    css: sanitizeCss(css),
+  });
+
+module.exports = { renderPage, renderDocument };

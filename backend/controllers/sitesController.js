@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
 const { renderPage } = require('../lib/pageRenderer');
+const { renderBookingPage } = require('../lib/bookingPage');
 const { cleanStock } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { renderTeaser } = require('../lib/teaser');
@@ -84,7 +85,17 @@ const validContent = (content) =>
 
 // Renders the full site: complete pages from the page format, and section sites from the section renderer.
 const renderContent = (content, themeId, shuffle, extras) =>
-  content.format === 'page' ? renderPage({ brand: content.brand, palette: content.palette, fonts: content.fonts, body: content.body, css: content.css, images: content.images, stock: content.stock }) : renderSite(content, themeId, shuffle, extras);
+  content.format === 'page'
+    ? renderPage({
+        brand: content.brand,
+        palette: content.palette,
+        fonts: content.fonts,
+        body: extras?.booking ? content.body.replace(/href="#book"/g, 'href="/book"') : content.body,
+        css: content.css,
+        images: content.images,
+        stock: content.stock,
+      })
+    : renderSite(content, themeId, shuffle, extras);
 
 // Free accounts only get the teaser. Downloads and the full preview need a paid plan.
 const isPaidUser = async (userId) => {
@@ -314,19 +325,28 @@ const removeCustomDomain = async (req, res) => {
   res.json({ domain: null });
 };
 
+// Forms may only post to the booking API. Scripts stay blocked.
+const publicHeaders = {
+  'Content-Type': 'text/html; charset=utf-8',
+  'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action ${API_ORIGIN}; frame-ancestors 'none'`,
+  'X-Content-Type-Options': 'nosniff',
+  'Cache-Control': 'public, max-age=60',
+};
+
 const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
   const html = renderContent(site.content, site.themeId, site.shuffle, { booking });
-  // Forms may only post to the booking API. Scripts stay blocked.
-  res
-    .set({
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action ${API_ORIGIN}; frame-ancestors 'none'`,
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'public, max-age=60',
-    })
-    .send(html);
+  res.set(publicHeaders).send(html);
+};
+
+// The booking page at /book. Only page-format sites have one, and only while booking is switched on for the plan.
+const sendBookingPage = async (res, site) => {
+  if (site.content?.format !== 'page') return notFoundPage(res);
+  const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
+  const booking = await publicBookingView(site, owner?.plan);
+  if (!booking) return notFoundPage(res);
+  res.set(publicHeaders).send(renderBookingPage({ content: site.content, booking }));
 };
 
 const notFoundPage = (res) => res.status(404).type('html').send('<!doctype html><title>Not found</title><p>This site does not exist.</p>');
@@ -346,4 +366,18 @@ const publicSiteByDomain = async (req, res) => {
   return sendPublicSite(res, site);
 };
 
-module.exports = { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
+const publicBookingPage = async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const site = SLUG_PATTERN.test(slug) ? await prisma.site.findUnique({ where: { slug } }) : null;
+  if (!site) return notFoundPage(res);
+  return sendBookingPage(res, site);
+};
+
+const publicBookingPageByDomain = async (req, res) => {
+  const host = String(req.params.host || '').toLowerCase();
+  const site = await prisma.site.findUnique({ where: { customDomain: host } });
+  if (!site || !site.customDomainVerifiedAt) return notFoundPage(res);
+  return sendBookingPage(res, site);
+};
+
+module.exports = { publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
