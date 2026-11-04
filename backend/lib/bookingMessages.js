@@ -75,12 +75,12 @@ const ownerMessage = ({ booking, timezone, businessName, requested, manageUrl })
   };
 };
 
-const customerConfirmedMessage = ({ booking, timezone, businessName }) => {
+const customerConfirmedMessage = ({ booking, timezone, businessName, note = '' }) => {
   const title = `${booking.serviceName} with ${businessName}`;
   const details = `Your booking with ${businessName}.`;
   return {
     subject: `Your booking with ${businessName} is confirmed`,
-    text: [`Hi ${booking.customerName},`, '', `Your ${booking.serviceName} with ${businessName} is confirmed.`, ...describe(booking, timezone), '', 'The calendar invite is attached. Add it to your calendar so you do not miss it.', '', `Thank you,`, businessName].join('\n'),
+    text: [`Hi ${booking.customerName},`, '', `Your ${booking.serviceName} with ${businessName} is confirmed.`, ...describe(booking, timezone), ...(note ? ['', note] : []), '', 'The calendar invite is attached. Add it to your calendar so you do not miss it.', '', `Thank you,`, businessName].join('\n'),
     attachments: [{ filename: 'booking.ics', content: Buffer.from(calendarFile({ booking, title, details })).toString('base64') }],
   };
 };

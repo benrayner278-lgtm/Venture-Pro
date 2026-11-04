@@ -93,7 +93,7 @@ model Booking {
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@unique([siteId, startsAt])
+  // Not unique: a class with places can have several people at the same start time. Capacity is checked when booking.
   @@index([siteId, startsAt])
   @@map("bookings")
 }

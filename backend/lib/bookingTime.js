@@ -83,6 +83,27 @@ const availableSlots = ({ settings, nowMs, booked }) => {
   return slots;
 };
 
+// The next start times of repeating sessions (classes) within the booking window, in date order.
+const sessionStarts = ({ settings, nowMs }) => {
+  const starts = [];
+  for (let day = 0; day < settings.daysAhead; day++) {
+    const dateStr = localDate(nowMs + day * 24 * 60 * MINUTE, settings.timezone);
+    const weekdayKey = DAY_KEYS[weekdayOf(dateStr)];
+    for (const session of settings.sessions || []) {
+      if (session.day !== weekdayKey) continue;
+      const startMs = zonedToUtc(dateStr, toMinutes(session.time), settings.timezone);
+      if (startMs >= nowMs + NOTICE_MINUTES * MINUTE) starts.push({ startMs, session });
+    }
+  }
+  return starts.sort((a, b) => a.startMs - b.startMs);
+};
+
+// Whether a start time really is one of the session's times (so a customer cannot pick a made-up time).
+const isSessionStart = (session, startMs, timeZone) => {
+  const dateStr = localDate(startMs, timeZone);
+  return DAY_KEYS[weekdayOf(dateStr)] === session.day && zonedToUtc(dateStr, toMinutes(session.time), timeZone) === startMs;
+};
+
 // Human-readable time in the business's timezone, e.g. "Tue 4 Nov, 09:30".
 const formatSlot = (startMs, timeZone) =>
   new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(startMs));
@@ -93,4 +114,4 @@ const dayLabel = (startMs, timeZone) =>
 const timeLabel = (startMs, timeZone) =>
   new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(startMs));
 
-module.exports = { DAY_KEYS, toMinutes, zonedToUtc, localDate, slotFits, availableSlots, formatSlot, dayLabel, timeLabel, NOTICE_MINUTES };
+module.exports = { DAY_KEYS, toMinutes, zonedToUtc, localDate, slotFits, availableSlots, sessionStarts, isSessionStart, formatSlot, dayLabel, timeLabel, NOTICE_MINUTES };
