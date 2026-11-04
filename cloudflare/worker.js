@@ -39,6 +39,13 @@ const fetchSite = async (request, path) => {
   });
 };
 
+// The only paths a site has: its home page and the booking page. Anything else is not found.
+const pageSuffix = (pathname) => {
+  if (pathname === '/' || pathname === '') return '';
+  if (pathname === '/book' || pathname === '/book/') return '/book';
+  return null;
+};
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -51,7 +58,9 @@ export default {
     // The owner's own domain, such as www.yourbusiness.com. The backend checks that it is verified.
     if (!host.endsWith(`.${ROOT_DOMAIN}`)) {
       if (!readOnly(request)) return methodNotAllowed();
-      return fetchSite(request, `/api/public/sites/domain/${host}`);
+      const suffix = pageSuffix(url.pathname);
+      if (suffix === null) return notFound();
+      return fetchSite(request, `/api/public/sites/domain/${host}${suffix}`);
     }
 
     const slug = host.slice(0, -(ROOT_DOMAIN.length + 1));
@@ -64,6 +73,8 @@ export default {
 
     if (!readOnly(request)) return methodNotAllowed();
 
-    return fetchSite(request, `/api/public/sites/${slug}`);
+    const suffix = pageSuffix(url.pathname);
+    if (suffix === null) return notFound();
+    return fetchSite(request, `/api/public/sites/${slug}${suffix}`);
   },
 };

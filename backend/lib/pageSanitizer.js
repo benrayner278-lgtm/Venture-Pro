@@ -10,7 +10,8 @@ const PAGE_TAGS = [
 const SVG_ATTRIBUTES = ['viewbox', 'xmlns', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'fill-opacity', 'stroke-opacity', 'transform', 'points', 'offset', 'stop-color', 'stop-opacity', 'gradientunits', 'gradienttransform', 'id', 'preserveaspectratio', 'font-family', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'clip-path', 'role', 'aria-hidden', 'focusable'];
 
 // Only in-page links, mail, phone and web addresses are kept. Anything else is removed.
-const HREF = /^(#[\w-]*|mailto:[^\s]+|tel:[^\s]+|https?:\/\/[^\s]+)$/i;
+// /book is the booking page the site serves itself. Nothing else relative is allowed.
+const HREF = /^(#[\w-]*|\/book|mailto:[^\s]+|tel:[^\s]+|https?:\/\/[^\s]+)$/i;
 
 const sanitizeBody = (html) => {
   const cleaned = sanitizeHtml(String(html ?? ''), {

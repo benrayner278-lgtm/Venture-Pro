@@ -1,6 +1,6 @@
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
-const { DAY_KEYS, toMinutes, slotFits, availableSlots, formatSlot } = require('../lib/bookingTime');
+const { DAY_KEYS, toMinutes, slotFits, availableSlots, formatSlot, localDate, dayLabel, timeLabel } = require('../lib/bookingTime');
 const { PRESET_KEYS, DEFAULT_PRESET, presetOf } = require('../lib/bookingPresets');
 const { sendEmail } = require('../lib/email');
 const { googleCalendarUrl, ownerMessage, customerConfirmedMessage, customerRequestedMessage } = require('../lib/bookingMessages');
@@ -78,11 +78,20 @@ const publicBookingView = async (site, ownerPlan) => {
   if (!settings?.enabled || !ownerAllowsBooking(ownerPlan)) return null;
   const nowMs = Date.now();
   const booked = await bookedRanges(site.id, nowMs, settings.daysAhead);
-  const slots = availableSlots({ settings, nowMs, booked });
+  const days = [];
+  for (const slot of availableSlots({ settings, nowMs, booked })) {
+    const key = localDate(slot.startMs, settings.timezone);
+    let day = days.find((item) => item.key === key);
+    if (!day) {
+      day = { key, label: dayLabel(slot.startMs, settings.timezone), slots: [] };
+      days.push(day);
+    }
+    day.slots.push({ value: new Date(slot.startMs).toISOString(), label: timeLabel(slot.startMs, settings.timezone) });
+  }
   return {
     action: `${API_ORIGIN}/api/bookings/public/${site.slug}`,
     services: settings.services,
-    slots: slots.map((slot) => ({ value: new Date(slot.startMs).toISOString(), label: formatSlot(slot.startMs, settings.timezone) })),
+    days,
     daysAhead: settings.daysAhead,
   };
 };
