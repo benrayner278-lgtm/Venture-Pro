@@ -2,8 +2,6 @@ const { cleanLogo, ICONS, FONT_KEYS, LAYOUTS, BACKGROUNDS } = require('./logoSpe
 const { renderLogoPng } = require('./logoRender');
 
 const UPDATE_FIELDS = {
-  name: { type: 'string' },
-  tagline: { type: 'string' },
   icon: { type: 'string', enum: ['custom', ...ICONS] },
   shapes: {
     type: 'array',

@@ -1,0 +1,178 @@
+import type { LogoBackground, LogoLayout } from '@/lib/logoSvg';
+
+// Logo styles for different kinds of business. Each one is the look that brands in that kind of business usually
+// use (clean tech wordmarks, bold trades lettering, warm food-brand colours, and so on), written as a style rather than
+// a copy of any named company's logo. Applying a preset keeps the business name and tagline the user typed.
+export type LogoPreset = {
+  id: string;
+  name: string;
+  description: string;
+  // The business types the style suits.
+  worksFor: string[];
+  icon: string;
+  layout: LogoLayout;
+  font: string;
+  primary: string;
+  accent: string;
+  background: LogoBackground;
+  uppercase: boolean;
+};
+
+export const LOGO_PRESETS: LogoPreset[] = [
+  {
+    id: 'tech',
+    name: 'Modern tech',
+    description: 'Clean geometric wordmark with one bright accent, like software companies that sell to businesses.',
+    worksFor: ['Software and apps', 'IT support', 'Online services'],
+    icon: 'hexagon',
+    layout: 'side',
+    font: 'inter',
+    primary: '#111111',
+    accent: '#2563eb',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'trades',
+    name: 'Trades and engineering',
+    description: 'Bold, condensed capitals on a solid mark, like workshop and engineering firms.',
+    worksFor: ['Plumbers and builders', 'Machining and fabrication', 'Garages'],
+    icon: 'square',
+    layout: 'side',
+    font: 'oswald',
+    primary: '#1f2937',
+    accent: '#f59e0b',
+    background: 'light',
+    uppercase: true,
+  },
+  {
+    id: 'premium',
+    name: 'Premium and elegant',
+    description: 'Refined serif name with a gold accent, like high-end jewellers and hotels.',
+    worksFor: ['Jewellers and watchmakers', 'Boutique hotels', 'Private clinics'],
+    icon: 'circle',
+    layout: 'wordmark',
+    font: 'playfair',
+    primary: '#18181b',
+    accent: '#b08d57',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'food',
+    name: 'Food and drink',
+    description: 'Warm sunset colours and a friendly rounded face, like cafés and independent restaurants.',
+    worksFor: ['Cafés and bakeries', 'Restaurants', 'Breweries and food makers'],
+    icon: 'circle',
+    layout: 'stacked',
+    font: 'poppins',
+    primary: '#7c2d12',
+    accent: '#f97316',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'beauty',
+    name: 'Beauty and wellness',
+    description: 'Soft plum tones and a light leaf mark, like salons, spas and skincare brands.',
+    worksFor: ['Hair and nail salons', 'Spas and massage', 'Skincare and cosmetics'],
+    icon: 'leaf',
+    layout: 'wordmark',
+    font: 'montserrat',
+    primary: '#4a044e',
+    accent: '#fb7185',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'health',
+    name: 'Health and care',
+    description: 'Calm green and a heart mark, like clinics, therapists and care providers.',
+    worksFor: ['Physio and dentists', 'Counselling', 'Care services'],
+    icon: 'heart',
+    layout: 'stacked',
+    font: 'poppins',
+    primary: '#14532d',
+    accent: '#34d399',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'studio',
+    name: 'Creative studio',
+    description: 'Serif name with a strong diamond mark, like design studios, potters and photographers.',
+    worksFor: ['Pottery and art classes', 'Photographers', 'Design agencies'],
+    icon: 'diamond',
+    layout: 'side',
+    font: 'dmserif',
+    primary: '#111111',
+    accent: '#eab308',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'outdoor',
+    name: 'Outdoor and adventure',
+    description: 'Poster-style capitals in forest green, like bike hire, tours and outdoor brands.',
+    worksFor: ['Bike hire and tours', 'Boat trips', 'Camping and outdoor kit'],
+    icon: 'arrow',
+    layout: 'stacked',
+    font: 'bebas',
+    primary: '#14532d',
+    accent: '#a3e635',
+    background: 'dark',
+    uppercase: true,
+  },
+  {
+    id: 'finance',
+    name: 'Trusted professional',
+    description: 'Steady slate and a shield, like accountants, solicitors and insurers.',
+    worksFor: ['Accountants', 'Solicitors and legal advice', 'Insurance and finance'],
+    icon: 'shield',
+    layout: 'side',
+    font: 'inter',
+    primary: '#1f2937',
+    accent: '#94a3b8',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'fitness',
+    name: 'Fitness and sport',
+    description: 'High-contrast dark look with a red bolt, like gyms and personal training.',
+    worksFor: ['Gyms and PT', 'Sports clubs', 'Dance and martial arts'],
+    icon: 'bolt',
+    layout: 'side',
+    font: 'bebas',
+    primary: '#ffffff',
+    accent: '#ef4444',
+    background: 'dark',
+    uppercase: true,
+  },
+  {
+    id: 'retail',
+    name: 'Bold retail',
+    description: 'Bright pink accent and a star, like fashion and gift shops.',
+    worksFor: ['Clothing and fashion', 'Gift shops', 'Online stores'],
+    icon: 'star',
+    layout: 'wordmark',
+    font: 'space',
+    primary: '#111111',
+    accent: '#ec4899',
+    background: 'light',
+    uppercase: false,
+  },
+  {
+    id: 'property',
+    name: 'Property and construction',
+    description: 'Grounded slate with an upward arrow, like estate agents and building firms.',
+    worksFor: ['Estate agents', 'Property management', 'Construction firms'],
+    icon: 'arrow',
+    layout: 'side',
+    font: 'montserrat',
+    primary: '#1f2937',
+    accent: '#0ea5e9',
+    background: 'light',
+    uppercase: false,
+  },
+];
