@@ -84,18 +84,23 @@ const validContent = (content) =>
   (content.format === 'page' ? typeof content.body === 'string' && content.body.length > 0 : Array.isArray(content.sections) && content.sections.length > 0);
 
 // Renders the full site: complete pages from the page format, and section sites from the section renderer.
+// With booking on, "#book" links (in the AI's copy and the section renderer) point at the /book page.
+const toBookingLinks = (html) => html.replace(/href="#book"/g, 'href="/book"');
+
 const renderContent = (content, themeId, shuffle, extras) =>
   content.format === 'page'
     ? renderPage({
         brand: content.brand,
         palette: content.palette,
         fonts: content.fonts,
-        body: extras?.booking ? content.body.replace(/href="#book"/g, 'href="/book"') : content.body,
+        body: extras?.booking ? toBookingLinks(content.body) : content.body,
         css: content.css,
         images: content.images,
         stock: content.stock,
       })
-    : renderSite(content, themeId, shuffle, extras);
+    : extras?.booking
+      ? toBookingLinks(renderSite(content, themeId, shuffle, extras))
+      : renderSite(content, themeId, shuffle, extras);
 
 // Free accounts only get the teaser. Downloads and the full preview need a paid plan.
 const isPaidUser = async (userId) => {
@@ -340,9 +345,8 @@ const sendPublicSite = async (res, site) => {
   res.set(publicHeaders).send(html);
 };
 
-// The booking page at /book. Only page-format sites have one, and only while booking is switched on for the plan.
+// The booking page at /book. Page and section sites both have one, while booking is switched on for the plan.
 const sendBookingPage = async (res, site) => {
-  if (site.content?.format !== 'page') return notFoundPage(res);
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
   if (!booking) return notFoundPage(res);
