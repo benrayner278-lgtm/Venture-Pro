@@ -16,6 +16,8 @@ model User {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   subscriptionStatus   String   @default("inactive")
+  resetTokenHash       String?  // SHA-256 of the emailed reset token; the token itself is never stored
+  resetTokenExpiresAt  DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
