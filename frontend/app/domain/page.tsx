@@ -30,9 +30,10 @@ export default function DomainPage() {
   const [check, setCheck] = useState<Check | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState<'ok' | 'warn'>('ok');
   const [error, setError] = useState('');
 
-  const site = sites.find((row) => row.id === siteId);
+  const site =sites.find((row) => row.id === siteId);
   const domain = site?.domain ?? null;
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function DomainPage() {
       if (data.domain) applyDomain(data.domain);
       setCheck(data.check ?? null);
       if (!response.ok) throw new Error(data.error || 'Could not check the domain');
+      setMessageTone(data.domain.verified ? 'ok' : 'warn');
       setMessage(
         data.domain.verified
           ? 'Your domain is connected. The secure certificate can take a few minutes to appear.'
@@ -167,7 +169,9 @@ export default function DomainPage() {
                     {domain ? 'Update domain' : 'Save domain'}
                   </button>
                 </div>
-                {message && <p className="text-sm text-emerald-400 mt-4">{message}</p>}
+                {message && (
+                  <p className={`text-sm mt-4 ${messageTone === 'ok' ? 'text-emerald-400' : 'text-amber-300'}`}>{message}</p>
+                )}
                 {error && <p className="text-sm text-red-400 mt-4">{error}</p>}
               </div>
 
