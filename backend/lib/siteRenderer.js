@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const { PRESETS, EFFECTS } = require('./designPresets');
 const { applyStyle, googleFontsLink } = require('./styleOptions');
 const { sanitizeDesign, applyBrief, mergeStyle } = require('./designBrief');
+const { cleanLogo } = require('./logoSpec');
+const { renderLogoHeaderPng } = require('./logoRender');
 
 const escapeHtml = (text) =>
   String(text ?? '')
@@ -277,12 +279,28 @@ const compose = (content) => {
   return { sections, contact };
 };
 
+// Draws the header logo as a small PNG. Returns null when there is no usable logo, so the name is shown instead.
+const brandLogoMarkup = (logo) => {
+  if (!logo || typeof logo !== 'object') return null;
+  const spec = cleanLogo(logo);
+  if (!spec.name) return null;
+  try {
+    const png = renderLogoHeaderPng(spec).toString('base64');
+    return `<img class="brand-logo" src="data:image/png;base64,${png}" alt="${escapeHtml(spec.name)}" height="52" style="display:block;height:52px;width:auto;max-width:260px">`;
+  } catch (error) {
+    console.error('Header logo error:', error);
+    return null;
+  }
+};
+
 // Builds the page parts shared by the public page and the design fingerprint.
 const buildPage = (content, themeId, shuffle, extras = {}) => {
   const brief = sanitizeDesign(content.design);
   const preset = applyBrief(PRESETS.find((item) => item.id === themeId) || PRESETS[0], brief);
   const t = applyStyle(preset, mergeStyle(brief, content.style));
   const brand = content.brand?.name || 'Website';
+  // A logo the user chose in the logo builder shows top left, in place of the name. If it cannot be drawn, the name stays.
+  const brandMark = brandLogoMarkup(content.brand?.logo) || escapeHtml(brand);
   const seed = Number(shuffle) || 0;
   const effect = brief?.effect ?? EFFECTS[mix(seed, 'effect') % EFFECTS.length];
   const { sections, contact } = compose(content);
@@ -314,7 +332,7 @@ const buildPage = (content, themeId, shuffle, extras = {}) => {
   const css = themeCss(t);
   const navHtml = `<div class="wrap" id="top">
 <nav>
-  <div class="brand">${escapeHtml(brand)}</div>
+  <div class="brand">${brandMark}</div>
   ${navLinks ? `<div class="links">${navLinks}</div>` : ''}
   ${navCta}
 </nav>

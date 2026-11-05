@@ -62,6 +62,38 @@ export default function LogoBuilderPage() {
   const [buildId, setBuildId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const chatEnd = useRef<HTMLDivElement>(null);
+  // The user's websites, so the logo can be put on one of them.
+  const [sites, setSites] = useState<{ id: string; title: string; slug: string }[]>([]);
+  const [siteId, setSiteId] = useState('');
+  const [attaching, setAttaching] = useState(false);
+  const [attachMessage, setAttachMessage] = useState('');
+
+  useEffect(() => {
+    apiFetch('/api/sites')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data?.sites) return;
+        setSites(data.sites);
+        if (data.sites[0]) setSiteId(data.sites[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Saves the logo to the chosen site. The site keeps its design and content; only its logo changes.
+  const useOnSite = async () => {
+    setAttaching(true);
+    setAttachMessage('');
+    try {
+      const response = await apiFetch(`/api/sites/${siteId}/logo`, { method: 'PUT', json: { logo: { ...settings, name: businessName } } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save the logo');
+      setAttachMessage('Saved. The logo now shows top left on that site.');
+    } catch (err) {
+      setAttachMessage(err instanceof Error ? err.message : 'Could not save the logo');
+    } finally {
+      setAttaching(false);
+    }
+  };
 
   const svg = useMemo(() => buildLogoSvg(settings), [settings]);
   const set = (patch: Partial<LogoSettings>) => setSettings((current) => ({ ...current, ...patch }));
@@ -109,8 +141,8 @@ export default function LogoBuilderPage() {
   // Applies a style preset. The business name and tagline stay as they are.
   const applyPreset = (item: LogoPreset) => {
     set({
-      icon: item.icon,
-      shapes: [],
+      icon: 'custom',
+      shapes: item.shapes,
       layout: item.layout,
       font: item.font,
       primary: item.primary,
@@ -357,6 +389,27 @@ export default function LogoBuilderPage() {
               <button type="button" onClick={download} className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
                 Download logo (SVG)
               </button>
+
+              <div className="border-t border-white/10 pt-4 space-y-2">
+                <p className="text-sm text-gray-200 font-medium">Show on my website</p>
+                {sites.length === 0 ? (
+                  <p className="text-xs text-gray-500">Build a website first, then it will appear here. The logo shows top left in the site header.</p>
+                ) : (
+                  <>
+                    <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className="w-full bg-white/5 border border-white/10 text-gray-200 rounded-xl px-3 py-2 text-sm">
+                      {sites.map((site) => (
+                        <option key={site.id} value={site.id} className="bg-black">
+                          {site.title || site.slug}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={useOnSite} disabled={!businessName || !siteId || attaching} className="w-full border border-white/10 hover:bg-white/5 disabled:opacity-40 text-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+                      {attaching ? 'Saving...' : 'Use this logo on the site'}
+                    </button>
+                  </>
+                )}
+                {attachMessage && <p className="text-xs text-gray-400">{attachMessage}</p>}
+              </div>
             </div>
 
             <div className="flex-1 min-w-0 space-y-4">
