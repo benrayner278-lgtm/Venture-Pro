@@ -67,6 +67,72 @@ export default function LogoBuilderPage() {
   const [siteId, setSiteId] = useState('');
   const [attaching, setAttaching] = useState(false);
   const [attachMessage, setAttachMessage] = useState('');
+  // The logo is saved to the server as the user works, so leaving the page does not lose it.
+  const [loaded, setLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const latest = useRef({ settings: DEFAULT_LOGO as LogoSettings, buildId: null as string | null, loaded: false });
+
+  // Picks up the user's latest logo, so a reload or a return to the page shows it.
+  useEffect(() => {
+    apiFetch('/api/logo/draft')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data?.logo) return;
+        setSettings({ ...DEFAULT_LOGO, ...data.logo });
+        setBuildId(data.buildId || null);
+        setHasDraft(true);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  // Saves the logo. With keepalive the request still goes out while the page is closing.
+  const saveDraft = (draft: LogoSettings, id: string | null, keepalive = false) => {
+    if (!keepalive) setSaveStatus('saving');
+    return apiFetch('/api/logo/draft', { method: 'PUT', json: { buildId: id ?? undefined, logo: draft }, keepalive })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('save failed');
+        const data = await response.json();
+        if (data.buildId && data.buildId !== latest.current.buildId) {
+          latest.current.buildId = data.buildId;
+          setBuildId(data.buildId);
+        }
+        if (!keepalive) setSaveStatus('saved');
+      })
+      .catch(() => {
+        if (!keepalive) setSaveStatus('error');
+      });
+  };
+
+  useEffect(() => {
+    latest.current = { settings, buildId, loaded };
+  });
+
+  // Saves a moment after the last change.
+  useEffect(() => {
+    if (!loaded) return;
+    const timer = setTimeout(() => saveDraft(settings, buildId), 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, loaded]);
+
+  // Saves straight away when the tab is hidden or closed.
+  useEffect(() => {
+    const flush = () => {
+      const { settings: current, buildId: id, loaded: ready } = latest.current;
+      if (ready) saveDraft(current, id, true);
+    };
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     apiFetch('/api/sites')
@@ -425,6 +491,9 @@ export default function LogoBuilderPage() {
               </div>
               <p className="text-xs text-gray-500">
                 The download keeps your chosen font by name. It looks right in design tools that have that font installed.
+              </p>
+              <p className="text-xs text-gray-500" aria-live="polite">
+                {saveStatus === 'saving' ? 'Saving your logo...' : saveStatus === 'saved' ? 'Your logo is saved.' : saveStatus === 'error' ? 'Could not save your logo. Your changes will try again on your next edit.' : ''}
               </p>
             </div>
           </div>

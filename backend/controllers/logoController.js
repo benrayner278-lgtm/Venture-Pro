@@ -3,6 +3,7 @@ const { runToolLoop } = require('../lib/agentLoop');
 const { LOGO_EDIT_TOOLS, applyLogoTool } = require('../lib/logoEdits');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
+const prisma = require('../lib/prisma');
 
 // The designer works from the brand kit, draws the mark, and checks its own preview before it replies.
 const DESIGN_PROMPT = `You design logos for small businesses, the way a good independent designer would. You are given a brand kit for the business: its positioning, audience, personality, palette and logo idea. Design from the kit, not from a template. The logo should carry one clear idea that fits this business.
@@ -93,4 +94,34 @@ ${historyForPrompt(build)}`;
   }
 };
 
-module.exports = { generateLogo };
+// The user's most recent logo, so the builder can pick up where they left off.
+const getLogoDraft = async (req, res) => {
+  try {
+    const build = await prisma.builderProject.findFirst({
+      where: { userId: req.userId, kind: 'logo' },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (!build) return res.json({ buildId: null, logo: null });
+    res.json({ buildId: build.id, logo: cleanLogo(build.state) });
+  } catch (error) {
+    console.error('Get logo draft error:', error);
+    res.status(500).json({ error: 'Could not load your logo' });
+  }
+};
+
+// Saves the logo as the user edits it, so leaving the page does not lose it. Only the logo is stored here.
+const saveLogoDraft = async (req, res) => {
+  try {
+    const logo = req.body?.logo;
+    if (!logo || typeof logo !== 'object') return res.status(400).json({ error: 'Send the logo to save' });
+    const buildId = typeof req.body?.buildId === 'string' ? req.body.buildId : undefined;
+    const build = await openBuild({ userId: req.userId, kind: 'logo', buildId, state: cleanLogo(logo) });
+    res.json({ buildId: build.id });
+  } catch (error) {
+    if (error.expose) return res.status(error.status).json({ error: error.message });
+    console.error('Save logo draft error:', error);
+    res.status(500).json({ error: 'Could not save your logo' });
+  }
+};
+
+module.exports = { generateLogo, getLogoDraft, saveLogoDraft };
