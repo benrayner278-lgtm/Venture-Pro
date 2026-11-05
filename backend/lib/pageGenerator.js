@@ -106,8 +106,18 @@ ${JSON.stringify(current)}
 Change request: ${instruction}
 
 Return the whole updated page as JSON. Keep everything the request does not ask to change.`;
-  const page = await askForPage('page change', `${PAGE_PROMPT}\n\nYou are changing an existing page. Keep its design unless the request asks for a design change.`, userText);
-  return { page };
+  // Like creating a page, a change that is cut off or does not parse is tried once more before it fails.
+  const system = `${PAGE_PROMPT}\n\nYou are changing an existing page. Keep its design unless the request asks for a design change.`;
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return { page: await askForPage('page change', system, userText) };
+    } catch (error) {
+      console.error(`Page change attempt ${attempt + 1} failed:`, error.message);
+      lastError = error;
+    }
+  }
+  throw lastError;
 };
 
 // Renders the page as a standalone document. Images are resolved by the renderer, not here.
