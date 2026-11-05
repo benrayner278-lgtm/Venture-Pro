@@ -14,4 +14,22 @@ const renderLogoPng = (settings) => {
   return resvg.render().asPng();
 };
 
-module.exports = { renderLogoPng };
+// A small, tight PNG of the logo for the site header. It uses the same bundled fonts as the builder.
+const headerCache = new Map();
+const renderLogoHeaderPng = (settings) => {
+  const key = JSON.stringify(settings);
+  if (headerCache.has(key)) return headerCache.get(key);
+  files = files || fontFiles();
+  const svg = buildLogoSvg(settings, { header: true });
+  const png = new Resvg(svg, {
+    fitTo: { mode: 'width', value: 480 },
+    font: { fontFiles: files, loadSystemFonts: false, defaultFontFamily: 'Inter' },
+  })
+    .render()
+    .asPng();
+  if (headerCache.size > 300) headerCache.clear();
+  headerCache.set(key, png);
+  return png;
+};
+
+module.exports = { renderLogoPng, renderLogoHeaderPng };

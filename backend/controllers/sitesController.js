@@ -8,6 +8,7 @@ const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { renderTeaser } = require('../lib/teaser');
 const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
+const { cleanLogo } = require('../lib/logoSpec');
 const { PLANS, planKey } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView } = require('./bookingController');
 const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
@@ -48,6 +49,9 @@ const cleanContent = (content, allowPortfolio = true) => {
   if (!content || typeof content !== 'object') return content;
   const next = { ...content };
   if (content.style) next.style = cleanStyle(content.style);
+  if (content.brand && typeof content.brand === 'object' && content.brand.logo) {
+    next.brand = { ...content.brand, logo: cleanLogo(content.brand.logo) };
+  }
   if (content.format === 'page') {
     next.body = sanitizeBody(content.body);
     next.css = sanitizeCss(content.css);
@@ -384,4 +388,24 @@ const publicBookingPageByDomain = async (req, res) => {
   return sendBookingPage(res, site);
 };
 
-module.exports = { publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
+// Puts a logo from the logo builder on one of the user's sites. Only the logo changes; the design and content stay as they are.
+const setSiteLogo = async (req, res) => {
+  try {
+    const site = await findOwnedSite(req, res);
+    if (!site) return;
+    if (!req.body?.logo || typeof req.body.logo !== 'object') return res.status(400).json({ error: 'Send a logo to put on the site' });
+    const logo = cleanLogo(req.body.logo);
+    if (!logo.name) return res.status(400).json({ error: 'The logo needs the business name' });
+    const content = site.content && typeof site.content === 'object' ? site.content : {};
+    if (content.format === 'page') {
+      return res.status(400).json({ error: 'This site uses a custom page layout, so the logo cannot go in its header yet' });
+    }
+    await prisma.site.update({ where: { id: site.id }, data: { content: { ...content, brand: { ...(content.brand || {}), logo } } } });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Set site logo error:', error);
+    res.status(500).json({ error: 'Could not save the logo. Please try again.' });
+  }
+};
+
+module.exports = { setSiteLogo, publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };

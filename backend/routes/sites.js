@@ -1,6 +1,6 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
-const { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain } = require('../controllers/sitesController');
+const { checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, setSiteLogo } = require('../controllers/sitesController');
 
 const router = express.Router();
 
@@ -12,6 +12,7 @@ router.post('/download', downloadSite);
 router.get('/', listSites);
 router.post('/', createSite);
 router.put('/:siteId', updateSite);
+router.put('/:siteId/logo', setSiteLogo);
 router.delete('/:siteId', deleteSite);
 router.put('/:siteId/domain', setCustomDomain);
 router.post('/:siteId/domain/check', checkCustomDomain);

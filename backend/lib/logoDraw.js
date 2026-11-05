@@ -76,7 +76,14 @@ const fitSize = (text, maxSize, maxWidth) => {
   return width > maxWidth ? Math.max(24, Math.floor(maxWidth / (Math.max(text.length, 1) * 0.62))) : maxSize;
 };
 
-const buildLogoSvg = (settings) => {
+// The area of the logo that the site header shows, per layout, in the 800 by 400 logo space.
+const HEADER_CROPS = {
+  side: '96 96 680 184',
+  stacked: '24 24 752 316',
+  wordmark: '24 120 752 200',
+};
+
+const buildLogoSvg = (settings, options = {}) => {
   const hasCustom = settings.icon === 'custom' && Array.isArray(settings.shapes) && settings.shapes.length > 0;
   const hasMark = hasCustom || (settings.icon !== 'custom' && Boolean(ICON_SHAPES[settings.icon]));
   const font = FONT_PACKAGES[settings.font] || FONT_PACKAGES.inter;
@@ -127,7 +134,10 @@ const buildLogoSvg = (settings) => {
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LOGO_WIDTH} ${LOGO_HEIGHT}" width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}">${background}${body}</svg>`;
+  // The site header shows a tight crop of the logo. Each layout has its own crop, so the mark and name fill it.
+  const crop = HEADER_CROPS[settings.layout] || HEADER_CROPS.side;
+  const viewBox = options.header ? crop : `0 0 ${LOGO_WIDTH} ${LOGO_HEIGHT}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}">${background}${body}</svg>`;
 };
 
 module.exports = { buildLogoSvg, fontFiles, LOGO_WIDTH, LOGO_HEIGHT };
