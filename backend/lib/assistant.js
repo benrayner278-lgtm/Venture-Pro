@@ -109,32 +109,25 @@ const runTool = async (userId, name, input) => {
   return 'Unknown tool.';
 };
 
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-const TEXT_TYPES = new Set(['text/plain', 'text/markdown', 'text/csv', 'application/json']);
-const TEXT_LIMIT = 40000;
-// The file types the assistant can read: photos, PDFs and plain text files.
-const ATTACHMENT_TYPES = new Set([...IMAGE_TYPES, 'application/pdf', ...TEXT_TYPES]);
-
-// Turns the message and its files into content for Claude. Photos and PDFs are sent as they are; text files as text.
+// Turns the message and its prepared files into content for Claude. Photos and PDFs are sent as they are; other files as text.
 const contentFor = (message, attachments) => {
   if (!attachments.length) return message;
   const blocks = [];
   for (const file of attachments) {
-    if (IMAGE_TYPES.has(file.type)) {
+    if (file.kind === 'image') {
       blocks.push({ type: 'image', source: { type: 'base64', media_type: file.type, data: file.data } });
-    } else if (file.type === 'application/pdf') {
+    } else if (file.kind === 'pdf') {
       blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: file.data } });
     } else {
-      const text = Buffer.from(file.data, 'base64').toString('utf8').slice(0, TEXT_LIMIT);
-      blocks.push({ type: 'text', text: `File "${file.name}":\n${text}` });
+      blocks.push({ type: 'text', text: `File "${file.name}":\n${file.text}` });
     }
   }
-  blocks.push({ type: 'text', text: message || 'Please look at the attached file.' });
+  blocks.push({ type: 'text', text: message || 'Please look at the attached file(s).' });
   return blocks;
 };
 
 // Answers one message. `history` is the earlier conversation as plain text turns. `attachments` are files the owner
-// attached: { name, type, data } with data as base64.
+// attached, prepared by lib/fileText.js: { name, kind, type, data, text }.
 const runTurn = async ({ userId, message, history, attachments = [] }) => {
   const messages = [...history.map((turn) => ({ role: turn.role, content: turn.text })), { role: 'user', content: contentFor(message, attachments) }];
   let reply = '';
@@ -165,4 +158,4 @@ const runTurn = async ({ userId, message, history, attachments = [] }) => {
   return reply || 'I could not finish that. Try asking for one change at a time.';
 };
 
-module.exports = { runTurn, contentKey, ATTACHMENT_TYPES, HISTORY_DAYS, HISTORY_CAP };
+module.exports = { runTurn, contentKey, HISTORY_DAYS, HISTORY_CAP };

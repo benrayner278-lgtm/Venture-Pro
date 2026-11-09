@@ -149,12 +149,11 @@ export default function AssistantPage() {
             </div>
           )}
           <div className="mt-3 flex gap-2">
-            <label className="flex items-center px-3 rounded-xl border border-white/10 text-sm text-gray-300 cursor-pointer hover:bg-white/5" title="Attach a photo, PDF or text file">
+            <label className="flex items-center px-3 rounded-xl border border-white/10 text-sm text-gray-300 cursor-pointer hover:bg-white/5" title="Attach a file">
               Attach
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,text/csv,application/json,.md,.csv,.txt,.json"
                 className="hidden"
                 onChange={(e) => {
                   addFiles(e.target.files);

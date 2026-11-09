@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
-const { runTurn, contentKey, ATTACHMENT_TYPES, HISTORY_DAYS, HISTORY_CAP } = require('../lib/assistant');
+const { runTurn, contentKey, HISTORY_DAYS, HISTORY_CAP } = require('../lib/assistant');
+const { prepareFile } = require('../lib/fileText');
 const { saveSiteContent } = require('./sitesController');
 
 const MESSAGE_LIMIT = 2000;
@@ -16,7 +17,6 @@ const cleanAttachments = (input) => {
   const files = [];
   for (const file of input) {
     if (!file || typeof file.data !== 'string' || typeof file.type !== 'string') return { error: 'One of the files could not be read. Please attach it again' };
-    if (!ATTACHMENT_TYPES.has(file.type)) return { error: 'The assistant can read photos, PDFs and plain text files (.txt, .md, .csv, .json)' };
     if (file.data.length > MAX_FILE_BYTES * 4 / 3) return { error: 'Each file must be 3 MB or smaller' };
     total += file.data.length;
     files.push({ name: String(file.name || 'file').slice(0, NAME_LIMIT), type: file.type, data: file.data });
@@ -41,12 +41,14 @@ const postMessage = async (req, res) => {
     if ((!message && files.length === 0) || message.length > MESSAGE_LIMIT) {
       return res.status(400).json({ error: `Write a message of up to ${MESSAGE_LIMIT} characters, or attach a file` });
     }
+    const prepared = [];
+    for (const file of files) prepared.push({ ...file, ...(await prepareFile(file)) });
     const userId = req.userId;
     const thread = await prisma.assistantThread.findUnique({ where: { userId } });
     const history = storedMessages(thread);
     const startedAt = new Date();
 
-    const reply = await runTurn({ userId, message, history, attachments: files });
+    const reply = await runTurn({ userId, message, history, attachments: prepared });
 
     // The conversation keeps the names of attached files, not their contents.
     const note = files.length ? `${message ? ' ' : ''}[Attached: ${files.map((file) => file.name).join(', ')}]` : '';
