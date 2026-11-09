@@ -4,6 +4,8 @@ const prisma = require('./prisma');
 const { getAnthropic } = require('./anthropic');
 const { WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('./websiteEdits');
 const { runToolLoop } = require('./agentLoop');
+const { revisePage } = require('./pageGenerator');
+const { fillStockPhotos } = require('./stockPhotos');
 
 const MODEL = 'claude-sonnet-5-5';
 // The assistant remembers the conversation for seven days. A cap stops the stored history growing without limit.
@@ -44,11 +46,35 @@ const ownedSite = (userId, siteId) => prisma.site.findFirst({ where: { id: Strin
 // Compares content without the design key, which is recalculated each time a site is saved.
 const contentKey = (content) => JSON.stringify({ ...(content || {}), design: undefined });
 
+const saveProposal = async (userId, site, working, summary) => {
+  const proposal = await prisma.assistantProposal.create({
+    data: { userId, siteId: site.id, summary, before: site.content, after: working },
+  });
+  return `Saved proposal ${proposal.id} for "${site.title}": ${summary}. The owner must approve it before it goes live.`;
+};
+
+// Page-format sites (a whole page written by the website builder) are changed the same way the builder changes them.
+const proposePageChange = async (userId, site, instruction) => {
+  const current = JSON.parse(JSON.stringify(site.content));
+  const images = Object.keys(current.images || {}).map((key) => ({ key, label: 'uploaded photo' }));
+  const { page } = await revisePage({
+    current,
+    instruction,
+    briefText: `Business: ${site.title}`,
+    kitText: 'Not recorded.',
+    history: 'None.',
+    images,
+  });
+  const stock = await fillStockPhotos(page.body, current.stock);
+  // The owner's contact details, portfolio, style and photos are kept unless the page itself changes them.
+  const working = { ...current, ...page, format: 'page', stock, images: current.images, contact: current.contact, portfolio: current.portfolio, style: current.style };
+  if (contentKey(working) === contentKey(site.content)) return 'No change was made. Ask for a more specific change.';
+  return saveProposal(userId, site, working, `Updated the page: ${instruction}`);
+};
+
 // Runs the section tools on a copy of the site, and saves the result as a proposal for the owner to approve.
 const proposeChange = async (userId, site, instruction) => {
-  if (site.content?.format === 'page') {
-    return 'The assistant cannot change page-format websites yet. Use the website builder for that site.';
-  }
+  if (site.content?.format === 'page') return proposePageChange(userId, site, instruction);
   let working = JSON.parse(JSON.stringify(site.content));
   const outcome = await runToolLoop({
     system: EDIT_SYSTEM,
@@ -67,16 +93,7 @@ const proposeChange = async (userId, site, instruction) => {
   }
   if (contentKey(working) === contentKey(site.content)) return 'No change was made. Ask for a more specific change.';
 
-  const proposal = await prisma.assistantProposal.create({
-    data: {
-      userId,
-      siteId: site.id,
-      summary: outcome.reply || outcome.actions.join('; '),
-      before: site.content,
-      after: working,
-    },
-  });
-  return `Saved proposal ${proposal.id} for "${site.title}": ${proposal.summary}. The owner must approve it before it goes live.`;
+  return saveProposal(userId, site, working, outcome.reply || outcome.actions.join('; '));
 };
 
 const runTool = async (userId, name, input) => {

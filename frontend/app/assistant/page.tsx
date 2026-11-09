@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import Sidebar from '@/components/Sidebar';
 
 type Turn = { role: 'user' | 'assistant'; text: string };
 type Proposal = { id: string; siteId: string; siteTitle: string; summary: string; status: string };
@@ -72,7 +73,9 @@ export default function AssistantPage() {
   const applied = proposals.filter((proposal) => proposal.status === 'applied');
 
   return (
-    <div className="min-h-screen bg-black text-gray-100 p-6 md:p-10">
+    <div className="min-h-screen app-bg flex pt-14 md:pt-0">
+      <Sidebar />
+      <div className="flex-1 min-w-0 text-gray-100 p-6 md:p-10">
       <div className="max-w-5xl mx-auto grid gap-6 md:grid-cols-[1fr_340px]">
         <section className="flex flex-col min-h-[70vh]">
           <h1 className="text-2xl font-semibold">Assistant</h1>
@@ -143,6 +146,7 @@ export default function AssistantPage() {
             ))}
           </div>
         </aside>
+      </div>
       </div>
     </div>
   );
