@@ -34,10 +34,10 @@ const STEPS = [
 
 // Keep in step with backend/lib/plans.js.
 const PLANS = [
-  { name: 'Standard', price: '£29.99', description: 'Your business online, with one live website.', features: ['100 chatbot messages a day', 'Publish 1 live website on your own address', 'AI website design, with fonts, colours and style controls', 'AI logo builder', 'Business plan, email and legal templates'], featured: false },
-  { name: 'Premium', price: '£44.99', description: 'Everything in Standard, plus a portfolio to show your work.', features: ['500 chatbot messages a day', 'Publish 1 live website', 'Portfolio maker with photo uploads', 'Everything in Standard'], featured: true },
-  { name: 'Business', price: '£59.99', description: 'Take bookings and run up to three websites.', features: ['1,000 chatbot messages a day', 'Publish up to 3 live websites', 'Online booking on your website: your hours, services and time zone', 'Everything in Premium'], featured: false },
-  { name: 'Corporate', price: '£179.99', description: 'For teams and brands that need five websites.', features: ['Up to 5 live websites', '1,000 chatbot messages a day', 'Online booking on every website', 'Everything in Business'], featured: false },
+  { name: 'Standard', price: '£35.99', description: 'Your business online, with one live website.', features: ['100 chatbot messages a day', 'Publish 1 live website on your own address', 'AI website design, with fonts, colours and style controls', 'AI logo builder', 'Business plan, email and legal templates'], featured: false },
+  { name: 'Premium', price: '£53.99', description: 'Everything in Standard, plus a portfolio to show your work.', features: ['500 chatbot messages a day', 'Publish 1 live website', 'Portfolio maker with photo uploads', 'Everything in Standard'], featured: true },
+  { name: 'Business', price: '£71.99', description: 'Take bookings and run up to three websites.', features: ['1,000 chatbot messages a day', 'Publish up to 3 live websites', 'Online booking on your website: your hours, services and time zone', 'Everything in Premium'], featured: false },
+  { name: 'Corporate', price: '£215.99', description: 'For teams and brands that need five websites.', features: ['Up to 5 live websites', '1,000 chatbot messages a day', 'Online booking on every website', 'Everything in Business'], featured: false },
 ];
 
 const grid = {
@@ -216,7 +216,7 @@ export default function LandingPage() {
                 <p className="mt-2 text-sm text-zinc-400">{plan.description}</p>
                 <div className="mt-6 flex items-baseline gap-1">
                   <span className="text-4xl font-semibold tracking-tight">{plan.price}</span>
-                  <span className="text-sm text-zinc-500">/ month</span>
+                  <span className="text-sm text-zinc-500">/ month incl. VAT</span>
                 </div>
                 <ul className="mt-6 flex-1 space-y-3 text-sm text-zinc-300">
                   {plan.features.map((feature) => (
