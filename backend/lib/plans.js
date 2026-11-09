@@ -20,7 +20,7 @@ const PLANS = {
   },
   standard: {
     name: 'Standard',
-    price: 2999,
+    price: 3599,
     interval: 'month',
     summary: 'Your business online, with one live website.',
     sites: 1,
@@ -37,7 +37,7 @@ const PLANS = {
   },
   premium: {
     name: 'Premium',
-    price: 4499,
+    price: 5399,
     interval: 'month',
     summary: 'Everything in Standard, plus a portfolio to show your work.',
     sites: 1,
@@ -53,7 +53,7 @@ const PLANS = {
   },
   business: {
     name: 'Business',
-    price: 5999,
+    price: 7199,
     interval: 'month',
     summary: 'Take bookings and run up to three websites.',
     sites: 3,
@@ -69,7 +69,7 @@ const PLANS = {
   },
   corporate: {
     name: 'Corporate',
-    price: 17999,
+    price: 21599,
     interval: 'month',
     summary: 'For teams and brands that need five websites.',
     sites: 5,
@@ -91,9 +91,16 @@ const PAID_PLANS = Object.fromEntries(Object.entries(PLANS).filter(([, plan]) =>
 // Names used before the rename. Existing accounts still store these.
 const LEGACY_PLAN_KEYS = { starter: 'standard', professional: 'premium', enterprise: 'corporate' };
 
-// Subscriptions bought before the rename were charged these amounts (US cents), so the webhook still recognises them.
-// The 2999 amount is the same as the new Standard price, so it is already matched above.
-const LEGACY_PRICE_KEYS = { 7999: 'premium', 19999: 'corporate' };
+// Subscriptions bought before prices changed were charged these amounts, so the webhook still recognises them.
+// The first two were charged before the rename (US cents). The rest were the prices before VAT was included.
+const LEGACY_PRICE_KEYS = {
+  7999: 'premium',
+  19999: 'corporate',
+  2999: 'standard',
+  4499: 'premium',
+  5999: 'business',
+  17999: 'corporate',
+};
 
 // Turns any stored plan name into a current plan key. Unknown names count as Free.
 const planKey = (plan) => {
