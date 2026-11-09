@@ -1,10 +1,15 @@
 const prisma = require('../lib/prisma');
-const { runTurn, contentKey, HISTORY_LIMIT } = require('../lib/assistant');
+const { runTurn, contentKey, HISTORY_DAYS, HISTORY_CAP } = require('../lib/assistant');
 const { saveSiteContent } = require('./sitesController');
 
 const MESSAGE_LIMIT = 2000;
 
-const storedMessages = (thread) => (Array.isArray(thread?.messages) ? thread.messages.slice(-HISTORY_LIMIT) : []);
+// The messages from the last seven days, oldest first.
+const storedMessages = (thread) => {
+  const cutoff = Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  const messages = Array.isArray(thread?.messages) ? thread.messages : [];
+  return messages.filter((turn) => Date.parse(turn.at) >= cutoff).slice(-HISTORY_CAP);
+};
 
 // The owner talks to the assistant. Its answer may include proposals waiting for approval.
 const postMessage = async (req, res) => {
@@ -21,7 +26,7 @@ const postMessage = async (req, res) => {
     const reply = await runTurn({ userId, message, history });
 
     const now = new Date().toISOString();
-    const messages = [...history, { role: 'user', text: message, at: now }, { role: 'assistant', text: reply, at: now }].slice(-HISTORY_LIMIT);
+    const messages = [...history, { role: 'user', text: message, at: now }, { role: 'assistant', text: reply, at: now }].slice(-HISTORY_CAP);
     await prisma.assistantThread.upsert({
       where: { userId },
       create: { userId, messages },

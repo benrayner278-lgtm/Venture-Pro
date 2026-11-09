@@ -6,7 +6,9 @@ const { WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('./websiteEdits');
 const { runToolLoop } = require('./agentLoop');
 
 const MODEL = 'claude-sonnet-5-5';
-const HISTORY_LIMIT = 40;
+// The assistant remembers the conversation for seven days. A cap stops the stored history growing without limit.
+const HISTORY_DAYS = 7;
+const HISTORY_CAP = 200;
 const MAX_STEPS = 6;
 const SITE_JSON_LIMIT = 12000;
 
@@ -121,4 +123,4 @@ const runTurn = async ({ userId, message, history }) => {
   return reply || 'I could not finish that. Try asking for one change at a time.';
 };
 
-module.exports = { runTurn, contentKey, HISTORY_LIMIT };
+module.exports = { runTurn, contentKey, HISTORY_DAYS, HISTORY_CAP };
