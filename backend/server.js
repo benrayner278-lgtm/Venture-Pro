@@ -33,6 +33,7 @@ const websiteRoutes = require('./routes/website');
 const sitesRoutes = require('./routes/sites');
 const publicSitesRoutes = require('./routes/publicSites');
 const bookingRoutes = require('./routes/bookings');
+const connectRoutes = require('./routes/connect');
 const logoRoutes = require('./routes/logo');
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
@@ -43,6 +44,7 @@ app.use('/api/website', websiteRoutes);
 app.use('/api/sites', sitesRoutes);
 app.use('/api/public/sites', publicSitesRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/connect', connectRoutes);
 app.use('/api/logo', logoRoutes);
 
 // Health check

@@ -16,6 +16,9 @@ model User {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   subscriptionStatus   String   @default("inactive")
+  // The business's Stripe Connect account, used to receive payments from its own customers.
+  stripeAccountId      String?
+  paymentsEnabled      Boolean  @default(false)
   resetTokenHash       String?  // SHA-256 of the emailed reset token; the token itself is never stored
   resetTokenExpiresAt  DateTime?
   createdAt            DateTime @default(now())
