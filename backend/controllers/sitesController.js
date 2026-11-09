@@ -226,32 +226,40 @@ const findOwnedSite = async (req, res) => {
   return site;
 };
 
+// Saves new content to a site the user owns: cleans it, checks the plan limits, and keeps the design unique.
+// Used by the site editor and by the assistant when the owner approves a change.
+const saveSiteContent = async (site, rawContent, { themeId, shuffle } = {}) => {
+  const owner = await prisma.user.findUnique({ where: { id: site.userId } });
+  const content = cleanContent(rawContent, PLANS[planKey(owner?.plan)].portfolio);
+  if (!validContent(content)) return { error: 'Invalid site content', status: 400 };
+
+  const preset = PRESET_IDS.includes(themeId) ? themeId : site.themeId;
+  const { shuffle: finalShuffle, key } = await uniqueDesign({
+    content,
+    themeId: preset,
+    seed: Number.isInteger(shuffle) ? shuffle : site.shuffle,
+    excludeId: site.id,
+  });
+
+  const updated = await prisma.site.update({
+    where: { id: site.id },
+    data: {
+      content: withDesignKey(content, key),
+      title: content.brand.name || site.title,
+      themeId: preset,
+      shuffle: finalShuffle,
+    },
+  });
+  return { site: updated };
+};
+
 const updateSite = async (req, res) => {
   try {
     const site = await findOwnedSite(req, res);
     if (!site) return;
-    const { themeId, shuffle } = req.body;
-    const owner = await prisma.user.findUnique({ where: { id: site.userId } });
-    const content = cleanContent(req.body.content, PLANS[planKey(owner?.plan)].portfolio);
-    if (!validContent(content)) return res.status(400).json({ error: 'Invalid site content' });
-
-    const preset = PRESET_IDS.includes(themeId) ? themeId : site.themeId;
-    const { shuffle: finalShuffle, key } = await uniqueDesign({
-      content,
-      themeId: preset,
-      seed: Number.isInteger(shuffle) ? shuffle : site.shuffle,
-      excludeId: site.id,
-    });
-
-    const updated = await prisma.site.update({
-      where: { id: site.id },
-      data: {
-        content: withDesignKey(content, key),
-        title: content.brand.name || site.title,
-        themeId: preset,
-        shuffle: finalShuffle,
-      },
-    });
+    const result = await saveSiteContent(site, req.body.content, { themeId: req.body.themeId, shuffle: req.body.shuffle });
+    if (result.error) return res.status(result.status).json({ error: result.error });
+    const updated = result.site;
     res.json({ site: { ...updated, url: `https://${updated.slug}.venture-pro.io` } });
   } catch (error) {
     console.error('Update site error:', error);
@@ -408,4 +416,4 @@ const setSiteLogo = async (req, res) => {
   }
 };
 
-module.exports = { setSiteLogo, publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
+module.exports = { saveSiteContent, setSiteLogo, publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
