@@ -6,11 +6,27 @@ import Sidebar from '@/components/Sidebar';
 
 type Turn = { role: 'user' | 'assistant'; text: string };
 type Proposal = { id: string; siteId: string; siteTitle: string; summary: string; status: string };
+type Attachment = { name: string; type: string; data: string };
+
+const MAX_FILE_BYTES = 3 * 1024 * 1024;
+const MAX_FILES = 4;
+const TYPE_BY_EXTENSION: Record<string, string> = { md: 'text/markdown', csv: 'text/csv', json: 'application/json', txt: 'text/plain' };
+
+// Reads a file as base64 (without the data: prefix), so it can be sent with the message.
+const readFile = (file: File) =>
+  new Promise<Attachment>((resolve, reject) => {
+    const type = file.type || TYPE_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() || ''] || '';
+    const reader = new FileReader();
+    reader.onload = () => resolve({ name: file.name, type, data: String(reader.result).split(',')[1] || '' });
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+    reader.readAsDataURL(file);
+  });
 
 export default function AssistantPage() {
   const [messages, setMessages] = useState<Turn[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [input, setInput] = useState('');
+  const [files, setFiles] = useState<Attachment[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -33,15 +49,40 @@ export default function AssistantPage() {
     endRef.current?.scrollIntoView({ block: 'nearest' });
   }, [messages]);
 
+  const addFiles = async (picked: FileList | null) => {
+    if (!picked) return;
+    setError('');
+    const chosen: Attachment[] = [];
+    for (const file of Array.from(picked)) {
+      if (files.length + chosen.length >= MAX_FILES) {
+        setError(`Attach up to ${MAX_FILES} files at a time`);
+        break;
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        setError(`${file.name} is larger than 3 MB`);
+        continue;
+      }
+      try {
+        chosen.push(await readFile(file));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not read that file');
+      }
+    }
+    setFiles((current) => [...current, ...chosen]);
+  };
+
   const send = async () => {
     const text = input.trim();
-    if (!text || sending) return;
+    if ((!text && files.length === 0) || sending) return;
+    const sent = files;
+    const note = sent.length ? `${text ? ' ' : ''}[Attached: ${sent.map((file) => file.name).join(', ')}]` : '';
     setInput('');
+    setFiles([]);
     setError('');
     setSending(true);
-    setMessages((current) => [...current, { role: 'user', text }]);
+    setMessages((current) => [...current, { role: 'user', text: `${text}${note}` }]);
     try {
-      const response = await apiFetch('/api/assistant/message', { method: 'POST', json: { message: text } });
+      const response = await apiFetch('/api/assistant/message', { method: 'POST', json: { message: text, attachments: sent } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'The assistant could not answer');
       setMessages((current) => [...current, { role: 'assistant', text: data.reply }]);
@@ -95,7 +136,32 @@ export default function AssistantPage() {
           </div>
 
           {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+          {files.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {files.map((file, index) => (
+                <span key={`${file.name}-${index}`} className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs text-gray-300">
+                  {file.name}
+                  <button type="button" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))} className="text-gray-500 hover:text-gray-200" aria-label={`Remove ${file.name}`}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex gap-2">
+            <label className="flex items-center px-3 rounded-xl border border-white/10 text-sm text-gray-300 cursor-pointer hover:bg-white/5" title="Attach a photo, PDF or text file">
+              Attach
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,text/csv,application/json,.md,.csv,.txt,.json"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </label>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -106,7 +172,7 @@ export default function AssistantPage() {
               maxLength={2000}
               className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm"
             />
-            <button type="button" onClick={send} disabled={sending || !input.trim()} className="bg-white text-black px-5 rounded-xl text-sm font-medium disabled:opacity-40">
+            <button type="button" onClick={send} disabled={sending || (!input.trim() && files.length === 0)} className="bg-white text-black px-5 rounded-xl text-sm font-medium disabled:opacity-40">
               Send
             </button>
           </div>
