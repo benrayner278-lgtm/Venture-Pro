@@ -4,6 +4,7 @@ const { applyStyle, googleFontsLink } = require('./styleOptions');
 const { sanitizeDesign, applyBrief, mergeStyle } = require('./designBrief');
 const { cleanLogo } = require('./logoSpec');
 const { renderLogoHeaderPng } = require('./logoRender');
+const { widgetHtml: turnstileWidget } = require('./turnstile');
 
 const escapeHtml = (text) =>
   String(text ?? '')
@@ -368,6 +369,7 @@ ${timetable}
 <label>Phone (optional)<input name="phone" maxlength="40" autocomplete="tel"></label>
 <label>Notes (optional)<textarea name="notes" maxlength="500"></textarea></label>
 <label class="hp" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label>
+${turnstileWidget()}
 <button type="submit" class="btn btn-primary">Request this time</button>
 </form>`
     : `<p class="lead">No times are free in the next ${escapeHtml(view.daysAhead)} days. Please get in touch.</p>`;
