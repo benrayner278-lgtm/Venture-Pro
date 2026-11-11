@@ -36,6 +36,7 @@ const startOnboarding = async (req, res) => {
       use_case: {
         type: 'account_onboarding',
         account_onboarding: {
+          configurations: ['merchant'],
           collection_options: { fields: 'eventually_due' },
           refresh_url: `${FRONTEND_ORIGIN}/settings?payments=refresh`,
           return_url: `${FRONTEND_ORIGIN}/settings?payments=done`,
