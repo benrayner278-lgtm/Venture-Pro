@@ -6,6 +6,7 @@ const { PRESET_KEYS, DEFAULT_PRESET, presetOf } = require('../lib/bookingPresets
 const { TEMPLATES, TEMPLATE_IDS, templateOf, catalogueForAdvisor } = require('../lib/bookingTemplates');
 const { sendEmail } = require('../lib/email');
 const { googleCalendarUrl, ownerMessage, customerConfirmedMessage, customerRequestedMessage } = require('../lib/bookingMessages');
+const { verify: verifyTurnstile } = require('../lib/turnstile');
 
 // Where the public booking form posts to. Published sites are served from another domain, so this must be the API's address.
 const API_ORIGIN = process.env.API_PUBLIC_URL || 'https://venture-pro-production.up.railway.app';
@@ -400,6 +401,11 @@ const createPublicBooking = async (req, res) => {
     // A hidden field that people never fill in. Bots usually do, so they get a success page and nothing is saved.
     if (req.body?.website) {
       return res.type('html').send(page('Thank you', `<h1>Thank you</h1><p>We have your request and will be in touch.</p><p><a href="${back}">Back to the site</a></p>`));
+    }
+
+    // The bot check (Cloudflare Turnstile). It does nothing until the Turnstile keys are set on the server.
+    if (!(await verifyTurnstile(req.body?.['cf-turnstile-response'], req.ip))) {
+      return res.status(400).type('html').send(page('Check your request', `<h1>Please try again</h1><p>We could not confirm that you are a person. Go back, wait for the check to finish, and send your request again.</p><p><a href="${back}">Back to the site</a></p>`));
     }
 
     const body = req.body || {};
