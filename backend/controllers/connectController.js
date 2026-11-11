@@ -41,6 +41,9 @@ const startOnboarding = async (req, res) => {
     res.json({ url: link.url });
   } catch (error) {
     console.error('Start payments onboarding error:', error);
+    // Stripe's own messages (for example "signed up for Connect") explain what to fix. They never contain keys.
+    if (error.type?.startsWith('Stripe')) return res.status(502).json({ error: `Stripe said: ${error.message}` });
+    if (error.message === 'STRIPE_SECRET_KEY is not set') return res.status(500).json({ error: 'Payments are not switched on for this server yet.' });
     res.status(500).json({ error: 'Could not start payment setup. Please try again.' });
   }
 };
