@@ -1,15 +1,13 @@
 const prisma = require('../lib/prisma');
 const { getStripe } = require('../lib/stripe');
 
-// Stripe Connect Express accounts let each business receive payments from its own customers.
-// The platform takes no fee for now. The business does Stripe's short sign-up, then gets paid out to its bank.
+// Stripe Connect accounts let each business receive payments from its own customers.
+// Accounts use Stripe's Accounts v2 API with the full Stripe Dashboard. Stripe collects the fees and carries the losses,
+// so the platform takes no fee and does not carry negative balances.
 const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'https://venture-pro.io').split(',')[0].trim();
 
-const statusOf = (account) => ({
-  connected: Boolean(account.details_submitted),
-  paymentsEnabled: Boolean(account.charges_enabled),
-  payoutsEnabled: Boolean(account.payouts_enabled),
-});
+// Whether the business can take card payments yet, read from the account's merchant configuration.
+const paymentsReady = (account) => account?.configuration?.merchant?.capabilities?.card_payments?.status === 'active';
 
 // Starts the sign-up with Stripe, creating the connected account the first time. Returns the link to open.
 const startOnboarding = async (req, res) => {
@@ -20,23 +18,29 @@ const startOnboarding = async (req, res) => {
 
     let accountId = user.stripeAccountId;
     if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: 'express',
-        country: 'GB',
-        email: user.email,
-        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-        business_type: 'individual',
+      const account = await stripe.v2.core.accounts.create({
+        contact_email: user.email,
+        display_name: user.name || 'Venture-Pro business',
+        dashboard: 'full',
+        identity: { country: 'gb' },
+        configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
+        defaults: { responsibilities: { fees_collector: 'stripe', losses_collector: 'stripe' } },
         metadata: { userId: user.id },
       });
       accountId = account.id;
       await prisma.user.update({ where: { id: user.id }, data: { stripeAccountId: accountId } });
     }
 
-    const link = await stripe.accountLinks.create({
+    const link = await stripe.v2.core.accountLinks.create({
       account: accountId,
-      refresh_url: `${FRONTEND_ORIGIN}/settings?payments=refresh`,
-      return_url: `${FRONTEND_ORIGIN}/settings?payments=done`,
-      type: 'account_onboarding',
+      use_case: {
+        type: 'account_onboarding',
+        account_onboarding: {
+          collection_options: { fields: 'eventually_due' },
+          refresh_url: `${FRONTEND_ORIGIN}/settings?payments=refresh`,
+          return_url: `${FRONTEND_ORIGIN}/settings?payments=done`,
+        },
+      },
     });
     res.json({ url: link.url });
   } catch (error) {
@@ -53,14 +57,16 @@ const getPaymentStatus = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!user.stripeAccountId) return res.json({ connected: false, paymentsEnabled: false, payoutsEnabled: false });
+    if (!user.stripeAccountId) return res.json({ connected: false, paymentsEnabled: false });
 
-    const account = await getStripe().accounts.retrieve(user.stripeAccountId);
-    const status = statusOf(account);
-    if (status.paymentsEnabled !== user.paymentsEnabled) {
-      await prisma.user.update({ where: { id: user.id }, data: { paymentsEnabled: status.paymentsEnabled } });
+    const account = await getStripe().v2.core.accounts.retrieve(user.stripeAccountId, {
+      include: ['configuration.merchant', 'requirements'],
+    });
+    const enabled = paymentsReady(account);
+    if (enabled !== user.paymentsEnabled) {
+      await prisma.user.update({ where: { id: user.id }, data: { paymentsEnabled: enabled } });
     }
-    res.json(status);
+    res.json({ connected: true, paymentsEnabled: enabled });
   } catch (error) {
     console.error('Get payments status error:', error);
     res.status(500).json({ error: 'Could not check payment setup' });
