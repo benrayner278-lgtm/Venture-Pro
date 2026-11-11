@@ -256,9 +256,12 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/[0.08] py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-zinc-500 md:flex-row">
           <span>© {new Date().getFullYear()} Venture-Pro</span>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-6">
             <Link href="/login" className="transition hover:text-white">Log in</Link>
             <Link href="/signup" className="transition hover:text-white">Sign up</Link>
+            <Link href="/privacy" className="transition hover:text-white">Privacy</Link>
+            <Link href="/terms" className="transition hover:text-white">Terms</Link>
+            <Link href="/cookies" className="transition hover:text-white">Cookies</Link>
           </div>
         </div>
       </footer>
