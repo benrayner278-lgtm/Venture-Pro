@@ -148,6 +148,76 @@ function PasswordSection() {
   );
 }
 
+type PaymentStatus = { connected: boolean; paymentsEnabled: boolean; payoutsEnabled: boolean };
+
+// Lets the business take card payments from its customers. Payments go to its own bank through Stripe.
+function PaymentsSection() {
+  const [status, setStatus] = useState<PaymentStatus | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    const response = await apiFetch('/api/connect/status');
+    if (!response.ok) throw new Error(await readError(response, 'Could not check payment setup'));
+    setStatus(await response.json());
+  };
+
+  useEffect(() => {
+    // Stripe sends the owner back here with payments=done or payments=refresh.
+    const returned = new URLSearchParams(window.location.search).get('payments');
+    if (returned === 'done') setMessage('Thanks. Stripe is checking your details, which can take a few minutes.');
+    if (returned === 'refresh') setMessage('Your Stripe sign-up was not finished. Carry on below.');
+    load().catch((err) => setError(err instanceof Error ? err.message : 'Could not check payment setup'));
+  }, []);
+
+  const start = async () => {
+    setStarting(true);
+    setError('');
+    try {
+      const response = await apiFetch('/api/connect/onboard', { method: 'POST' });
+      if (!response.ok) throw new Error(await readError(response, 'Could not start payment setup'));
+      const data = await response.json();
+      window.location.assign(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start payment setup');
+      setStarting(false);
+    }
+  };
+
+  const ready = Boolean(status?.paymentsEnabled);
+
+  return (
+    <div className={cardClass}>
+      <h2 className="text-base font-semibold text-white mb-1">Payments</h2>
+      <p className="text-sm text-gray-400 mb-5">
+        Take card payments from your customers. The money goes straight to your bank through Stripe. Venture-Pro takes no fee on it.
+      </p>
+
+      {status === null && !error && <p className="text-sm text-gray-500">Checking your payment setup...</p>}
+      {status && (
+        <p className="text-sm mb-4">
+          {ready ? (
+            <span className="text-emerald-400">Payments are ready.</span>
+          ) : status.connected ? (
+            <span className="text-amber-300">Stripe needs a little more information before you can take payments.</span>
+          ) : (
+            <span className="text-gray-400">Payments are not set up yet.</span>
+          )}
+        </p>
+      )}
+
+      {!ready && (
+        <button type="button" onClick={start} disabled={starting || status === null} className={buttonClass}>
+          {starting ? 'Opening Stripe...' : status?.connected ? 'Continue Stripe setup' : 'Set up payments'}
+        </button>
+      )}
+      {message && <p className="text-sm text-gray-300 mt-4">{message}</p>}
+      {error && <p className="text-sm text-red-400 mt-4">{error}</p>}
+    </div>
+  );
+}
+
 function PlanSection({ account }: { account: Account }) {
   const planName = PLAN_NAMES[account.plan] || account.plan;
   return (
@@ -269,6 +339,7 @@ export default function SettingsPage() {
               <ProfileSection account={account} onSaved={setAccount} />
               <PasswordSection />
               <PlanSection account={account} />
+              <PaymentsSection />
               <DangerSection account={account} />
             </div>
           )}
