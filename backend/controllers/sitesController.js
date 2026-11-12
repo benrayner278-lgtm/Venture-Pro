@@ -104,6 +104,7 @@ const renderContent = (content, themeId, shuffle, extras) =>
         css: content.css,
         images: content.images,
         stock: content.stock,
+        contact: content.contact,
       })
     : extras?.booking
       ? toBookingLinks(renderSite(content, themeId, shuffle, extras))

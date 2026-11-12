@@ -148,7 +148,12 @@ function PasswordSection() {
   );
 }
 
-type PaymentStatus = { connected: boolean; paymentsEnabled: boolean; payoutsEnabled: boolean };
+type PaymentStatus = {
+  connected: boolean;
+  paymentsEnabled: boolean;
+  state: 'not_started' | 'pending' | 'action_needed' | 'ready';
+  items: string[];
+};
 
 // Lets the business take card payments from its customers. Payments go to its own bank through Stripe.
 function PaymentsSection() {
@@ -186,6 +191,7 @@ function PaymentsSection() {
   };
 
   const ready = Boolean(status?.paymentsEnabled);
+  const state = status?.state ?? 'not_started';
 
   return (
     <div className={cardClass}>
@@ -196,20 +202,30 @@ function PaymentsSection() {
 
       {status === null && !error && <p className="text-sm text-gray-500">Checking your payment setup...</p>}
       {status && (
-        <p className="text-sm mb-4">
-          {ready ? (
-            <span className="text-emerald-400">Payments are ready.</span>
-          ) : status.connected ? (
-            <span className="text-amber-300">Stripe needs a little more information before you can take payments.</span>
-          ) : (
-            <span className="text-gray-400">Payments are not set up yet.</span>
+        <div className="text-sm mb-4 space-y-3">
+          {state === 'ready' && <p className="text-emerald-400">Payments are ready. Your shop can now take card payments.</p>}
+          {state === 'pending' && (
+            <p className="text-amber-300">Stripe is checking your details. This usually takes a few minutes, and you do not need to do anything else for now.</p>
           )}
-        </p>
+          {state === 'action_needed' && (
+            <>
+              <p className="text-amber-300">Stripe needs a little more information before you can take payments.</p>
+              {status.items.length > 0 && (
+                <ul className="list-disc pl-5 text-gray-300 space-y-1">
+                  {status.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+          {state === 'not_started' && <p className="text-gray-400">Payments are not set up yet.</p>}
+        </div>
       )}
 
-      {!ready && (
+      {state !== 'ready' && state !== 'pending' && (
         <button type="button" onClick={start} disabled={starting || status === null} className={buttonClass}>
-          {starting ? 'Opening Stripe...' : status?.connected ? 'Continue Stripe setup' : 'Set up payments'}
+          {starting ? 'Opening Stripe...' : state === 'action_needed' ? 'Continue Stripe setup' : 'Set up payments'}
         </button>
       )}
       {message && <p className="text-sm text-gray-300 mt-4">{message}</p>}
