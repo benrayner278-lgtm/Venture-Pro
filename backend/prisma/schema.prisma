@@ -73,6 +73,8 @@ model Site {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // The website builder project this site was published from, so the builder can find the live site again.
+  buildId String?
   bookingSettings Json?
   // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
   shopItems Json?

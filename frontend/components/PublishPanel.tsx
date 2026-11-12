@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import type { WebsiteContent } from '@/lib/websiteTemplates';
 
-type SiteSummary = { id: string; slug: string; url: string; updatedAt: string };
+type SiteSummary = { id: string; slug: string; url: string; updatedAt: string; buildId?: string | null };
 type SlugCheck = { available: boolean; reason: string | null };
 
 const cleanSlug = (value: string) =>
@@ -17,11 +17,13 @@ export default function PublishPanel({
   themeId,
   shuffle,
   onShuffleChange,
+  buildId,
 }: {
   content: WebsiteContent;
   themeId: string;
   shuffle: number;
   onShuffleChange: (seed: number) => void;
+  buildId: string | null;
 }) {
   const [slug, setSlug] = useState('');
   const [check, setCheck] = useState<SlugCheck | null>(null);
@@ -42,6 +44,11 @@ export default function PublishPanel({
     loadSites();
   }, []);
 
+  // The live site is the one published from this builder project, so it is found again after the builder is reopened.
+  useEffect(() => {
+    setLive(buildId ? sites.find((site) => site.buildId === buildId) || null : null);
+  }, [sites, buildId]);
+
   useEffect(() => {
     if (!slug || live) {
       setCheck(null);
@@ -60,7 +67,7 @@ export default function PublishPanel({
     try {
       const res = await apiFetch('/api/sites', {
         method: 'POST',
-        json: { slug, content, themeId, shuffle },
+        json: { slug, content, themeId, shuffle, buildId },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not publish the site');
@@ -83,7 +90,7 @@ export default function PublishPanel({
     try {
       const res = await apiFetch(`/api/sites/${site.id}`, {
         method: 'PUT',
-        json: { content, themeId, shuffle },
+        json: { content, themeId, shuffle, buildId },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not update the site');
