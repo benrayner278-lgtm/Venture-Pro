@@ -79,12 +79,30 @@ ${html}
 
 // Returns the full HTML document for a page. Input: { brand, palette, fonts, body, css, images, stock }, where images maps keys
 // to JPEG data URLs and stock maps search words to stock JPEG data URLs.
-const renderPage = ({ brand, palette, fonts, body, css, images, stock }) =>
+// The owner's contact details, added at the bottom of the page so visitors can always reach the business.
+// Each value is escaped, and the email is only linked when it looks like an address.
+const contactBlock = (contact) => {
+  if (!contact || typeof contact !== 'object') return '';
+  const email = String(contact.email || '').trim();
+  const phone = String(contact.phone || '').trim();
+  const address = String(contact.address || '').trim();
+  const hours = String(contact.hours || '').trim();
+  const lines = [
+    email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? `<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : email && escapeHtml(email),
+    phone && escapeHtml(phone),
+    address && escapeHtml(address),
+    hours && escapeHtml(hours),
+  ].filter(Boolean);
+  if (lines.length === 0) return '';
+  return `<footer data-contact="true" style="padding:40px 20px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:15px;line-height:1.8"><div style="display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:center">${lines.map((line) => `<span>${line}</span>`).join('')}</div></footer>`;
+};
+
+const renderPage = ({ brand, palette, fonts, body, css, images, stock, contact }) =>
   renderDocument({
     brand,
     palette,
     fonts,
-    html: resolveImages(sanitizeBody(body), images, stock),
+    html: resolveImages(sanitizeBody(body), images, stock) + contactBlock(contact),
     css: sanitizeCss(css),
   });
 

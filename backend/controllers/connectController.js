@@ -53,12 +53,20 @@ const startOnboarding = async (req, res) => {
   }
 };
 
-// Reads the account from Stripe, so the page can show whether payments are ready.
+// What is still needed from the business, in plain words. Only items waiting on the business are listed, not ones Stripe is checking.
+const actionItems = (account) =>
+  (account?.requirements?.entries || [])
+    .filter((entry) => entry.awaiting_action_from === 'user' && entry.description)
+    .map((entry) => String(entry.description).slice(0, 200))
+    .slice(0, 6);
+
+// Reads the account from Stripe, so the page can show where payment setup stands:
+// not_started, pending (Stripe is checking the details), action_needed (the business must add something), or ready.
 const getPaymentStatus = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!user.stripeAccountId) return res.json({ connected: false, paymentsEnabled: false });
+    if (!user.stripeAccountId) return res.json({ connected: false, paymentsEnabled: false, state: 'not_started', items: [] });
 
     const account = await getStripe().v2.core.accounts.retrieve(user.stripeAccountId, {
       include: ['configuration.merchant', 'requirements'],
@@ -67,7 +75,9 @@ const getPaymentStatus = async (req, res) => {
     if (enabled !== user.paymentsEnabled) {
       await prisma.user.update({ where: { id: user.id }, data: { paymentsEnabled: enabled } });
     }
-    res.json({ connected: true, paymentsEnabled: enabled });
+    const cardStatus = account?.configuration?.merchant?.capabilities?.card_payments?.status;
+    const state = enabled ? 'ready' : cardStatus === 'pending' ? 'pending' : 'action_needed';
+    res.json({ connected: true, paymentsEnabled: enabled, state, items: enabled ? [] : actionItems(account) });
   } catch (error) {
     console.error('Get payments status error:', error);
     res.status(500).json({ error: 'Could not check payment setup' });
