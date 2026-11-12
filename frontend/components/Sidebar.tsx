@@ -66,6 +66,7 @@ export default function Sidebar() {
     { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
     { href: '/assistant', label: 'Assistant', icon: 'chat' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },
+    { href: '/shop', label: 'Shop', icon: 'web' },
     { href: '/email-templates', label: 'Email Templates', icon: 'mail' },
     { href: '/legal-documents', label: 'Legal Docs', icon: 'legal' },
     { href: '/billing', label: 'Billing', icon: 'billing' },

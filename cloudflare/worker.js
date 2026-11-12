@@ -39,10 +39,11 @@ const fetchSite = async (request, path) => {
   });
 };
 
-// The only paths a site has: its home page and the booking page. Anything else is not found.
+// The only paths a site has: its home page, the booking page and the shop. Anything else is not found.
 const pageSuffix = (pathname) => {
   if (pathname === '/' || pathname === '') return '';
   if (pathname === '/book' || pathname === '/book/') return '/book';
+  if (pathname === '/shop' || pathname === '/shop/') return '/shop';
   return null;
 };
 

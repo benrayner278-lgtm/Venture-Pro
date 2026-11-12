@@ -11,6 +11,9 @@ const { cleanStyle } = require('../lib/styleOptions');
 const { cleanLogo } = require('../lib/logoSpec');
 const { PLANS, planKey } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView } = require('./bookingController');
+const { ownerAllowsShop } = require('./shopController');
+const { itemsOf } = require('../lib/shop');
+const { renderShopPage } = require('../lib/shopPage');
 const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
 
 const prisma = new PrismaClient();
@@ -350,11 +353,44 @@ const publicHeaders = {
   'Cache-Control': 'public, max-age=60',
 };
 
+// Shop pages need to send the visitor to Stripe, so the form may post to the API and then redirect to Stripe Checkout.
+const shopHeaders = {
+  ...publicHeaders,
+  'Content-Security-Policy': publicHeaders['Content-Security-Policy'].replace(`form-action ${API_ORIGIN}`, `form-action ${API_ORIGIN} https://checkout.stripe.com`),
+};
+
 const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
-  const html = renderContent(site.content, site.themeId, site.shuffle, { booking });
+  let html = renderContent(site.content, site.themeId, site.shuffle, { booking });
+  // A small link to the shop, added at the bottom of the page, only when the owner has items to sell.
+  if (itemsOf(site).length > 0 && ownerAllowsShop(owner?.plan) && html.includes('</body>')) {
+    html = html.replace('</body>', '<p style="text-align:center;padding:12px 0"><a href="shop" style="color:inherit">Shop</a></p></body>');
+  }
   res.set(publicHeaders).send(html);
+};
+
+// The shop page at /shop. Only open while the owner has items and the plan includes the shop.
+const sendShopPage = async (res, site, back) => {
+  const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
+  const items = itemsOf(site);
+  if (!ownerAllowsShop(owner?.plan) || items.length === 0) return notFoundPage(res);
+  const apiOrigin = API_ORIGIN;
+  res.set(shopHeaders).send(renderShopPage({ content: site.content, items, slug: site.slug, back, apiOrigin }));
+};
+
+const publicShopPage = async (req, res) => {
+  const slug = String(req.params.slug || '').toLowerCase();
+  const site = SLUG_PATTERN.test(slug) ? await prisma.site.findUnique({ where: { slug } }) : null;
+  if (!site) return notFoundPage(res);
+  return sendShopPage(res, site, `https://${site.slug}.venture-pro.io`);
+};
+
+const publicShopPageByDomain = async (req, res) => {
+  const host = String(req.params.host || '').toLowerCase();
+  const site = await prisma.site.findUnique({ where: { customDomain: host } });
+  if (!site || !site.customDomainVerifiedAt) return notFoundPage(res);
+  return sendShopPage(res, site, `https://${host}`);
 };
 
 // The booking page at /book. Page and section sites both have one, while booking is switched on for the plan.
@@ -416,4 +452,4 @@ const setSiteLogo = async (req, res) => {
   }
 };
 
-module.exports = { saveSiteContent, setSiteLogo, publicBookingPage, publicBookingPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
+module.exports = { saveSiteContent, setSiteLogo, publicBookingPage, publicBookingPageByDomain, publicShopPage, publicShopPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
