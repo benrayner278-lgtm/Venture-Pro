@@ -50,6 +50,7 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/connect', connectRoutes);
 app.use('/api/assistant', assistantRoutes);
 app.use('/api/logo', logoRoutes);
+app.use('/api/journey', require('./routes/journey'));
 
 // Health check
 app.get('/api/health', (req, res) => {

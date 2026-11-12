@@ -15,6 +15,7 @@ const ICON_PATHS: Record<string, string[]> = {
   billing: ['M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z', 'M2 10h20', 'M6 15h4'],
   logo: ['M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z'],
   calendar: ['M3 5h18v16H3z', 'M3 10h18', 'M8 3v4', 'M16 3v4'],
+  flag: ['M4 22V4', 'M4 4h12l-2 4 2 4H4'],
   settings: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
 };
 
@@ -58,19 +59,21 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href;
 
   const navItems = [
+    // In the order of the guided journey: idea and plan, website, booking, payments. Tools come after.
+    { href: '/start', label: 'Start here', icon: 'flag' },
     { href: '/dashboard', label: 'Chat', icon: 'chat' },
-    { href: '/projects', label: 'Projects', icon: 'projects' },
     { href: '/business-plan', label: 'Business Plan', icon: 'plan' },
+    { href: '/projects', label: 'Projects', icon: 'projects' },
     { href: '/website-builder', label: 'Website Builder', icon: 'web' },
-    { href: '/domain', label: 'Domain', icon: 'web' },
-    { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
-    { href: '/assistant', label: 'Assistant', icon: 'chat' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },
     { href: '/shop', label: 'Shop', icon: 'web' },
+    { href: '/settings', label: 'Payments & Settings', icon: 'settings' },
+    { href: '/assistant', label: 'Assistant', icon: 'chat' },
+    { href: '/domain', label: 'Domain', icon: 'web' },
+    { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
     { href: '/email-templates', label: 'Email Templates', icon: 'mail' },
     { href: '/legal-documents', label: 'Legal Docs', icon: 'legal' },
     { href: '/billing', label: 'Billing', icon: 'billing' },
-    { href: '/settings', label: 'Settings', icon: 'settings' },
   ];
 
   return (
