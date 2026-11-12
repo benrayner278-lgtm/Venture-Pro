@@ -74,13 +74,33 @@ model Site {
   updatedAt DateTime @updatedAt
 
   bookingSettings Json?
+  // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
+  shopItems Json?
   // The owner's own domain, such as www.yourbusiness.com. It is served only after the DNS checks pass.
   customDomain           String?   @unique
   customDomainToken      String?
   customDomainVerifiedAt DateTime?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
+  shopOrders ShopOrder[]
   @@map("sites")
+}
+
+// A paid order from a site's shop. Created when Stripe confirms the payment (by webhook or on the return page).
+model ShopOrder {
+  id              String   @id @default(uuid())
+  siteId          String
+  stripeSessionId String   @unique
+  itemName        String
+  amountPence     Int
+  customerName    String
+  customerEmail   String
+  createdAt       DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@map("shop_orders")
 }
 
 model Booking {
