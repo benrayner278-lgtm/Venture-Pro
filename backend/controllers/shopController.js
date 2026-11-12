@@ -163,7 +163,7 @@ const completeCheckout = async (req, res) => {
     if (!site || !/^cs_[A-Za-z0-9_]+$/.test(sessionId) || !site.user.stripeAccountId) {
       return res.status(404).type('html').send(page('Not found', `<h1>We could not find that payment</h1><p><a href="${back}">Back to the site</a></p>`));
     }
-    const session = await getStripe().checkout.sessions.retrieve(sessionId, { stripeAccount: site.user.stripeAccountId });
+    const session = await getStripe().checkout.sessions.retrieve(sessionId, {}, { stripeAccount: site.user.stripeAccountId });
     if (session.metadata?.siteId !== site.id) {
       return res.status(404).type('html').send(page('Not found', `<h1>We could not find that payment</h1><p><a href="${back}">Back to the site</a></p>`));
     }
