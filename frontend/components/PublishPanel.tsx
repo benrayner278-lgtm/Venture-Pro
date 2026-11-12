@@ -75,25 +75,30 @@ export default function PublishPanel({
     }
   };
 
-  const updateLive = async () => {
-    if (!live) return;
+  // Puts the current design on a site. Used by the live site above and by each site in the list,
+  // so a site published in an earlier session can still be updated after the builder is reopened.
+  const updateSite = async (site: SiteSummary) => {
     setBusy(true);
     setMessage('');
     try {
-      const res = await apiFetch(`/api/sites/${live.id}`, {
+      const res = await apiFetch(`/api/sites/${site.id}`, {
         method: 'PUT',
         json: { content, themeId, shuffle },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not update the site');
       if (data.site.shuffle !== shuffle) onShuffleChange(data.site.shuffle);
-      setMessage('Live site updated.');
+      setMessage(`${site.slug}.venture-pro.io is updated.`);
       loadSites();
     } catch (error) {
       setMessage(errorMessage(error, 'Could not update the site'));
     } finally {
       setBusy(false);
     }
+  };
+
+  const updateLive = async () => {
+    if (live) await updateSite(live);
   };
 
   const unpublish = async (site: SiteSummary) => {
@@ -161,9 +166,20 @@ export default function PublishPanel({
               <a href={site.url} target="_blank" rel="noreferrer" className="truncate text-gray-300 hover:text-white">
                 {site.slug}.venture-pro.io
               </a>
-              <button onClick={() => unpublish(site)} className="shrink-0 text-gray-500 hover:text-red-400">
-                Remove
-              </button>
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Replace ${site.url} with the design on this screen? Its current live version will be overwritten.`)) updateSite(site);
+                  }}
+                  disabled={busy}
+                  className="text-gray-300 hover:text-white disabled:opacity-40"
+                >
+                  Update with this design
+                </button>
+                <button onClick={() => unpublish(site)} className="text-gray-500 hover:text-red-400">
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>
