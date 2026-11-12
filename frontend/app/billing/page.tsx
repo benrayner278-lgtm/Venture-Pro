@@ -47,6 +47,13 @@ export default function BillingPage() {
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
   const canceled = searchParams.get('canceled');
+  // Set when the owner follows a locked step on Start here, so the page explains which plan unlocks it.
+  const needs = searchParams.get('needs');
+  const NEEDS_TEXT: Record<string, string> = {
+    domain: 'Your own domain needs the Standard plan or above.',
+    booking: 'Online booking needs the Business plan or above.',
+    payments: 'Taking card payments needs the Business plan or above, the same as the shop.',
+  };
 
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
 
@@ -173,6 +180,12 @@ export default function BillingPage() {
         {success && (
           <div className="mx-8 mt-6 bg-green-900/30 border border-green-700/50 rounded-lg p-4 max-w-4xl">
             <p className="text-green-300 font-medium">✅ Payment successful! Your subscription is now active.</p>
+          </div>
+        )}
+        {needs && NEEDS_TEXT[needs] && (
+          <div className="mx-8 mt-6 bg-amber-900/20 border border-amber-700/50 rounded-lg p-4 max-w-4xl">
+            <p className="text-amber-200 font-medium">{NEEDS_TEXT[needs]}</p>
+            <p className="text-amber-200/80 text-sm mt-1">Choose a plan below that includes it. You can change or cancel at any time.</p>
           </div>
         )}
         {canceled && (

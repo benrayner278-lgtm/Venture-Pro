@@ -9,11 +9,14 @@ const getJourney = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     const [projectCount, sites] = await Promise.all([
       prisma.project.count({ where: { userId: user.id, businessName: { not: null } } }),
-      prisma.site.findMany({ where: { userId: user.id }, select: { id: true, bookingSettings: true } }),
+      prisma.site.findMany({ where: { userId: user.id }, select: { id: true, bookingSettings: true, customDomainVerifiedAt: true } }),
     ]);
     const plan = PLANS[planKey(user.plan)];
 
     const bookingOn = sites.some((site) => site.bookingSettings?.enabled === true);
+    const domainOn = sites.some((site) => site.customDomainVerifiedAt);
+    // Own domains need a paid plan. Booking and card payments (with the shop) need Business or above.
+    const domainAllowed = plan.price > 0;
     const steps = [
       {
         key: 'plan',
@@ -32,21 +35,34 @@ const getJourney = async (req, res) => {
         action: sites.length > 0 ? 'Open your website' : 'Build my website',
       },
       {
+        key: 'domain',
+        title: 'Set up your domain',
+        description: 'Use your own web address, such as yourbusiness.com, or keep your free venture-pro.io address.',
+        done: domainOn,
+        allowed: domainAllowed,
+        requiredPlan: 'Standard',
+        href: domainAllowed ? '/domain' : '/billing?needs=domain',
+        action: !domainAllowed ? 'Unlock with a paid plan' : domainOn ? 'Manage your domain' : 'Set up my domain',
+      },
+      {
         key: 'booking',
         title: 'Add online booking',
         description: 'Let customers book appointments straight from your site.',
         done: bookingOn,
         allowed: plan.booking,
-        href: plan.booking ? '/bookings' : '/billing',
-        action: !plan.booking ? 'Upgrade to add booking' : bookingOn ? 'Change booking' : 'Set up booking',
+        requiredPlan: 'Business',
+        href: plan.booking ? '/bookings' : '/billing?needs=booking',
+        action: !plan.booking ? 'Unlock with the Business plan' : bookingOn ? 'Change booking' : 'Set up booking',
       },
       {
         key: 'payments',
         title: 'Take payments',
         description: 'Connect Stripe so customers can pay you by card. Venture-Pro takes no fee on it.',
         done: Boolean(user.paymentsEnabled),
-        href: '/settings',
-        action: user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
+        allowed: plan.booking,
+        requiredPlan: 'Business',
+        href: plan.booking ? '/settings' : '/billing?needs=payments',
+        action: !plan.booking ? 'Unlock with the Business plan' : user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
       },
     ];
 
@@ -62,6 +78,7 @@ const getJourney = async (req, res) => {
       doneCount: steps.filter((step) => step.done).length,
       total: steps.length,
       nextKey: next ? next.key : null,
+      plan: plan.name,
     });
   } catch (error) {
     console.error('Get journey error:', error);
