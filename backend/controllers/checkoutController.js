@@ -2,6 +2,7 @@ const { getStripe } = require('../lib/stripe');
 
 const prisma = require('../lib/prisma');
 const { PAID_PLANS, planKeyForAmount } = require('../lib/plans');
+const { recordPaidSession } = require('./shopController');
 
 const createCheckoutSession = async (req, res) => {
   try {
@@ -163,6 +164,16 @@ const handleWebhook = async (req, res) => {
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         console.log(`❌ Invoice payment failed for customer ${invoice.customer}`);
+        break;
+      }
+
+      // Shop payments are made on the owner's connected account, so the event carries event.account.
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        if (session.metadata?.kind === 'shop' && event.account) {
+          await recordPaidSession(session, event.account);
+          console.log(`✅ Shop order recorded for session ${session.id}`);
+        }
         break;
       }
 
