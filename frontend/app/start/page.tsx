@@ -13,8 +13,9 @@ type Step = {
   state: 'done' | 'next' | 'todo' | 'locked';
   href: string;
   action: string;
+  requiredPlan?: string;
 };
-type Journey = { steps: Step[]; doneCount: number; total: number; nextKey: string | null };
+type Journey = { steps: Step[]; doneCount: number; total: number; nextKey: string | null; plan: string };
 
 const STATE_LABEL: Record<Step['state'], string> = {
   done: 'Done',
@@ -62,6 +63,7 @@ export default function StartPage() {
               <div className="h-2 rounded-full bg-white/10 overflow-hidden" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
                 <div className="h-full bg-white transition-all" style={{ width: `${percent}%` }} />
               </div>
+              <p className="text-xs text-gray-500">You are on the {journey.plan} plan.</p>
               {journey.nextKey === null && <p className="text-sm text-emerald-400">Everything is set up. Keep an eye on your bookings and orders.</p>}
             </div>
           )}
@@ -94,6 +96,9 @@ export default function StartPage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-400">{step.description}</p>
+                  {step.state === 'locked' && step.requiredPlan && (
+                    <p className="text-xs text-amber-300">This needs the {step.requiredPlan} plan or above.</p>
+                  )}
                   <Link href={step.href} className="inline-block pt-2 text-sm text-gray-200 underline underline-offset-4 hover:text-white">
                     {step.action}
                   </Link>
