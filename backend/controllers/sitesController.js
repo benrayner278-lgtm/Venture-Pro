@@ -202,6 +202,7 @@ const createSite = async (req, res) => {
         content: withDesignKey(content, key),
         themeId: preset,
         shuffle: finalShuffle,
+        buildId: typeof req.body.buildId === 'string' && req.body.buildId ? req.body.buildId.slice(0, 36) : null,
       },
     });
     res.status(201).json({ site: { ...site, url: `https://${site.slug}.venture-pro.io` } });
@@ -216,7 +217,7 @@ const listSites = async (req, res) => {
   const sites = await prisma.site.findMany({
     where: { userId: req.userId },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, slug: true, title: true, themeId: true, shuffle: true, updatedAt: true, customDomain: true, customDomainToken: true, customDomainVerifiedAt: true },
+    select: { id: true, slug: true, title: true, themeId: true, shuffle: true, buildId: true, updatedAt: true, customDomain: true, customDomainToken: true, customDomainVerifiedAt: true },
   });
   res.json({ sites: sites.map((site) => ({ ...site, customDomainToken: undefined, url: `https://${site.slug}.venture-pro.io`, domain: domainSetup(site) })) });
 };
@@ -232,7 +233,7 @@ const findOwnedSite = async (req, res) => {
 
 // Saves new content to a site the user owns: cleans it, checks the plan limits, and keeps the design unique.
 // Used by the site editor and by the assistant when the owner approves a change.
-const saveSiteContent = async (site, rawContent, { themeId, shuffle } = {}) => {
+const saveSiteContent = async (site, rawContent, { themeId, shuffle, buildId } = {}) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId } });
   const content = cleanContent(rawContent, PLANS[planKey(owner?.plan)].portfolio);
   if (!validContent(content)) return { error: 'Invalid site content', status: 400 };
@@ -252,6 +253,7 @@ const saveSiteContent = async (site, rawContent, { themeId, shuffle } = {}) => {
       title: content.brand.name || site.title,
       themeId: preset,
       shuffle: finalShuffle,
+      ...(typeof buildId === 'string' && buildId ? { buildId: buildId.slice(0, 36) } : {}),
     },
   });
   return { site: updated };
@@ -261,7 +263,7 @@ const updateSite = async (req, res) => {
   try {
     const site = await findOwnedSite(req, res);
     if (!site) return;
-    const result = await saveSiteContent(site, req.body.content, { themeId: req.body.themeId, shuffle: req.body.shuffle });
+    const result = await saveSiteContent(site, req.body.content, { themeId: req.body.themeId, shuffle: req.body.shuffle, buildId: req.body.buildId });
     if (result.error) return res.status(result.status).json({ error: result.error });
     const updated = result.site;
     res.json({ site: { ...updated, url: `https://${updated.slug}.venture-pro.io` } });

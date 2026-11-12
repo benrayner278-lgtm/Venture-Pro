@@ -475,7 +475,7 @@ export default function WebsiteBuilderPage() {
                   </button>
                 </div>
 
-                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} />
+                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} buildId={buildId} />
               </aside>
 
               <div className="flex-1 min-w-0 flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
