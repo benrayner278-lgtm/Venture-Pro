@@ -62,13 +62,10 @@ export default function Sidebar() {
     // In the order of the guided journey: idea and plan, website, booking, payments. Tools come after.
     { href: '/start', label: 'Start here', icon: 'flag' },
     { href: '/dashboard', label: 'Chat', icon: 'chat' },
-    { href: '/business-plan', label: 'Business Plan', icon: 'plan' },
-    { href: '/projects', label: 'Projects', icon: 'projects' },
     { href: '/website-builder', label: 'Website Builder', icon: 'web' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },
     { href: '/shop', label: 'Shop', icon: 'web' },
     { href: '/settings', label: 'Payments & Settings', icon: 'settings' },
-    { href: '/assistant', label: 'Assistant', icon: 'chat' },
     { href: '/domain', label: 'Domain', icon: 'web' },
     { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
     { href: '/email-templates', label: 'Email Templates', icon: 'mail' },
