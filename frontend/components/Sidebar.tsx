@@ -60,7 +60,7 @@ export default function Sidebar() {
 
   const navItems = [
     // In the order of the guided journey: idea and plan, website, booking, payments. Tools come after.
-    { href: '/start', label: 'Start here', icon: 'flag' },
+    { href: '/progress', label: 'Progress', icon: 'flag' },
     { href: '/dashboard', label: 'Chat', icon: 'chat' },
     { href: '/website-builder', label: 'Website Builder', icon: 'web' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },

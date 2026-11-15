@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
+import AssistantChat from '@/components/AssistantChat';
 import {
   DEFAULT_LOGO,
   LOGO_FONTS,
@@ -33,8 +34,6 @@ const BACKGROUNDS: { value: LogoBackground; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-type ChatMessage = { role: 'user' | 'assistant'; text: string };
-
 // Loads every logo font once, so the preview shows the real typefaces.
 const loadLogoFonts = () => {
   if (document.getElementById('logo-fonts')) return;
@@ -54,14 +53,11 @@ export default function LogoBuilderPage() {
   }, []);
 
   const [description, setDescription] = useState('');
-  const [chatInput, setChatInput] = useState('');
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
-  // The saved build on the server. Changes build on it, so the AI remembers earlier requests.
+  // The saved build on the server. Changes build on it, so the assistant remembers earlier requests.
   const [buildId, setBuildId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const chatEnd = useRef<HTMLDivElement>(null);
   // The user's websites, so the logo can be put on one of them.
   const [sites, setSites] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [siteId, setSiteId] = useState('');
@@ -72,8 +68,8 @@ export default function LogoBuilderPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const latest = useRef({ settings: DEFAULT_LOGO as LogoSettings, buildId: null as string | null, loaded: false });
 
-  // Picks up the user's latest logo, so a reload or a return to the page shows it.
-  useEffect(() => {
+  // Picks up the user's latest logo, so a reload, a return to the page, or a change made by the assistant shows it.
+  const loadDraft = () =>
     apiFetch('/api/logo/draft')
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
@@ -82,8 +78,11 @@ export default function LogoBuilderPage() {
         setBuildId(data.buildId || null);
         setHasDraft(true);
       })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+      .catch(() => {});
+
+  useEffect(() => {
+    loadDraft().finally(() => setLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Saves the logo. With keepalive the request still goes out while the page is closing.
@@ -166,42 +165,23 @@ export default function LogoBuilderPage() {
   const preset = LOGO_PRESETS.find((item) => item.id === presetId) || LOGO_PRESETS[0];
   const businessName = settings.name.trim();
 
-  useEffect(() => {
-    chatEnd.current?.scrollIntoView({ block: 'nearest' });
-  }, [messages]);
-
-  // Asks the AI to design the logo from the description, or to answer or change it. The business name always
-  // comes from the user, and the server keeps it.
-  const askAi = async (mode: 'create' | 'change', text: string) => {
+  // Designs the first logo from the description. The business name always comes from the user, and the server keeps it.
+  // Changes after that are asked for in the assistant, which shares its memory with the other pages.
+  const createLogo = async () => {
     setDrafting(true);
     setDraftError('');
     try {
-      const response = await apiFetch('/api/logo/generate', {
-        method: 'POST',
-        json:
-          mode === 'create'
-            ? { name: businessName, description: text }
-            : { name: businessName, current: settings, instruction: text, buildId },
-      });
+      const response = await apiFetch('/api/logo/generate', { method: 'POST', json: { name: businessName, description: description.trim() } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not create the logo');
       setSettings({ ...DEFAULT_LOGO, ...data.logo, name: businessName });
       setBuildId(data.buildId || null);
       setHasDraft(true);
-      setMessages((current) => [...current, { role: 'assistant', text: data.reply || 'Here is your logo.' }]);
     } catch (err) {
       setDraftError(err instanceof Error ? err.message : 'Could not create the logo');
     } finally {
       setDrafting(false);
     }
-  };
-
-  const sendChat = () => {
-    const text = chatInput.trim();
-    if (!text || drafting) return;
-    setChatInput('');
-    setMessages((current) => [...current, { role: 'user', text }]);
-    askAi('change', text);
   };
 
   // Applies a style preset. The business name and tagline stay as they are.
@@ -255,7 +235,7 @@ export default function LogoBuilderPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => askAi('create', description.trim())}
+                    onClick={createLogo}
                     disabled={drafting || !businessName || description.trim().length < 5}
                     className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40"
                   >
@@ -264,7 +244,7 @@ export default function LogoBuilderPage() {
                   {draftError && <p className="text-sm text-red-400">{draftError}</p>}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className={labelClass}>Chat about your logo</label>
                     <button
@@ -273,7 +253,6 @@ export default function LogoBuilderPage() {
                         setHasDraft(false);
                         setDescription('');
                         setBuildId(null);
-                        setMessages([]);
                         setSettings((current) => ({ ...DEFAULT_LOGO, name: current.name }));
                       }}
                       className="text-xs text-gray-400 hover:text-gray-200"
@@ -281,43 +260,17 @@ export default function LogoBuilderPage() {
                       Start again
                     </button>
                   </div>
-                  <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
-                    {messages.map((message, index) => (
-                      <div key={index} className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                        <p
-                          className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                            message.role === 'user' ? 'bg-white text-black' : 'bg-white/[0.06] text-gray-200'
-                          }`}
-                        >
-                          {message.text}
-                        </p>
-                      </div>
-                    ))}
-                    {drafting && <p className="text-xs text-gray-500">Thinking...</p>}
-                    <div ref={chatEnd} />
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      className={`${inputClass} flex-1`}
-                      value={chatInput}
-                      maxLength={400}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') sendChat();
+                  {/* The same assistant as Chat and the Website Builder. It can change this logo, and the business name stays as typed. */}
+                  <div className="h-[480px] overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04]">
+                    <AssistantChat
+                      compact
+                      hint='Ask for ideas or changes, such as "make the icon simpler" or "what colours suit a plumber?"'
+                      onTurnComplete={({ logoChanged }) => {
+                        if (logoChanged) loadDraft();
                       }}
-                      placeholder="e.g. make the icon simpler, or what colours suit a plumber?"
                     />
-                    <button
-                      type="button"
-                      onClick={sendChat}
-                      disabled={drafting || !chatInput.trim()}
-                      className="bg-white hover:bg-gray-200 text-black px-4 rounded-xl text-sm font-medium transition disabled:opacity-40"
-                    >
-                      Send
-                    </button>
                   </div>
                   {draftError && <p className="text-sm text-red-400">{draftError}</p>}
-                  <p className="text-xs text-gray-500">The business name stays as you typed it. Ask for ideas, or for changes to the logo.</p>
                 </div>
               )}
 
