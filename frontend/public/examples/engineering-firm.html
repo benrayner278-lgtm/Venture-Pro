@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halden Engineering</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;700&display=swap">
+<style>
+:root{--bg:#000000;--surface:#111111;--text:#ffffff;--muted:#a3a3a3;--accent:#facc15;--accent-text:#000000;--border:#262626;--font-heading:'Oswald', system-ui, sans-serif;--font-body:'Inter', system-ui, sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-heading);line-height:1.1;margin:0 0 .5em}
+p{margin:0 0 1em}
+a{color:inherit}
+img,svg{max-width:100%;height:auto;display:block}
+.img-slot{display:block;width:100%;aspect-ratio:4/3;background:var(--surface);border:1px dashed var(--border);border-radius:12px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 40px;border-bottom:1px solid var(--border)}.top b{font-family:var(--font-heading);font-size:20px;letter-spacing:.04em;text-transform:uppercase}.top a{margin-left:20px;font-size:14px;color:var(--muted);text-decoration:none}
+.hero{padding:90px 40px 60px;border-bottom:1px solid var(--border)}.hero h1{font-size:clamp(44px,7vw,92px);text-transform:uppercase;line-height:.95;max-width:980px}.hero p{color:var(--muted);font-size:18px;max-width:560px;margin-top:22px}
+.btn{display:inline-block;margin-top:30px;background:var(--accent);color:var(--accentText);padding:14px 26px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:.04em}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)}.cols div{padding:40px;border-right:1px solid var(--border)}.cols h3{font-family:var(--font-heading);text-transform:uppercase;font-size:22px;color:var(--accent)}.cols p{color:var(--muted);font-size:15px}
+footer{padding:26px 40px;color:var(--muted);font-size:13px}@media(max-width:700px){.cols{grid-template-columns:1fr}.cols div{border-right:0;border-bottom:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header class="top"><b>Halden Engineering</b><nav><a href="#services">Services</a><a href="#contact">Contact</a></nav></header>
+<section class="hero"><h1>Practical engineering for buildings that work.</h1><p>Structural design, surveys and site support for builders, developers and property owners.</p><a class="btn" href="#contact">Request a quote</a></section>
+<section class="cols" id="services"><div><h3>Structural</h3><p>Calculations, drawings and sign-off for alterations and new builds.</p></div><div><h3>Surveys</h3><p>Clear reports on what a building needs, written in plain language.</p></div><div><h3>Site support</h3><p>On-site checks through the build, so problems are caught early.</p></div></section>
+<footer><p>Example site made with Venture-Pro. It is not a real business.</p></footer>
+</body>
+</html>

@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+// Real sites made with the same renderer that publishes customers' sites. Each is marked as an example.
 const EXAMPLES = [
-  { label: 'Studio portfolio', bg: '#05070d', fg: '#60a5fa', text: '#e5e7eb' },
-  { label: 'SaaS launch page', bg: '#faf7f2', fg: '#1c1917', text: '#1c1917' },
-  { label: 'Engineering firm', bg: '#000000', fg: '#facc15', text: '#ffffff' },
-  { label: 'Consultancy', bg: '#ffffff', fg: '#111111', text: '#111111' },
-  { label: 'Coffee shop', bg: '#2a1f17', fg: '#f59e0b', text: '#fdf6ec' },
-  { label: 'Workshop booking', bg: '#0b1020', fg: '#a78bfa', text: '#e5e7eb' },
+  { label: 'Studio portfolio', name: 'Studio Lumen', file: 'studio-portfolio' },
+  { label: 'SaaS launch page', name: 'Tidewise', file: 'saas-launch' },
+  { label: 'Engineering firm', name: 'Halden Engineering', file: 'engineering-firm' },
+  { label: 'Consultancy', name: 'Brightline Advisory', file: 'consultancy' },
+  { label: 'Coffee shop', name: 'Ember & Oak', file: 'coffee-shop' },
+  { label: 'Workshop booking', name: 'Forge Studio', file: 'workshop-booking' },
 ];
 
 const PROMPTS = [
@@ -145,28 +146,35 @@ export default function LandingPage() {
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {EXAMPLES.map((example) => (
-              <div key={example.label} className="group overflow-hidden rounded-xl border border-white/10 bg-zinc-950 transition hover:border-white/25">
+              <a
+                key={example.label}
+                href={`/examples/${example.file}.html`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block overflow-hidden rounded-xl border border-white/10 bg-zinc-950 transition hover:border-white/25"
+              >
                 <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2.5">
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
+                  <span className="ml-3 truncate text-[11px] text-zinc-600">{example.name}</span>
                 </div>
-                <div className="p-5" style={{ background: example.bg, color: example.text, minHeight: 220 }}>
-                  <div className="h-2.5 w-14 rounded-full" style={{ background: example.fg }} />
-                  <div className="mt-6 h-5 w-3/4 rounded" style={{ background: example.text, opacity: 0.9 }} />
-                  <div className="mt-2 h-5 w-1/2 rounded" style={{ background: example.text, opacity: 0.9 }} />
-                  <div className="mt-5 h-2 w-full rounded" style={{ background: example.text, opacity: 0.25 }} />
-                  <div className="mt-2 h-2 w-5/6 rounded" style={{ background: example.text, opacity: 0.25 }} />
-                  <div className="mt-6 flex gap-2">
-                    <div className="h-8 w-24 rounded-md" style={{ background: example.fg }} />
-                    <div className="h-8 w-20 rounded-md border" style={{ borderColor: example.text, opacity: 0.4 }} />
-                  </div>
+                <div className="relative h-64 overflow-hidden bg-black">
+                  <iframe
+                    src={`/examples/${example.file}.html`}
+                    title={`${example.label} example`}
+                    loading="lazy"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="pointer-events-none h-[720px] w-full border-0"
+                  />
+                  <div className="absolute inset-0" aria-hidden="true" />
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 text-sm text-zinc-400">
                   <span>{example.label}</span>
-                  <span className="text-zinc-600 transition group-hover:text-white">View</span>
+                  <span className="text-zinc-600 transition group-hover:text-white">Open example</span>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>
