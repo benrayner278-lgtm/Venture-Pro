@@ -144,7 +144,7 @@ export default function LandingPage() {
           <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Made in a few minutes. Styled your way.</h2>
           <p className="mt-3 max-w-2xl text-zinc-400">Every site starts from your brief, then you choose from five looks and shuffle the layout until it feels right.</p>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid gap-8 md:grid-cols-2">
             {EXAMPLES.map((example) => (
               <a
                 key={example.label}
@@ -159,14 +159,14 @@ export default function LandingPage() {
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
                   <span className="ml-3 truncate text-[11px] text-zinc-600">{example.name}</span>
                 </div>
-                <div className="relative h-64 overflow-hidden bg-black">
+                <div className="relative h-[420px] overflow-hidden bg-black">
                   <iframe
                     src={`/examples/${example.file}.html`}
                     title={`${example.label} example`}
                     loading="lazy"
                     tabIndex={-1}
                     aria-hidden="true"
-                    className="pointer-events-none h-[720px] w-full border-0"
+                    className="pointer-events-none h-[1100px] w-full border-0"
                   />
                   <div className="absolute inset-0" aria-hidden="true" />
                 </div>
