@@ -213,6 +213,13 @@ const createSite = async (req, res) => {
   }
 };
 
+// One of the owner's sites, with its content. The website builder reads it to show changes made in Chat.
+const getSite = async (req, res) => {
+  const site = await findOwnedSite(req, res);
+  if (!site) return;
+  res.json({ site: { id: site.id, slug: site.slug, title: site.title, buildId: site.buildId, content: site.content, themeId: site.themeId, shuffle: site.shuffle } });
+};
+
 const listSites = async (req, res) => {
   const sites = await prisma.site.findMany({
     where: { userId: req.userId },
@@ -455,4 +462,4 @@ const setSiteLogo = async (req, res) => {
   }
 };
 
-module.exports = { saveSiteContent, setSiteLogo, publicBookingPage, publicBookingPageByDomain, publicShopPage, publicShopPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
+module.exports = { getSite, saveSiteContent, setSiteLogo, publicBookingPage, publicBookingPageByDomain, publicShopPage, publicShopPageByDomain, checkSlug, previewSite, downloadSite, createSite, listSites, updateSite, deleteSite, setCustomDomain, checkCustomDomain, removeCustomDomain, publicSite, publicSiteByDomain, randomSeed, renderContent };
