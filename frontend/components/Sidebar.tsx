@@ -105,9 +105,8 @@ export default function Sidebar() {
         >
         <div className="px-6 pt-7 pb-6">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-white via-zinc-300 to-zinc-500 shadow-[0_0_24px_-4px_rgba(255,255,255,0.35)] flex items-center justify-center">
-              <div className="w-3.5 h-3.5 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/venture-pro-mark-light.svg" width={36} height={36} alt="" className="w-9 h-9 shrink-0" />
             <div>
               <h2 className="text-[15px] font-semibold tracking-tight text-white">Venture-Pro</h2>
               <p className="text-[11px] uppercase tracking-[0.14em] text-gray-500">AI Builder</p>

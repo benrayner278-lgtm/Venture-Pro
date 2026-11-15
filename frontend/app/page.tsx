@@ -73,9 +73,7 @@ export default function LandingPage() {
       <nav className="relative z-10 border-b border-white/[0.08] bg-black/60 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-white via-zinc-300 to-zinc-500 shadow-[0_0_20px_-4px_rgba(255,255,255,0.5)]">
-              <span className="h-2.5 w-2.5 rounded-full bg-black" />
-            </span>
+            <img src="/brand/venture-pro-mark-light.svg" width={28} height={28} alt="" className="h-7 w-7" />
             <span className="text-[15px] font-semibold tracking-tight">Venture-Pro</span>
           </Link>
           <div className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
