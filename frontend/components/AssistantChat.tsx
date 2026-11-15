@@ -32,6 +32,8 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  // On screens narrower than a laptop, the approvals open as a pop-out from the header.
+  const [approvalsOpen, setApprovalsOpen] = useState(false);
 
   const loadProposals = async () => {
     const response = await apiFetch('/api/assistant/proposals');
@@ -114,13 +116,59 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   const pending = proposals.filter((proposal) => proposal.status === 'pending');
   const applied = proposals.filter((proposal) => proposal.status === 'applied');
 
+  // The approvals list, shown beside the chat on wide screens and as a pop-out on smaller ones.
+  const approvalsContent = <>          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">Waiting for your approval</h2>
+            {pending.length === 0 && <p className="text-sm text-gray-500">Nothing to approve.</p>}
+            {pending.map((proposal) => (
+              <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
+                <p className="text-xs text-gray-500">{proposal.siteTitle}</p>
+                <p className="text-sm text-gray-200 mb-2">{proposal.summary}</p>
+                <div className="flex gap-2">
+                  <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'approve')} className="bg-white text-black px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40">
+                    Approve and publish
+                  </button>
+                  <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'reject')} className="border border-white/10 text-gray-300 px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">Recently applied</h2>
+            {applied.length === 0 && <p className="text-sm text-gray-500">No recent changes.</p>}
+            {applied.map((proposal) => (
+              <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
+                <p className="text-xs text-gray-500">{proposal.siteTitle}</p>
+                <p className="text-sm text-gray-200 mb-2">{proposal.summary}</p>
+                <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'undo')} className="border border-white/10 text-gray-300 px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
+                  Undo
+                </button>
+              </div>
+            ))}
+          </div>
+        </>;
+
   return (
     <div className="flex-1 min-w-0 flex flex-col h-[calc(100dvh-3.5rem)] md:h-screen">
       <div className="flex flex-1 min-h-0">
         <section className="flex-1 min-w-0 flex flex-col">
           <header className="px-4 md:px-8 py-4 border-b border-white/[0.06]">
-            <h1 className="text-base font-semibold text-white tracking-tight">{title}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="text-base font-semibold text-white tracking-tight">{title}</h1>
+                <p className="text-xs text-gray-500 mt-0.5">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApprovalsOpen(true)}
+                className="lg:hidden shrink-0 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+              >
+                Approvals{pending.length > 0 ? ` (${pending.length})` : ''}
+              </button>
+            </div>
           </header>
 
           {/* The conversation fills the page. Newest messages are at the bottom; scroll up for earlier ones. */}
@@ -193,42 +241,26 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
           </div>
         </section>
 
-        {/* Proposals sit beside the conversation on wide screens, and are kept out of the way on phones. */}
+        {/* Wide screens: approvals sit beside the conversation. */}
         <aside className="hidden lg:flex w-80 shrink-0 flex-col border-l border-white/[0.06] overflow-y-auto p-5 space-y-6">
-          <div>
-            <h2 className="text-sm font-semibold text-white mb-3">Waiting for your approval</h2>
-            {pending.length === 0 && <p className="text-sm text-gray-500">Nothing to approve.</p>}
-            {pending.map((proposal) => (
-              <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
-                <p className="text-xs text-gray-500">{proposal.siteTitle}</p>
-                <p className="text-sm text-gray-200 mb-2">{proposal.summary}</p>
-                <div className="flex gap-2">
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'approve')} className="bg-white text-black px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40">
-                    Approve and publish
-                  </button>
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'reject')} className="border border-white/10 text-gray-300 px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <h2 className="text-sm font-semibold text-white mb-3">Recently applied</h2>
-            {applied.length === 0 && <p className="text-sm text-gray-500">No recent changes.</p>}
-            {applied.map((proposal) => (
-              <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
-                <p className="text-xs text-gray-500">{proposal.siteTitle}</p>
-                <p className="text-sm text-gray-200 mb-2">{proposal.summary}</p>
-                <button type="button" disabled={busyId === proposal.id} onClick={() => decide(proposal, 'undo')} className="border border-white/10 text-gray-300 px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
-                  Undo
-                </button>
-              </div>
-            ))}
-          </div>
+          {approvalsContent}
         </aside>
       </div>
+      {/* Smaller screens: approvals pop out over the conversation. */}
+      {approvalsOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true" aria-label="Waiting for your approval">
+          <button type="button" className="absolute inset-0 bg-black/60" onClick={() => setApprovalsOpen(false)} aria-label="Close approvals" />
+          <div className="relative w-full max-w-md h-full bg-black border-l border-white/10 overflow-y-auto p-5 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">Approvals</h2>
+              <button type="button" onClick={() => setApprovalsOpen(false)} className="text-sm text-gray-400 hover:text-white">
+                Close
+              </button>
+            </div>
+            {approvalsContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
