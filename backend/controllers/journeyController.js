@@ -7,13 +7,14 @@ const getJourney = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const [projectCount, sites] = await Promise.all([
-      prisma.project.count({ where: { userId: user.id, businessName: { not: null } } }),
+    const [thread, sites] = await Promise.all([
+      prisma.assistantThread.findUnique({ where: { userId: user.id }, select: { messages: true } }),
       prisma.site.findMany({ where: { userId: user.id }, select: { id: true, bookingSettings: true, customDomainVerifiedAt: true } }),
     ]);
     const plan = PLANS[planKey(user.plan)];
 
     const bookingOn = sites.some((site) => site.bookingSettings?.enabled === true);
+    const talkedThrough = Array.isArray(thread?.messages) && thread.messages.some((turn) => turn.role === 'user');
     const domainOn = sites.some((site) => site.customDomainVerifiedAt);
     // Own domains need a paid plan. Booking and card payments (with the shop) need Business or above.
     const domainAllowed = plan.price > 0;
@@ -22,9 +23,9 @@ const getJourney = async (req, res) => {
         key: 'plan',
         title: 'Shape your business idea',
         description: 'Talk through your idea with the assistant and save a plan.',
-        done: projectCount > 0,
-        href: projectCount > 0 ? '/business-plan' : '/dashboard',
-        action: projectCount > 0 ? 'Open your plan' : 'Start your plan',
+        done: talkedThrough,
+        href: '/dashboard',
+        action: talkedThrough ? 'Open Chat' : 'Start in Chat',
       },
       {
         key: 'website',
