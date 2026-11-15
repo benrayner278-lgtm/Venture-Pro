@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Venture-Pro mark B">
+  <!-- A solid sphere cut by three curved white gaps that meet near the centre. -->
+  <circle cx="100" cy="100" r="90" fill="#000"/>
+  <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="butt">
+    
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round">
+        <path d="M100.0 10.0 C116.9 93.8 116.9 106.2 130.8 184.6"/>
+    <path d="M177.9 145.0 C96.9 117.7 86.2 111.6 11.4 84.4"/>
+    <path d="M22.1 145.0 C86.2 88.4 96.9 82.3 157.9 31.1"/>
+  </g>
+</svg>

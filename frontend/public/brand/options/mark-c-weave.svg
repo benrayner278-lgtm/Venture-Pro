@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Venture-Pro mark C">
+  <!-- Three equal thick arcs with even breaks between them, turning around one centre. -->
+  <g fill="none" stroke="#000" stroke-width="20" stroke-linecap="butt">
+        <path d="M100.0 38.0 A62 62 0 0 1 161.1 110.8"/>
+    <path d="M153.7 131.0 A62 62 0 0 1 60.1 147.5"/>
+    <path d="M46.3 131.0 A62 62 0 0 1 78.8 41.7"/>
+  </g>
+</svg>
