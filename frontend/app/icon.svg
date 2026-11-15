@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Venture-Pro browser icon: the cut sphere (option B) in white on black. -->
+  <rect width="64" height="64" rx="14" fill="#000"/>
+  <g transform="translate(6 6) scale(0.26)">
+    <circle cx="100" cy="100" r="90" fill="#fff"/>
+    <g fill="none" stroke="#000" stroke-width="12" stroke-linecap="round">
+      <path d="M100.0 10.0 C116.9 93.8 116.9 106.2 130.8 184.6"/>
+      <path d="M177.9 145.0 C96.9 117.7 86.2 111.6 11.4 84.4"/>
+      <path d="M22.1 145.0 C86.2 88.4 96.9 82.3 157.9 31.1"/>
+    </g>
+  </g>
+</svg>
