@@ -47,7 +47,7 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   }, []);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'nearest' });
+    endRef.current?.scrollIntoView({ block: 'end' });
   }, [messages]);
 
   const addFiles = async (picked: FileList | null) => {
@@ -115,75 +115,88 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   const applied = proposals.filter((proposal) => proposal.status === 'applied');
 
   return (
-    <div className="flex-1 min-w-0">
-      <div className="text-gray-100 p-6 md:p-10">
-      <div className="max-w-5xl mx-auto grid gap-6 md:grid-cols-[1fr_340px]">
-        <section className="flex flex-col min-h-[70vh]">
-          <h1 className="text-2xl font-semibold">{title}</h1>
-          <p className="text-sm text-gray-400 mb-4">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+    <div className="flex-1 min-w-0 flex flex-col h-[calc(100dvh-3.5rem)] md:h-screen">
+      <div className="flex flex-1 min-h-0">
+        <section className="flex-1 min-w-0 flex flex-col">
+          <header className="px-4 md:px-8 py-4 border-b border-white/[0.06]">
+            <h1 className="text-base font-semibold text-white tracking-tight">{title}</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+          </header>
 
-          <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-white/10 p-4 min-h-[320px]">
-            {messages.length === 0 && (
-              <p className="text-sm text-gray-500">
-                Try: &quot;I want to start a dog grooming business in Bristol&quot; or &quot;Make the headline shorter on my main website.&quot;
-              </p>
-            )}
-            {messages.map((turn, index) => (
-              <div key={index} className={turn.role === 'user' ? 'text-right' : 'text-left'}>
-                <div className={`inline-block max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${turn.role === 'user' ? 'bg-white text-black' : 'bg-white/5 text-gray-200'}`}>
-                  {turn.text}
+          {/* The conversation fills the page. Newest messages are at the bottom; scroll up for earlier ones. */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6">
+            <div className="max-w-3xl mx-auto space-y-4">
+              {messages.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  Try: &quot;I want to start a dog grooming business in Bristol&quot; or &quot;Make the headline shorter on my main website.&quot;
+                </p>
+              )}
+              {messages.map((turn, index) => (
+                <div key={index} className={turn.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                      turn.role === 'user' ? 'bg-white text-black' : 'bg-white/[0.06] text-gray-200 border border-white/[0.06]'
+                    }`}
+                  >
+                    {turn.text}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {sending && <p className="text-sm text-gray-500">Thinking...</p>}
-            <div ref={endRef} />
+              ))}
+              {sending && <p className="text-sm text-gray-500">Thinking...</p>}
+              <div ref={endRef} />
+            </div>
           </div>
 
-          {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
-          {files.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {files.map((file, index) => (
-                <span key={`${file.name}-${index}`} className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs text-gray-300">
-                  {file.name}
-                  <button type="button" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))} className="text-gray-500 hover:text-gray-200" aria-label={`Remove ${file.name}`}>
-                    ×
-                  </button>
-                </span>
-              ))}
+          <div className="border-t border-white/[0.06] px-4 md:px-8 py-4">
+            <div className="max-w-3xl mx-auto">
+              {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
+              {files.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {files.map((file, index) => (
+                    <span key={`${file.name}-${index}`} className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-xs text-gray-300">
+                      {file.name}
+                      <button type="button" onClick={() => setFiles((current) => current.filter((_, i) => i !== index))} className="text-gray-500 hover:text-gray-200" aria-label={`Remove ${file.name}`}>
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <label className="flex items-center px-3 rounded-xl border border-white/10 text-sm text-gray-300 cursor-pointer hover:bg-white/5" title="Attach a file">
+                  Attach
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      addFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') send();
+                  }}
+                  placeholder="Describe your idea, or ask for a change"
+                  maxLength={2000}
+                  className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm"
+                />
+                <button type="button" onClick={send} disabled={sending || (!input.trim() && files.length === 0)} className="bg-white text-black px-5 rounded-xl text-sm font-medium disabled:opacity-40">
+                  Send
+                </button>
+              </div>
             </div>
-          )}
-          <div className="mt-3 flex gap-2">
-            <label className="flex items-center px-3 rounded-xl border border-white/10 text-sm text-gray-300 cursor-pointer hover:bg-white/5" title="Attach a file">
-              Attach
-              <input
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') send();
-              }}
-              placeholder="Describe your idea, or ask for a change"
-              maxLength={2000}
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm"
-            />
-            <button type="button" onClick={send} disabled={sending || (!input.trim() && files.length === 0)} className="bg-white text-black px-5 rounded-xl text-sm font-medium disabled:opacity-40">
-              Send
-            </button>
           </div>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-white/10 p-4">
-            <h2 className="text-sm font-semibold mb-3">Waiting for your approval</h2>
+        {/* Proposals sit beside the conversation on wide screens, and are kept out of the way on phones. */}
+        <aside className="hidden lg:flex w-80 shrink-0 flex-col border-l border-white/[0.06] overflow-y-auto p-5 space-y-6">
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">Waiting for your approval</h2>
             {pending.length === 0 && <p className="text-sm text-gray-500">Nothing to approve.</p>}
             {pending.map((proposal) => (
               <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
@@ -201,8 +214,8 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-white/10 p-4">
-            <h2 className="text-sm font-semibold mb-3">Recently applied</h2>
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">Recently applied</h2>
             {applied.length === 0 && <p className="text-sm text-gray-500">No recent changes.</p>}
             {applied.map((proposal) => (
               <div key={proposal.id} className="border-t border-white/10 pt-3 mt-3 first:border-0 first:mt-0 first:pt-0">
@@ -215,7 +228,6 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
             ))}
           </div>
         </aside>
-      </div>
       </div>
     </div>
   );
