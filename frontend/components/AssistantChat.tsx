@@ -23,7 +23,17 @@ const readFile = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
+export default function AssistantChat({
+  title = 'Chat',
+  compact = false,
+  onApplied,
+}: {
+  title?: string;
+  // Compact is the version that sits inside another page, such as the website builder. It has no header or side panel.
+  compact?: boolean;
+  // Called with the site id after a change is approved or undone, so the page showing the site can refresh.
+  onApplied?: (siteId: string) => void;
+}) {
   const [messages, setMessages] = useState<Turn[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [input, setInput] = useState('');
@@ -31,7 +41,7 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   // On screens narrower than a laptop, the approvals open as a pop-out from the header.
   const [approvalsOpen, setApprovalsOpen] = useState(false);
 
@@ -49,7 +59,8 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
   }, []);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
+    // Scroll only the conversation, so the page itself does not jump when the builder opens.
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages]);
 
   const addFiles = async (picked: FileList | null) => {
@@ -106,6 +117,7 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not do that');
       await loadProposals();
+      if (action !== 'reject') onApplied?.(proposal.siteId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not do that');
     } finally {
@@ -152,27 +164,29 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
         </>;
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col h-[calc(100dvh-3.5rem)] md:h-screen">
+    <div className={compact ? 'flex flex-col h-full min-h-0 min-w-0' : 'flex-1 min-w-0 flex flex-col h-[calc(100dvh-3.5rem)] md:h-screen'}>
       <div className="flex flex-1 min-h-0">
         <section className="flex-1 min-w-0 flex flex-col">
-          <header className="px-4 md:px-8 py-4 border-b border-white/[0.06]">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="text-base font-semibold text-white tracking-tight">{title}</h1>
-                <p className="text-xs text-gray-500 mt-0.5">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+          {!compact && (
+            <header className="px-4 md:px-8 py-4 border-b border-white/[0.06]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="text-base font-semibold text-white tracking-tight">{title}</h1>
+                  <p className="text-xs text-gray-500 mt-0.5">Talk through a business idea, or ask for changes to your websites. Nothing goes live until you approve it.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setApprovalsOpen(true)}
+                  className="lg:hidden shrink-0 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+                >
+                  Approvals{pending.length > 0 ? ` (${pending.length})` : ''}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setApprovalsOpen(true)}
-                className="lg:hidden shrink-0 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
-              >
-                Approvals{pending.length > 0 ? ` (${pending.length})` : ''}
-              </button>
-            </div>
-          </header>
+            </header>
+          )}
 
           {/* The conversation fills the page. Newest messages are at the bottom; scroll up for earlier ones. */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6">
+          <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-6">
             <div className="max-w-3xl mx-auto space-y-4">
               {messages.length === 0 && (
                 <p className="text-sm text-gray-500">
@@ -191,12 +205,16 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
                 </div>
               ))}
               {sending && <p className="text-sm text-gray-500">Thinking...</p>}
-              <div ref={endRef} />
             </div>
           </div>
 
           <div className="border-t border-white/[0.06] px-4 md:px-8 py-4">
             <div className="max-w-3xl mx-auto">
+              {compact && (pending.length > 0 || applied.length > 0) && (
+                <div className="mb-3 max-h-56 overflow-y-auto rounded-xl border border-white/10 p-3 space-y-3">
+                  {approvalsContent}
+                </div>
+              )}
               {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
               {files.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
@@ -242,12 +260,14 @@ export default function AssistantChat({ title = 'Chat' }: { title?: string }) {
         </section>
 
         {/* Wide screens: approvals sit beside the conversation. */}
+        {!compact && (
         <aside className="hidden lg:flex w-80 shrink-0 flex-col border-l border-white/[0.06] overflow-y-auto p-5 space-y-6">
           {approvalsContent}
         </aside>
+        )}
       </div>
       {/* Smaller screens: approvals pop out over the conversation. */}
-      {approvalsOpen && (
+      {!compact && approvalsOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true" aria-label="Waiting for your approval">
           <button type="button" className="absolute inset-0 bg-black/60" onClick={() => setApprovalsOpen(false)} aria-label="Close approvals" />
           <div className="relative w-full max-w-md h-full bg-black border-l border-white/10 overflow-y-auto p-5 space-y-6">

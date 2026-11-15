@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import { MAX_PHOTOS, PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
+import AssistantChat from '@/components/AssistantChat';
 import { ContactEditor, PortfolioEditor } from '@/components/SiteDetailsEditor';
 import { PagePhotos } from '@/components/PagePhotos';
 import StyleEditor from '@/components/StyleEditor';
@@ -27,7 +28,6 @@ export default function WebsiteBuilderPage() {
   const [content, setContent] = useState<WebsiteContent | null>(null);
   const [themeId, setThemeId] = useState(WEBSITE_PRESETS[0].id);
   const [shuffle, setShuffle] = useState(0);
-  const [tweak, setTweak] = useState('');
   const [tweaking, setTweaking] = useState(false);
   // The saved build on the server. Changes build on it, so the AI remembers earlier requests.
   const [buildId, setBuildId] = useState<string | null>(null);
@@ -130,7 +130,6 @@ export default function WebsiteBuilderPage() {
         return;
       }
       setContent({ ...result.content, contact, portfolio, style });
-      setTweak('');
     } catch (error) {
       console.error('Error applying change:', error);
       alert('That change could not be applied. Please try again.');
@@ -139,9 +138,17 @@ export default function WebsiteBuilderPage() {
     }
   };
 
-  const handleTweak = (e: React.FormEvent) => {
-    e.preventDefault();
-    return runChange(tweak);
+  // After a change from Chat is approved or undone, the builder shows the live site again, so the preview matches it.
+  // Only the site linked to this build is read, so changes to other sites leave the builder alone.
+  const refreshFromLive = async (siteId: string) => {
+    try {
+      const res = await apiFetch(`/api/sites/${siteId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (buildId && data.site?.buildId === buildId && data.site.content) setContent(data.site.content);
+    } catch {
+      // The preview keeps what it shows if the site cannot be read.
+    }
   };
 
   const [view, setView] = useState<View>('preview');
@@ -507,24 +514,13 @@ export default function WebsiteBuilderPage() {
                     disabled={tweaking}
                   />
                 )}
-                {tweakReply && <p className="text-sm text-gray-300 mb-2">{tweakReply}</p>}
-                <form onSubmit={handleTweak} className="relative">
-                  <input
-                    type="text"
-                    value={tweak}
-                    onChange={(e) => setTweak(e.target.value)}
-                    placeholder="Ask for a change, e.g. make the headline shorter"
-                    disabled={tweaking}
-                    className="w-full bg-white/[0.04] text-gray-100 pl-4 pr-24 py-3 rounded-xl border border-white/10 focus:border-white/25 outline-none placeholder-gray-600 transition text-sm disabled:opacity-60"
-                  />
-                  <button
-                    type="submit"
-                    disabled={tweaking || !tweak.trim()}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-lg bg-white text-black text-sm font-medium transition hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    {tweaking ? 'Applying...' : 'Apply'}
-                  </button>
-                </form>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Assistant</p>
+                  <p className="text-xs text-gray-500 mb-3">The same assistant as Chat. Ask for a change, and approve it before it goes live.</p>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] h-[520px] overflow-hidden">
+                    <AssistantChat compact onApplied={refreshFromLive} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
