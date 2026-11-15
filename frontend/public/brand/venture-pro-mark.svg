@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Venture-Pro">
+  <!-- Three thick strokes that loop around each other, turned 120 degrees apart, forming one sphere. -->
+  <g fill="none" stroke="#000" stroke-width="19" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(0 100 100)">
+      <path d="M100 36 C136 36 152 64 146 92 C141 116 118 118 110 100 C103 84 84 92 92 116 C98 132 118 136 132 128"/>
+    </g>
+    <g transform="rotate(120 100 100)">
+      <path d="M100 36 C136 36 152 64 146 92 C141 116 118 118 110 100 C103 84 84 92 92 116 C98 132 118 136 132 128"/>
+    </g>
+    <g transform="rotate(240 100 100)">
+      <path d="M100 36 C136 36 152 64 146 92 C141 116 118 118 110 100 C103 84 84 92 92 116 C98 132 118 136 132 128"/>
+    </g>
+  </g>
+</svg>
