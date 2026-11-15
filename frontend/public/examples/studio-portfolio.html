@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Lumen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;700&display=swap">
+<style>
+:root{--bg:#05070d;--surface:#0d1220;--text:#e5e7eb;--muted:#9ca3af;--accent:#60a5fa;--accent-text:#05070d;--border:#1f2937;--font-heading:'Space Grotesk', system-ui, sans-serif;--font-body:'Inter', system-ui, sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-heading);line-height:1.1;margin:0 0 .5em}
+p{margin:0 0 1em}
+a{color:inherit}
+img,svg{max-width:100%;height:auto;display:block}
+.img-slot{display:block;width:100%;aspect-ratio:4/3;background:var(--surface);border:1px dashed var(--border);border-radius:12px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 40px;border-bottom:1px solid var(--border)}.top b{font-family:var(--font-heading);font-size:18px}.top nav a{margin-left:22px;font-size:14px;text-decoration:none;color:var(--muted)}
+.hero{padding:96px 40px 64px}.hero h1{font-size:clamp(40px,6vw,76px);letter-spacing:-.02em;max-width:900px}.hero p{color:var(--muted);font-size:19px;max-width:560px}
+.btn{display:inline-block;margin-top:28px;background:var(--accent);color:var(--accentText);padding:14px 26px;border-radius:10px;font-weight:600;text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px 40px 64px}.tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;min-height:180px}.tile h3{font-size:18px}.tile p{color:var(--muted);font-size:15px}
+.tile .shot{height:110px;border-radius:10px;margin-bottom:18px;background:linear-gradient(135deg,#1e3a8a,#0f172a)}footer{padding:28px 40px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.top nav{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><b>Studio Lumen</b><nav><a href="#work">Work</a><a href="#about">About</a><a href="#contact">Contact</a></nav></header>
+<section class="hero"><h1>Photographs that feel like the moment.</h1><p>Portraits, product and place. An independent studio working with small brands and people who care about light.</p><a class="btn" href="#contact">Book a shoot</a></section>
+<section class="grid" id="work"><div class="tile"><div class="shot"></div><h3>Portraits</h3><p>Natural light, relaxed sessions and images you will use for years.</p></div><div class="tile"><div class="shot"></div><h3>Product</h3><p>Clean, honest pictures for shops and catalogues.</p></div><div class="tile"><div class="shot"></div><h3>Places</h3><p>Interiors and spaces, shot to show how they feel to be in.</p></div></section>
+<footer><p>Example site made with Venture-Pro. It is not a real business.</p></footer>
+</body>
+</html>
