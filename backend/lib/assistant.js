@@ -1,11 +1,14 @@
-// The account assistant. It can read the owner's sites and propose changes to them. It cannot change anything
-// itself: a proposal is saved, and the owner approves it before it goes live (see controllers/assistantController.js).
+// The account assistant. It can read the owner's sites and propose changes to them. It cannot change a site itself:
+// a proposal is saved, and the owner approves it before it goes live (see controllers/assistantController.js).
+// It can change the owner's logo draft directly, because the draft is private until it is used on a site.
 const prisma = require('./prisma');
 const { getAnthropic } = require('./anthropic');
 const { WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('./websiteEdits');
 const { runToolLoop } = require('./agentLoop');
 const { revisePage } = require('./pageGenerator');
 const { fillStockPhotos } = require('./stockPhotos');
+const { cleanLogo } = require('./logoSpec');
+const { designLogo, latestLogoBuild } = require('./logoDesign');
 
 const MODEL = 'claude-sonnet-5-5';
 // The assistant remembers the conversation for seven days. A cap stops the stored history growing without limit.
@@ -16,7 +19,8 @@ const SITE_JSON_LIMIT = 12000;
 
 const SYSTEM = `You are the assistant inside Venture-Pro, helping a small business owner run their websites. Answer clearly and briefly, in British English. Use the tools to look at the owner's sites.
 When the owner describes a business idea, help them shape it: ask what they sell, who it is for, where it is and how prices work, then summarise the idea and what a simple plan would include. Suggest next steps in this order: website, online booking, card payments, own domain. Explain each step in plain words and ask before doing it. You cannot create a website, booking system or payment account yourself, so point the owner to the right page when they want one.
-You cannot change a site directly. When the owner asks for a change, call propose_site_change with the site id and a clear description of the change. The change is saved as a proposal that the owner approves before it goes live, so tell them that in your reply. Never invent facts about the business, its prices, reviews or clients.`;
+You cannot change a site directly. When the owner asks for a change, call propose_site_change with the site id and a clear description of the change. The change is saved as a proposal that the owner approves before it goes live, so tell them that in your reply. Never invent facts about the business, its prices, reviews or clients.
+For the logo, call change_logo with the change in plain words. The logo is a private draft until the owner uses it on a website, so it changes straight away; say what you changed. You cannot create a logo from chat: if the owner has none yet, point them to the Logo Builder page.`;
 
 const EDIT_SYSTEM = `You change one website for a small business. You are given the current website as JSON. Make the change the owner asked for and nothing else. Keep the design unless asked to change it. Call reply_to_user with one or two plain sentences saying what you changed.`;
 
@@ -39,6 +43,11 @@ const TOOLS = [
       properties: { siteId: { type: 'string' }, instruction: { type: 'string' } },
       required: ['siteId', 'instruction'],
     },
+  },
+  {
+    name: 'change_logo',
+    description: "Change the owner's logo draft (from the Logo Builder page): its icon, shapes, font, colours, layout, background or capitals. Describe the change in plain words. The business name stays as it is.",
+    input_schema: { type: 'object', properties: { instruction: { type: 'string' } }, required: ['instruction'] },
   },
 ];
 
@@ -97,11 +106,23 @@ const proposeChange = async (userId, site, instruction) => {
   return saveProposal(userId, site, working, outcome.reply || outcome.actions.join('; '));
 };
 
-const runTool = async (userId, name, input) => {
+// `changes` records what was changed during this turn, so the page showing it can refresh.
+const runTool = async (userId, name, input, changes) => {
   if (name === 'list_sites') {
     const sites = await prisma.site.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' }, select: { id: true, title: true, slug: true, content: true } });
     if (sites.length === 0) return 'This account has no websites yet.';
     return JSON.stringify(sites.map((site) => ({ id: site.id, title: site.title, address: `${site.slug}.venture-pro.io`, format: site.content?.format || 'sections' })));
+  }
+  if (name === 'change_logo') {
+    const instruction = String(input.instruction || '').trim().slice(0, 400);
+    if (!instruction) return 'Ask the owner what to change on the logo.';
+    const build = await latestLogoBuild(userId);
+    if (!build) return 'The owner has no logo yet. Ask them to design one on the Logo Builder page first.';
+    const current = cleanLogo(build.state);
+    if (!current.name) return 'The logo has no business name yet. Ask the owner to enter it on the Logo Builder page.';
+    const outcome = await designLogo({ userId, name: current.name, instruction, buildId: build.id });
+    changes.logo = true;
+    return `Changed the logo: ${outcome.reply}`;
   }
   const site = await ownedSite(userId, input.siteId);
   if (!site) return 'No website with that id belongs to this account.';
@@ -129,7 +150,7 @@ const contentFor = (message, attachments) => {
 
 // Answers one message. `history` is the earlier conversation as plain text turns. `attachments` are files the owner
 // attached, prepared by lib/fileText.js: { name, kind, type, data, text }.
-const runTurn = async ({ userId, message, history, attachments = [] }) => {
+const runTurn = async ({ userId, message, history, attachments = [], changes = {} }) => {
   const messages = [...history.map((turn) => ({ role: turn.role, content: turn.text })), { role: 'user', content: contentFor(message, attachments) }];
   let reply = '';
 
@@ -146,7 +167,7 @@ const runTurn = async ({ userId, message, history, attachments = [] }) => {
     for (const call of calls) {
       let text;
       try {
-        text = await runTool(userId, call.name, call.input || {});
+        text = await runTool(userId, call.name, call.input || {}, changes);
       } catch (error) {
         console.error(`Assistant tool ${call.name} failed:`, error.message);
         text = 'That step failed. Tell the owner and ask them to try again.';

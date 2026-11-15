@@ -48,7 +48,8 @@ const postMessage = async (req, res) => {
     const history = storedMessages(thread);
     const startedAt = new Date();
 
-    const reply = await runTurn({ userId, message, history, attachments: prepared });
+    const changes = {};
+    const reply = await runTurn({ userId, message, history, attachments: prepared, changes });
 
     // The conversation keeps the names of attached files, not their contents.
     const note = files.length ? `${message ? ' ' : ''}[Attached: ${files.map((file) => file.name).join(', ')}]` : '';
@@ -65,7 +66,7 @@ const postMessage = async (req, res) => {
       orderBy: { createdAt: 'asc' },
       select: { id: true, siteId: true, summary: true },
     });
-    res.json({ reply, proposals });
+    res.json({ reply, proposals, logoChanged: Boolean(changes.logo) });
   } catch (error) {
     if (error.expose) return res.status(error.status).json({ error: error.message });
     console.error('Assistant message error:', error);

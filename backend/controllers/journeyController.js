@@ -1,5 +1,5 @@
 // The guided journey: idea and plan, then website, then booking, then payments.
-// Each step's status is worked out from the owner's data, so the Start here page always matches what is done.
+// Each step's status is worked out from the owner's data, so the Progress page always matches what is done.
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
 
