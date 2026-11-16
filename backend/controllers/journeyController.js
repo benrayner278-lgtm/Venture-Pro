@@ -3,6 +3,17 @@
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
 
+// Counts the owner's ready mailboxes. If the mailbox table is missing (db push not yet run), the rest of the
+// Progress page still loads: the email step shows as not done, and the error is logged.
+const readyMailboxes = async (userId) => {
+  try {
+    return await prisma.mailbox.count({ where: { userId, status: 'ready' } });
+  } catch (error) {
+    console.error('Count mailboxes failed (has prisma db push run?):', error.message);
+    return 0;
+  }
+};
+
 const getJourney = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
@@ -10,7 +21,7 @@ const getJourney = async (req, res) => {
     const [thread, sites, mailboxCount] = await Promise.all([
       prisma.assistantThread.findUnique({ where: { userId: user.id }, select: { messages: true } }),
       prisma.site.findMany({ where: { userId: user.id }, select: { id: true, bookingSettings: true, customDomainVerifiedAt: true } }),
-      prisma.mailbox.count({ where: { userId: user.id, status: 'ready' } }),
+      readyMailboxes(user.id),
     ]);
     const plan = PLANS[planKey(user.plan)];
 
