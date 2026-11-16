@@ -518,7 +518,7 @@ export default function WebsiteBuilderPage() {
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Assistant</p>
                   <p className="text-xs text-gray-500 mb-3">The same assistant as Chat. Ask for a change, and approve it before it goes live.</p>
                   <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] h-[520px] overflow-hidden">
-                    <AssistantChat compact onApplied={refreshFromLive} />
+                    <AssistantChat compact context="Website Builder" onApplied={refreshFromLive} />
                   </div>
                 </div>
               </div>

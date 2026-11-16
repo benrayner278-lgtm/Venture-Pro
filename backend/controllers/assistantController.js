@@ -25,6 +25,10 @@ const cleanAttachments = (input) => {
   return { files };
 };
 
+// The page the owner is on, such as "Website Builder". Older messages without one were sent from Chat.
+const CONTEXT_LIMIT = 40;
+const cleanContext = (value) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, CONTEXT_LIMIT) : 'Chat');
+
 // The messages from the last seven days, oldest first.
 const storedMessages = (thread) => {
   const cutoff = Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000;
@@ -49,12 +53,17 @@ const postMessage = async (req, res) => {
     const startedAt = new Date();
 
     const changes = {};
-    const reply = await runTurn({ userId, message, history, attachments: prepared, changes });
+    const context = cleanContext(req.body?.context);
+    const reply = await runTurn({ userId, message, history, attachments: prepared, changes, context });
 
-    // The conversation keeps the names of attached files, not their contents.
+    // The conversation keeps the names of attached files, not their contents. Each message is tagged with its page.
     const note = files.length ? `${message ? ' ' : ''}[Attached: ${files.map((file) => file.name).join(', ')}]` : '';
     const now = new Date().toISOString();
-    const messages = [...history, { role: 'user', text: `${message}${note}`, at: now }, { role: 'assistant', text: reply, at: now }].slice(-HISTORY_CAP);
+    const messages = [
+      ...history,
+      { role: 'user', text: `${message}${note}`, at: now, context },
+      { role: 'assistant', text: reply, at: now, context },
+    ].slice(-HISTORY_CAP);
     await prisma.assistantThread.upsert({
       where: { userId },
       create: { userId, messages },

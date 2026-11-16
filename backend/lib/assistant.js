@@ -150,12 +150,18 @@ const contentFor = (message, attachments) => {
 
 // Answers one message. `history` is the earlier conversation as plain text turns. `attachments` are files the owner
 // attached, prepared by lib/fileText.js: { name, kind, type, data, text }.
-const runTurn = async ({ userId, message, history, attachments = [], changes = {} }) => {
-  const messages = [...history.map((turn) => ({ role: turn.role, content: turn.text })), { role: 'user', content: contentFor(message, attachments) }];
+const runTurn = async ({ userId, message, history, attachments = [], changes = {}, context = 'Chat' }) => {
+  // Each owner message is tagged with the page it was sent from, so the assistant knows where earlier talk happened.
+  const earlier = history.map((turn) => ({
+    role: turn.role,
+    content: turn.role === 'user' ? `[${turn.context || 'Chat'}] ${turn.text}` : turn.text,
+  }));
+  const messages = [...earlier, { role: 'user', content: contentFor(message, attachments) }];
+  const system = `${SYSTEM}\nThe owner is on the ${context} page now. Messages from other pages are tagged in square brackets. Use them, so the owner does not have to repeat themselves.`;
   let reply = '';
 
   for (let step = 0; step < MAX_STEPS && !reply; step++) {
-    const response = await getAnthropic().messages.create({ model: MODEL, max_tokens: 4000, system: SYSTEM, tools: TOOLS, messages });
+    const response = await getAnthropic().messages.create({ model: MODEL, max_tokens: 4000, system, tools: TOOLS, messages });
     messages.push({ role: 'assistant', content: response.content });
 
     const calls = response.content.filter((block) => block.type === 'tool_use');
