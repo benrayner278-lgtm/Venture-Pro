@@ -22,7 +22,12 @@ const fetchSite = async (request, path) => {
   try {
     upstream = await fetch(`${ORIGIN}${path}`, {
       method: request.method,
-      headers: { Accept: 'text/html' },
+      // The visitor's own address and browser, so the backend can count unique visitors.
+      headers: {
+        Accept: 'text/html',
+        'User-Agent': request.headers.get('User-Agent') || '',
+        'CF-Connecting-IP': request.headers.get('CF-Connecting-IP') || '',
+      },
       cf: { cacheTtl: 60, cacheEverything: true },
     });
   } catch (error) {

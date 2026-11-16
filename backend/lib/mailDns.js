@@ -39,9 +39,22 @@ const flattenRecords = (domain, records) => {
   return list.map((record) => ({ ...record, name: fullName(domain, record.name) }));
 };
 
+// A name that has mail records (MX, TXT) but no web record stops answering the wildcard for the web.
+// The site's address is that name, so this adds a proxied placeholder that the Worker route answers for.
+const ensureWebRecord = async (domain) => {
+  const existing = await cfRequest(`/dns_records?name=${encodeURIComponent(domain)}&per_page=100`);
+  if (existing.some((item) => item.type === 'A' || item.type === 'AAAA' || item.type === 'CNAME')) return 0;
+  await cfRequest('/dns_records', {
+    method: 'POST',
+    body: JSON.stringify({ type: 'A', name: domain, content: '192.0.2.1', ttl: 1, proxied: true }),
+  });
+  return 1;
+};
+
 // Adds each record unless the same record already exists.
 const writeRecords = async (domain, records) => {
   let added = 0;
+  added += await ensureWebRecord(domain);
   for (const record of flattenRecords(domain, records)) {
     const existing = await cfRequest(`/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}&per_page=100`);
     if (existing.some((item) => normalise(item.content) === normalise(record.content))) continue;

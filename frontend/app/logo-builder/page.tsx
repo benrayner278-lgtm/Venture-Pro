@@ -186,10 +186,14 @@ export default function LogoBuilderPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-96 shrink-0 space-y-6">
+              <div className="space-y-2">
+                <label className={labelClass}>Business name</label>
+                <input className={inputClass} value={settings.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Principle Engineering" />
+                <p className="text-xs text-gray-500">Change it any time. The logo and your site's tab icon use this name.</p>
+              </div>
+
               {!hasDraft ? (
                 <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 space-y-3">
-                  <label className={labelClass}>Business name</label>
-                  <input className={inputClass} value={settings.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Principle Engineering" />
                   <label className={labelClass}>Describe your business</label>
                   <textarea
                     className={`${inputClass} w-full resize-none h-24`}
