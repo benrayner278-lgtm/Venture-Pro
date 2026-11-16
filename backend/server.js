@@ -51,6 +51,7 @@ app.use('/api/connect', connectRoutes);
 app.use('/api/assistant', assistantRoutes);
 app.use('/api/logo', logoRoutes);
 app.use('/api/journey', require('./routes/journey'));
+app.use('/api/mailboxes', require('./routes/mailboxes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

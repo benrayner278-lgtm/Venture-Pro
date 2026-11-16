@@ -46,7 +46,7 @@ export default function StartPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
           <h1 className="text-base font-semibold text-white tracking-tight">Progress</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Four steps from your idea to a business that takes bookings and payments.</p>
+          <p className="text-xs text-gray-500 mt-0.5">A step-by-step guide from your idea to a business that takes bookings and payments.</p>
         </div>
 
         <div className="p-4 md:p-8 max-w-3xl space-y-6">

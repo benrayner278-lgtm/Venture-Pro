@@ -30,6 +30,7 @@ model User {
   builds     BuilderProject[]
   assistantThread    AssistantThread?
   assistantProposals AssistantProposal[]
+  mailboxes  Mailbox[]
   @@map("users")
 }
 
@@ -76,6 +77,7 @@ model Site {
   // The website builder project this site was published from, so the builder can find the live site again.
   buildId String?
   bookingSettings Json?
+  mailboxes       Mailbox[]
   // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
   shopItems Json?
   // The owner's own domain, such as www.yourbusiness.com. It is served only after the DNS checks pass.
@@ -198,4 +200,21 @@ model AssistantProposal {
 
   @@index([userId, status])
   @@map("assistant_proposals")
+}
+
+// A business email address on one of the owner's sites, such as hello@sophia.venture-pro.io. Hosted by Migadu.
+model Mailbox {
+  id        String   @id @default(uuid())
+  userId    String
+  siteId    String
+  localPart String
+  address   String   @unique
+  status    String   @default("setting_up") // setting_up (DNS or Migadu not ready yet), ready
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mailboxes")
 }
