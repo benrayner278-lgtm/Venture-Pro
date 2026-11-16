@@ -132,7 +132,8 @@ export default function WebsiteBuilderPage() {
       setContent({ ...result.content, contact, portfolio, style });
     } catch (error) {
       console.error('Error applying change:', error);
-      alert('That change could not be applied. Please try again.');
+      const reason = error instanceof Error && error.message ? ` ${error.message}` : '';
+      alert(`That change could not be applied.${reason} Please try again.`);
     } finally {
       setTweaking(false);
     }

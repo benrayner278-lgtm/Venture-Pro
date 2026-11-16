@@ -39,7 +39,12 @@ export function ContactEditor({ value, onChange }: { value: ContactDetails; onCh
   );
 }
 
-const photoTitle = (fileName: string) => fileName.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim().slice(0, 80) || 'Photo';
+// File names such as "Screenshot 2026-11-02" or "IMG_0412" are not titles, so those become "Project".
+const GENERIC_NAME = /^(screenshot|img|image|photo|dsc|pxl|whatsapp image)(\s|\d|[.:-]|at|am|pm)*$/i;
+const photoTitle = (fileName: string) => {
+  const title = fileName.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim().slice(0, 80);
+  return !title || GENERIC_NAME.test(title) ? 'Project' : title;
+};
 
 export function PortfolioEditor({ value, onChange }: { value: Portfolio; onChange: (next: Portfolio) => void }) {
   const [message, setMessage] = useState('');
