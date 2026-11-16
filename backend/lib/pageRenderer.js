@@ -3,6 +3,7 @@
 const { FONTS, googleFontsLink } = require('./styleOptions');
 const { contrast } = require('./designBrief');
 const { sanitizeBody, sanitizeCss } = require('./pageSanitizer');
+const { faviconLink } = require('./logoRender');
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const PHOTO = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
@@ -57,6 +58,7 @@ const renderDocument = ({ brand, palette, fonts, html, css }) => {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${name}</title>
+${faviconLink(brand?.logo)}
 ${googleFontsLink({ headingFont, bodyFont })}
 <style>
 :root{${variables}--font-heading:${FONTS[headingFont].family};--font-body:${FONTS[bodyFont].family}}

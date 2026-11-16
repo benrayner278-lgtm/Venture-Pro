@@ -1,5 +1,6 @@
 const { Resvg } = require('@resvg/resvg-js');
-const { buildLogoSvg, fontFiles, LOGO_WIDTH } = require('./logoDraw');
+const { buildLogoSvg, buildMarkSvg, fontFiles, LOGO_WIDTH } = require('./logoDraw');
+const { cleanLogo } = require('./logoSpec');
 
 let files;
 
@@ -32,4 +33,25 @@ const renderLogoHeaderPng = (settings) => {
   return png;
 };
 
-module.exports = { renderLogoPng, renderLogoHeaderPng };
+// The browser tab icon for a site: the logo's mark as a small PNG, in a <link> tag. Returns '' when there is no mark.
+const faviconCache = new Map();
+const faviconLink = (logo) => {
+  if (!logo || typeof logo !== 'object') return '';
+  try {
+    const spec = cleanLogo(logo);
+    const key = JSON.stringify(spec);
+    if (!faviconCache.has(key)) {
+      const svg = buildMarkSvg(spec);
+      const png = svg ? new Resvg(svg, { fitTo: { mode: 'width', value: 64 } }).render().asPng().toString('base64') : null;
+      if (faviconCache.size > 300) faviconCache.clear();
+      faviconCache.set(key, png);
+    }
+    const png = faviconCache.get(key);
+    return png ? `<link rel="icon" type="image/png" href="data:image/png;base64,${png}">` : '';
+  } catch (error) {
+    console.error('Tab icon error:', error);
+    return '';
+  }
+};
+
+module.exports = { renderLogoPng, renderLogoHeaderPng, faviconLink };

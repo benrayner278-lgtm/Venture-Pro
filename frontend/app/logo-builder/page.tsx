@@ -152,7 +152,11 @@ export default function LogoBuilderPage() {
       const response = await apiFetch(`/api/sites/${siteId}/logo`, { method: 'PUT', json: { logo: { ...settings, name: businessName } } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save the logo');
-      setAttachMessage('Saved. The logo now shows top left on that site.');
+      setAttachMessage(
+        data.headerLogo === false
+          ? 'Saved. The logo is now the browser tab icon for that site. Custom layout sites have no header logo.'
+          : 'Saved. The logo now shows top left on that site, and as the browser tab icon.',
+      );
     } catch (err) {
       setAttachMessage(err instanceof Error ? err.message : 'Could not save the logo');
     } finally {
@@ -412,7 +416,7 @@ export default function LogoBuilderPage() {
               <div className="border-t border-white/10 pt-4 space-y-2">
                 <p className="text-sm text-gray-200 font-medium">Show on my website</p>
                 {sites.length === 0 ? (
-                  <p className="text-xs text-gray-500">Build a website first, then it will appear here. The logo shows top left in the site header.</p>
+                  <p className="text-xs text-gray-500">Build a website first, then it will appear here. The logo shows top left in the site header and as the browser tab icon.</p>
                 ) : (
                   <>
                     <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className="w-full bg-white/5 border border-white/10 text-gray-200 rounded-xl px-3 py-2 text-sm">

@@ -140,4 +140,15 @@ const buildLogoSvg = (settings, options = {}) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}">${background}${body}</svg>`;
 };
 
-module.exports = { buildLogoSvg, fontFiles, LOGO_WIDTH, LOGO_HEIGHT };
+// The icon alone on a solid square, for the browser tab. Returns null when the logo has no icon.
+const buildMarkSvg = (settings, size = 64) => {
+  const hasCustom = settings.icon === 'custom' && Array.isArray(settings.shapes) && settings.shapes.length > 0;
+  const inner = hasCustom
+    ? settings.shapes.map((shape) => shapeMarkup(shape, settings.accent)).join('')
+    : ICON_SHAPES[settings.icon] || '';
+  if (!inner) return null;
+  const tile = settings.background === 'dark' ? '#0b0b10' : settings.background === 'custom' ? settings.customBackground || '#ffffff' : '#ffffff';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="${tile}"/><g transform="translate(18 18) scale(0.64)" fill="${settings.accent}">${inner}</g></svg>`;
+};
+
+module.exports = { buildLogoSvg, buildMarkSvg, fontFiles, LOGO_WIDTH, LOGO_HEIGHT };
