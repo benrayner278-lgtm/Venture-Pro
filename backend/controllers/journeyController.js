@@ -1,4 +1,4 @@
-// The guided journey: idea and plan, then website, then booking, then payments.
+// The guided journey: idea and plan, then website, then email, then domain, booking and payments.
 // Each step's status is worked out from the owner's data, so the Progress page always matches what is done.
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
@@ -7,9 +7,10 @@ const getJourney = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const [thread, sites] = await Promise.all([
+    const [thread, sites, mailboxCount] = await Promise.all([
       prisma.assistantThread.findUnique({ where: { userId: user.id }, select: { messages: true } }),
       prisma.site.findMany({ where: { userId: user.id }, select: { id: true, bookingSettings: true, customDomainVerifiedAt: true } }),
+      prisma.mailbox.count({ where: { userId: user.id, status: 'ready' } }),
     ]);
     const plan = PLANS[planKey(user.plan)];
 
@@ -34,6 +35,16 @@ const getJourney = async (req, res) => {
         done: sites.length > 0,
         href: '/website-builder',
         action: sites.length > 0 ? 'Open your website' : 'Build my website',
+      },
+      {
+        key: 'email',
+        title: 'Set up your email address',
+        description: 'Create a business address such as hello@yourbusiness.venture-pro.io. You choose the name and confirm it yourself.',
+        done: mailboxCount > 0,
+        allowed: plan.mailboxes > 0,
+        requiredPlan: 'Standard',
+        href: plan.mailboxes > 0 ? '/email' : '/billing?needs=email',
+        action: plan.mailboxes < 1 ? 'Unlock with a paid plan' : mailboxCount > 0 ? 'Manage email' : 'Create my email address',
       },
       {
         key: 'domain',

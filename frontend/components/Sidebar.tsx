@@ -63,6 +63,7 @@ export default function Sidebar() {
     { href: '/progress', label: 'Progress', icon: 'flag' },
     { href: '/dashboard', label: 'Chat', icon: 'chat' },
     { href: '/website-builder', label: 'Website Builder', icon: 'web' },
+    { href: '/email', label: 'Email', icon: 'mail' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },
     { href: '/shop', label: 'Shop', icon: 'web' },
     { href: '/settings', label: 'Payments & Settings', icon: 'settings' },
