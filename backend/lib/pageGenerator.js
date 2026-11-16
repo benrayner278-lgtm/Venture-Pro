@@ -90,6 +90,12 @@ const createPage = async ({ briefText, kitText, images = [] }) => {
 
 // Changes an existing page as a whole, keeping what the owner did not ask about.
 const revisePage = async ({ current, instruction, briefText, kitText, history, images = [] }) => {
+  // The photos' bytes are not sent to the AI. It only needs the keys, and the server keeps the photos as they are.
+  const outline = {
+    ...current,
+    images: Object.fromEntries(Object.keys(current.images || {}).map((key) => [key, 'uploaded photo'])),
+    stock: Object.fromEntries(Object.keys(current.stock || {}).map((key) => [key, 'stock photo'])),
+  };
   const userText = `${briefText}
 
 Brand kit:
@@ -101,7 +107,7 @@ ${history}
 ${imageList(images)}
 
 Current page as JSON:
-${JSON.stringify(current)}
+${JSON.stringify(outline)}
 
 Change request: ${instruction}
 
