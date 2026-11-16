@@ -4,35 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import AssistantChat from '@/components/AssistantChat';
-import {
-  DEFAULT_LOGO,
-  LOGO_FONTS,
-  LOGO_ICONS,
-  LOGO_PALETTES,
-  LogoBackground,
-  LogoLayout,
-  LogoSettings,
-  buildLogoSvg,
-  logoDataUri,
-} from '@/lib/logoSvg';
-import { LOGO_PRESETS, LogoPreset } from '@/lib/logoPresets';
+import { DEFAULT_LOGO, LOGO_FONTS, LogoSettings, buildLogoSvg, logoDataUri } from '@/lib/logoSvg';
 
 const inputClass =
   'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
 const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
-
-const LAYOUTS: { value: LogoLayout; label: string }[] = [
-  { value: 'side', label: 'Side by side' },
-  { value: 'stacked', label: 'Stacked' },
-  { value: 'wordmark', label: 'Name only' },
-];
-
-const BACKGROUNDS: { value: LogoBackground; label: string }[] = [
-  { value: 'light', label: 'White' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'transparent', label: 'Transparent' },
-  { value: 'custom', label: 'Custom' },
-];
 
 // Loads every logo font once, so the preview shows the real typefaces.
 const loadLogoFonts = () => {
@@ -45,8 +21,8 @@ const loadLogoFonts = () => {
 };
 
 export default function LogoBuilderPage() {
+  // The logo's look is changed through the assistant. The form only holds the business name and tagline.
   const [settings, setSettings] = useState<LogoSettings>({ ...DEFAULT_LOGO });
-  const [presetId, setPresetId] = useState(LOGO_PRESETS[0].id);
 
   useEffect(() => {
     loadLogoFonts();
@@ -166,7 +142,6 @@ export default function LogoBuilderPage() {
 
   const svg = useMemo(() => buildLogoSvg(settings), [settings]);
   const set = (patch: Partial<LogoSettings>) => setSettings((current) => ({ ...current, ...patch }));
-  const preset = LOGO_PRESETS.find((item) => item.id === presetId) || LOGO_PRESETS[0];
   const businessName = settings.name.trim();
 
   // Designs the first logo from the description. The business name always comes from the user, and the server keeps it.
@@ -186,20 +161,6 @@ export default function LogoBuilderPage() {
     } finally {
       setDrafting(false);
     }
-  };
-
-  // Applies a style preset. The business name and tagline stay as they are.
-  const applyPreset = (item: LogoPreset) => {
-    set({
-      icon: 'custom',
-      shapes: item.shapes,
-      layout: item.layout,
-      font: item.font,
-      primary: item.primary,
-      accent: item.accent,
-      background: item.background,
-      uppercase: item.uppercase,
-    });
   };
 
   const download = () => {
@@ -283,132 +244,6 @@ export default function LogoBuilderPage() {
                 <label className={labelClass}>Tagline (optional)</label>
                 <input className={inputClass} value={settings.tagline} maxLength={80} onChange={(e) => set({ tagline: e.target.value })} placeholder="e.g. Storage made simple" />
               </div>
-
-              <div>
-                <label className={labelClass}>Style presets</label>
-                <select className={inputClass} value={presetId} onChange={(e) => setPresetId(e.target.value)}>
-                  {LOGO_PRESETS.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-3 rounded-xl border border-white/10 p-4 space-y-2">
-                  <p className="text-sm text-gray-200">{preset.description}</p>
-                  <p className="text-xs text-gray-500">Works well for: {preset.worksFor.join(', ')}</p>
-                  <button type="button" onClick={() => applyPreset(preset)} className="mt-1 border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2 rounded-xl text-sm font-medium transition">
-                    Use this style
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Icon</label>
-                <div className="grid grid-cols-6 gap-2">
-                  {LOGO_ICONS.map((icon) => (
-                    <button
-                      key={icon.key}
-                      type="button"
-                      title={icon.label}
-                      onClick={() => set({ icon: icon.key, shapes: [] })}
-                      className={`aspect-square rounded-xl border p-2 transition ${
-                        settings.icon === icon.key ? 'border-white bg-white/10' : 'border-white/10 hover:bg-white/5'
-                      }`}
-                    >
-                      <svg viewBox="0 0 100 100" className="w-full h-full" fill="#e5e7eb" aria-label={icon.label} dangerouslySetInnerHTML={{ __html: icon.shape }} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Layout</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {LAYOUTS.map((layout) => (
-                    <button
-                      key={layout.value}
-                      type="button"
-                      onClick={() => set({ layout: layout.value })}
-                      className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition ${
-                        settings.layout === layout.value ? 'bg-white text-black border-white' : 'border-white/10 text-gray-300 hover:bg-white/5'
-                      }`}
-                    >
-                      {layout.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Font</label>
-                <select className={inputClass} value={settings.font} onChange={(e) => set({ font: e.target.value })}>
-                  {LOGO_FONTS.map((font) => (
-                    <option key={font.key} value={font.key}>
-                      {font.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelClass}>Colours</label>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {LOGO_PALETTES.map((palette) => (
-                    <button
-                      key={palette.name}
-                      type="button"
-                      title={palette.name}
-                      onClick={() => set({ primary: palette.primary, accent: palette.accent })}
-                      className="w-9 h-9 rounded-full border border-white/15"
-                      style={{ background: `linear-gradient(135deg, ${palette.primary} 50%, ${palette.accent} 50%)` }}
-                    />
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-2">Text</label>
-                    <input type="color" value={settings.primary} onChange={(e) => set({ primary: e.target.value })} className="h-11 w-full rounded-xl border border-white/10 bg-transparent" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-2">Icon</label>
-                    <input type="color" value={settings.accent} onChange={(e) => set({ accent: e.target.value })} className="h-11 w-full rounded-xl border border-white/10 bg-transparent" />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Background</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {BACKGROUNDS.map((background) => (
-                    <button
-                      key={background.value}
-                      type="button"
-                      onClick={() => set({ background: background.value })}
-                      className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition ${
-                        settings.background === background.value ? 'bg-white text-black border-white' : 'border-white/10 text-gray-300 hover:bg-white/5'
-                      }`}
-                    >
-                      {background.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {settings.background === 'custom' && (
-                <div className="mt-3 flex items-center gap-3">
-                  <label className={labelClass}>Background colour</label>
-                  <input
-                    type="color"
-                    value={settings.customBackground || '#ffffff'}
-                    onChange={(e) => set({ customBackground: e.target.value })}
-                    className="h-9 w-14 rounded-lg bg-transparent cursor-pointer"
-                  />
-                </div>
-              )}
-
-              <label className="flex items-center gap-3 text-sm text-gray-200">
-                <input type="checkbox" checked={settings.uppercase} onChange={(e) => set({ uppercase: e.target.checked })} className="h-4 w-4 accent-white" />
-                Capitals for the name
-              </label>
 
               <button type="button" onClick={download} className="w-full bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
                 Download logo (SVG)
