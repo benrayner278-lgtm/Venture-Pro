@@ -23,7 +23,8 @@ const RESERVED_SLUGS = new Set([
   'www', 'api', 'app', 'admin', 'mail', 'support', 'help', 'blog', 'static', 'cdn', 'ftp',
   'dashboard', 'login', 'signup', 'billing', 'status', 'docs', 'account', 'settings',
 ]);
-const MAX_CONTENT_BYTES = 4 * 1024 * 1024;
+// Up to 8 page photos and 8 portfolio photos, at up to 400 KB each, plus the text. Stays under the 12 MB request limit.
+const MAX_CONTENT_BYTES = 10 * 1024 * 1024;
 const MAX_DESIGN_TRIES = 25;
 const MAX_PHOTOS = 8;
 // Photos are stored inside the site content as small JPEGs. The frontend resizes them to fit.
