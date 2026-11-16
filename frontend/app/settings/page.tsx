@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch, clearSession } from '@/lib/api';
+import { ContactEditor } from '@/components/SiteDetailsEditor';
+import type { ContactDetails } from '@/lib/websiteTemplates';
 
 type Account = {
   id: string;
@@ -12,6 +14,7 @@ type Account = {
   plan: string;
   subscriptionStatus: string;
   createdAt: string;
+  contact?: ContactDetails;
 };
 
 const PLAN_NAMES: Record<string, string> = {
@@ -84,6 +87,44 @@ function ProfileSection({ account, onSaved }: { account: Account; onSaved: (acco
         </button>
       </form>
     </section>
+  );
+}
+
+// The owner's business contact details. New sites start with these, and each site can change them.
+function ContactSection({ account, onSaved }: { account: Account; onSaved: (account: Account) => void }) {
+  const [contact, setContact] = useState<ContactDetails>(account.contact || {});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setSaving(true);
+    setMessage('');
+    setError('');
+    try {
+      const response = await apiFetch('/api/auth/contact', { method: 'PUT', json: { contact } });
+      if (!response.ok) throw new Error(await readError(response, 'Could not save your contact details'));
+      const data = await response.json();
+      onSaved(data.user);
+      setMessage('Saved. New sites start with these details.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your contact details');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={cardClass}>
+      <ContactEditor value={contact} onChange={setContact} />
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        <button type="button" onClick={save} disabled={saving} className={buttonClass}>
+          {saving ? 'Saving...' : 'Save contact details'}
+        </button>
+        {message && <p className="text-sm text-emerald-400">{message}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
+      </div>
+    </div>
   );
 }
 
@@ -353,6 +394,7 @@ export default function SettingsPage() {
           {account && (
             <div className="max-w-2xl space-y-6">
               <ProfileSection account={account} onSaved={setAccount} />
+              <ContactSection account={account} onSaved={setAccount} />
               <PasswordSection />
               <PlanSection account={account} />
               <PaymentsSection />

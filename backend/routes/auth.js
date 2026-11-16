@@ -1,6 +1,6 @@
 const express = require('express');
 const { signup, login } = require('../controllers/authController');
-const { getAccount, updateAccount, changePassword, deleteAccount } = require('../controllers/accountController');
+const { getAccount, updateAccount, updateContact, changePassword, deleteAccount } = require('../controllers/accountController');
 const { requestReset, resetPassword } = require('../controllers/passwordResetController');
 const { authLimiter } = require('../middleware/rateLimit');
 const auth = require('../middleware/auth');
@@ -13,6 +13,7 @@ router.post('/forgot', authLimiter, requestReset);
 router.post('/reset', authLimiter, resetPassword);
 router.get('/me', auth, getAccount);
 router.patch('/me', auth, updateAccount);
+router.put('/contact', auth, updateContact);
 router.delete('/me', auth, deleteAccount);
 router.post('/password', auth, authLimiter, changePassword);
 

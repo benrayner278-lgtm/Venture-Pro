@@ -11,7 +11,30 @@ const publicUser = (user) => ({
   plan: user.plan,
   subscriptionStatus: user.subscriptionStatus,
   createdAt: user.createdAt,
+  contact: user.contact || {},
 });
+
+// The business contact details. Each one is a short line of text; a blank line means it is not shown on the site.
+const CONTACT_FIELDS = { email: 120, phone: 40, address: 300, hours: 200 };
+const cleanContact = (value) => {
+  if (!value || typeof value !== 'object') return null;
+  return Object.fromEntries(
+    Object.entries(CONTACT_FIELDS).map(([key, max]) => [key, String(value[key] ?? '').trim().slice(0, max)]),
+  );
+};
+
+const updateContact = async (req, res) => {
+  try {
+    const contact = cleanContact(req.body?.contact);
+    if (!contact) return res.status(400).json({ error: 'Enter your contact details' });
+    if (contact.email && !EMAIL_RE.test(contact.email)) return res.status(400).json({ error: 'Please enter a valid contact email address' });
+    const user = await prisma.user.update({ where: { id: req.userId }, data: { contact } });
+    res.json({ user: publicUser(user) });
+  } catch (error) {
+    console.error('Update contact error:', error);
+    res.status(500).json({ error: 'Could not save your contact details' });
+  }
+};
 
 const findCaller = (req) => prisma.user.findUnique({ where: { id: req.userId } });
 
@@ -103,4 +126,4 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-module.exports = { getAccount, updateAccount, changePassword, deleteAccount };
+module.exports = { getAccount, updateAccount, updateContact, changePassword, deleteAccount };

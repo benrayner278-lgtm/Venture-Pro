@@ -97,12 +97,26 @@ export default function WebsiteBuilderPage() {
     return { content: data.content as WebsiteContent, buildId: (data.buildId as string) || null, reply: (data.reply as string) || '' };
   };
 
+  // A new site starts with the owner's saved contact details. The owner can change or blank them for this site.
+  const withSavedContact = async (site: WebsiteContent): Promise<WebsiteContent> => {
+    if (site.contact && Object.values(site.contact).some(Boolean)) return site;
+    try {
+      const response = await apiFetch('/api/auth/me');
+      if (!response.ok) return site;
+      const data = await response.json();
+      const saved = data.user?.contact;
+      return saved && Object.values(saved).some(Boolean) ? { ...site, contact: saved } : site;
+    } catch {
+      return site;
+    }
+  };
+
   const handleGenerateWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
     setStep('generating');
     try {
       const result = await requestContent({});
-      setContent(result.content);
+      setContent(await withSavedContact(result.content));
       setBuildId(result.buildId);
       setTweakReply(result.reply);
       setShuffle(randomLayoutSeed());
@@ -380,13 +394,9 @@ export default function WebsiteBuilderPage() {
                   <div className="space-y-1.5">
                     {(
                       [
-                        // Style and contact details are only drawn on section websites for now.
-                        ...(content.format !== 'page'
-                          ? [
-                              { id: 'style', label: 'Edit style and fonts' },
-                              { id: 'contact', label: 'Edit contact details' },
-                            ]
-                          : []),
+                        // Style is set in the design for page websites, so only section websites get the style tab.
+                        ...(content.format !== 'page' ? [{ id: 'style', label: 'Edit style and fonts' }] : []),
+                        { id: 'contact', label: 'Edit contact details' },
                         { id: 'portfolio', label: portfolioAllowed ? 'Edit portfolio and photos' : 'Edit portfolio and photos (Premium)' },
                       ] as { id: View; label: string }[]
                     ).map((tab) => (
