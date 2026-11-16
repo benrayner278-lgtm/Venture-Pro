@@ -218,3 +218,16 @@ model Mailbox {
   @@index([userId])
   @@map("mailboxes")
 }
+
+// One page view, for the analytics report. The visitor is a hash that changes every day, so no person is identified.
+model Visit {
+  id          String   @id @default(uuid())
+  visitorHash String
+  kind        String   // "site" (a published website) or "app" (the Venture-Pro app)
+  site        String?  // the site's address part, for "site" visits
+  path        String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("visits")
+}
