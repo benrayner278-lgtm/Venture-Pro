@@ -138,19 +138,29 @@ const generateWebsite = async (req, res) => {
       if (project.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
     }
 
-    if (!businessName || !tagline || !features || !callToAction) {
+    // A change to an existing website goes through the section tools, with the build's earlier requests as memory.
+    // A change does not resend the brief, so it reads the brief saved with the build.
+    const isChange = Boolean(instruction) && Boolean(currentContent || buildId);
+    if (!isChange && (!businessName || !tagline || !features || !callToAction)) {
       return res.status(400).json({ error: 'Business name, tagline, features and call to action are required' });
     }
 
-    const briefFields = { businessName, tagline, features, callToAction, requests: requests || '' };
-    const brief = `Business name: ${businessName}
-Tagline: ${tagline}
-What the business offers: ${features}
-Main call to action: ${callToAction}
-Specific requests: ${requests || 'none'}`;
+    const briefFieldsFrom = (fields) => ({
+      businessName: fields.businessName,
+      tagline: fields.tagline,
+      features: fields.features,
+      callToAction: fields.callToAction,
+      requests: fields.requests || '',
+    });
+    const briefTextFrom = (fields) => `Business name: ${fields.businessName}
+Tagline: ${fields.tagline}
+What the business offers: ${fields.features}
+Main call to action: ${fields.callToAction}
+Specific requests: ${fields.requests || 'none'}`;
 
-    // A change to an existing website goes through the section tools, with the build's earlier requests as memory.
-    const isChange = Boolean(instruction) && Boolean(currentContent || buildId);
+    let briefFields = briefFieldsFrom({ businessName, tagline, features, callToAction, requests });
+    let brief = briefTextFrom(briefFields);
+
     if (isChange) {
       const build = await openBuild({
         userId: req.userId,
@@ -159,6 +169,11 @@ Specific requests: ${requests || 'none'}`;
         brief: briefFields,
         state: currentContent ? (currentContent.format === 'page' ? cleanPageState(currentContent) : cleanSiteState(currentContent)) : undefined,
       });
+      // The saved brief is the one the site was built from, so the change keeps the same business details.
+      if (build.brief && build.brief.businessName) {
+        briefFields = briefFieldsFrom(build.brief);
+        brief = briefTextFrom(briefFields);
+      }
       if (build.state?.format === 'page') {
         const current = build.state;
         const { page } = await revisePage({
@@ -171,7 +186,7 @@ Specific requests: ${requests || 'none'}`;
         });
         const stock = await fillStockPhotos(page.body, current.stock);
         const content = { ...cleanPageState({ ...page, stock }), images: current.images };
-        const reply = `Updated the page for ${content.brand?.name || businessName}.`;
+        const reply = `Updated the page for ${content.brand?.name || briefFields.businessName}.`;
         await recordChange(build, { request: instruction, reply, actions: ['updated the page'], state: content });
         return res.json({ content, buildId: build.id, reply });
       }
