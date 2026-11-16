@@ -19,6 +19,7 @@ model User {
   // The business's Stripe Connect account, used to receive payments from its own customers.
   stripeAccountId      String?
   paymentsEnabled      Boolean  @default(false)
+  contact              Json?    // the owner's business contact details (email, phone, address, hours), used as the default for new sites
   resetTokenHash       String?  // SHA-256 of the emailed reset token; the token itself is never stored
   resetTokenExpiresAt  DateTime?
   createdAt            DateTime @default(now())
