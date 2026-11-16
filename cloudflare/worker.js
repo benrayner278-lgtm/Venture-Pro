@@ -38,9 +38,12 @@ const fetchSite = async (request, path) => {
     return notFound();
   }
 
+  // Browsers check with the site on every visit, so an update to the site shows at once. The copy at Cloudflare's edge is kept for 60 seconds.
+  const headers = new Headers(upstream.headers);
+  headers.set('Cache-Control', 'no-cache');
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers,
+    headers,
   });
 };
 
