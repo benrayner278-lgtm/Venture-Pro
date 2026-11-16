@@ -268,6 +268,7 @@ export default function LogoBuilderPage() {
                   <div className="h-[480px] overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04]">
                     <AssistantChat
                       compact
+                      context="Logo Builder"
                       hint='Ask for ideas or changes, such as "make the icon simpler" or "what colours suit a plumber?"'
                       onTurnComplete={({ logoChanged }) => {
                         if (logoChanged) loadDraft();

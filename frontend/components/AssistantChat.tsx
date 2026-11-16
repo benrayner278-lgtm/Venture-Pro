@@ -5,7 +5,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 
-type Turn = { role: 'user' | 'assistant'; text: string };
+// One message in the shared thread. `context` is the page it was sent from; older messages have none and were sent from Chat.
+type Turn = { role: 'user' | 'assistant'; text: string; at?: string; context?: string };
+type Conversation = { context: string; turns: Turn[] };
 type Proposal = { id: string; siteId: string; siteTitle: string; summary: string; status: string };
 type Attachment = { name: string; type: string; data: string };
 
@@ -23,14 +25,35 @@ const readFile = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+// A new conversation starts when the owner moves to another page, or after six quiet hours on the same page.
+const GAP_MS = 6 * 60 * 60 * 1000;
+const groupConversations = (turns: Turn[]): Conversation[] => {
+  const groups: Conversation[] = [];
+  for (const turn of turns) {
+    const context = turn.context || 'Chat';
+    const group = groups[groups.length - 1];
+    const last = group?.turns[group.turns.length - 1];
+    const gap = last?.at && turn.at ? Date.parse(turn.at) - Date.parse(last.at) : 0;
+    if (group && group.context === context && gap <= GAP_MS) group.turns.push(turn);
+    else groups.push({ context, turns: [turn] });
+  }
+  return groups;
+};
+
+const whenLabel = (at?: string) =>
+  at ? new Date(at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+
 export default function AssistantChat({
   title,
+  context = 'Chat',
   compact = false,
   hint = 'Try: "I want to start a dog grooming business in Bristol" or "Make the headline shorter on my main website."',
   onApplied,
   onTurnComplete,
 }: {
   title?: string;
+  // The page this chat is on, such as "Website Builder". The assistant remembers talk from every page.
+  context?: string;
   // Compact fills a card on another page. Full fills the whole page.
   compact?: boolean;
   // Shown before the first message.
@@ -99,12 +122,12 @@ export default function AssistantChat({
     setFiles([]);
     setError('');
     setSending(true);
-    setMessages((current) => [...current, { role: 'user', text: `${text}${note}` }]);
+    setMessages((current) => [...current, { role: 'user', text: `${text}${note}`, at: new Date().toISOString(), context }]);
     try {
-      const response = await apiFetch('/api/assistant/message', { method: 'POST', json: { message: text, attachments: sent } });
+      const response = await apiFetch('/api/assistant/message', { method: 'POST', json: { message: text, attachments: sent, context } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'The assistant could not answer');
-      setMessages((current) => [...current, { role: 'assistant', text: data.reply }]);
+      setMessages((current) => [...current, { role: 'assistant', text: data.reply, at: new Date().toISOString(), context }]);
       await loadProposals();
       onTurnComplete?.({ logoChanged: Boolean(data.logoChanged) });
     } catch (err) {
@@ -134,6 +157,12 @@ export default function AssistantChat({
   const pending = proposals.filter((proposal) => proposal.status === 'pending');
   const applied = proposals.filter((proposal) => proposal.status === 'applied');
 
+  // The main view shows this page's latest conversation. Everything else sits under Previous conversations.
+  const conversations = groupConversations(messages);
+  const current = [...conversations].reverse().find((conversation) => conversation.context === context);
+  const previous = conversations.filter((conversation) => conversation !== current).reverse();
+  const shown = current?.turns ?? [];
+
   return (
     <div className={compact ? 'flex flex-col h-full min-h-0 min-w-0' : 'flex flex-col min-w-0 h-[calc(100dvh-3.5rem)] md:h-screen'}>
       {/* A slim header: an optional title, and the approvals button, which opens a pop-out. */}
@@ -149,11 +178,43 @@ export default function AssistantChat({
         </button>
       </header>
 
+      {/* Collapsed by default. The owner can open earlier conversations from other pages; the assistant remembers them all. */}
+      {previous.length > 0 && (
+        <details className="group shrink-0 border-b border-white/[0.06] px-4 md:px-6 py-2.5">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-gray-400 hover:text-gray-200">
+            Previous conversations ({previous.length})
+            <span className="text-gray-500 transition group-open:rotate-180" aria-hidden="true">
+              ▾
+            </span>
+          </summary>
+          <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+            {previous.map((conversation, index) => (
+              <details key={index} className="rounded-lg border border-white/[0.06] px-3 py-2">
+                <summary className="cursor-pointer list-none text-xs text-gray-300">
+                  <span className="font-medium text-gray-100">{conversation.context}</span>
+                  <span className="text-gray-500">
+                    {' '}· {whenLabel(conversation.turns[0].at)} · {conversation.turns.length} {conversation.turns.length === 1 ? 'message' : 'messages'}
+                  </span>
+                </summary>
+                <div className="mt-2 space-y-2 text-xs leading-relaxed text-gray-400">
+                  {conversation.turns.map((turn, turnIndex) => (
+                    <p key={turnIndex} className="whitespace-pre-wrap">
+                      <span className="text-gray-500">{turn.role === 'user' ? 'You: ' : 'Assistant: '}</span>
+                      {turn.text}
+                    </p>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </details>
+      )}
+
       {/* The conversation. Newest messages are at the bottom; scroll up for earlier ones. */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
         <div className="max-w-2xl mx-auto space-y-4">
-          {messages.length === 0 && <p className="text-sm text-gray-500">{hint}</p>}
-          {messages.map((turn, index) =>
+          {shown.length === 0 && <p className="text-sm text-gray-500">{hint}</p>}
+          {shown.map((turn, index) =>
             turn.role === 'user' ? (
               <div key={index} className="flex justify-end">
                 <div className="max-w-[85%] rounded-2xl bg-white px-4 py-2.5 text-sm leading-relaxed text-black whitespace-pre-wrap">{turn.text}</div>
