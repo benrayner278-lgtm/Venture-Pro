@@ -69,7 +69,6 @@ export default function Sidebar() {
     { href: '/settings', label: 'Payments & Settings', icon: 'settings' },
     { href: '/domain', label: 'Domain', icon: 'web' },
     { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
-    { href: '/email-templates', label: 'Email Templates', icon: 'mail' },
     { href: '/legal-documents', label: 'Legal Docs', icon: 'legal' },
     { href: '/billing', label: 'Billing', icon: 'billing' },
   ];
