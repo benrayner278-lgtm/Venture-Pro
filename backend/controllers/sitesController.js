@@ -451,11 +451,9 @@ const setSiteLogo = async (req, res) => {
     const logo = cleanLogo(req.body.logo);
     if (!logo.name) return res.status(400).json({ error: 'The logo needs the business name' });
     const content = site.content && typeof site.content === 'object' ? site.content : {};
-    if (content.format === 'page') {
-      return res.status(400).json({ error: 'This site uses a custom page layout, so the logo cannot go in its header yet' });
-    }
     await prisma.site.update({ where: { id: site.id }, data: { content: { ...content, brand: { ...(content.brand || {}), logo } } } });
-    res.json({ ok: true });
+    // Custom page layouts have no header logo, but the logo still becomes the browser tab icon.
+    res.json({ ok: true, headerLogo: content.format !== 'page' });
   } catch (error) {
     console.error('Set site logo error:', error);
     res.status(500).json({ error: 'Could not save the logo. Please try again.' });

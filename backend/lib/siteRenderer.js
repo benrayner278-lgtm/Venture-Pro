@@ -3,7 +3,7 @@ const { PRESETS, EFFECTS } = require('./designPresets');
 const { applyStyle, googleFontsLink } = require('./styleOptions');
 const { sanitizeDesign, applyBrief, mergeStyle } = require('./designBrief');
 const { cleanLogo } = require('./logoSpec');
-const { renderLogoHeaderPng } = require('./logoRender');
+const { renderLogoHeaderPng, faviconLink } = require('./logoRender');
 const { widgetHtml: turnstileWidget } = require('./turnstile');
 
 const escapeHtml = (text) =>
@@ -389,6 +389,7 @@ const renderSite = (content, themeId = 'midnight', shuffle = 0, extras = {}) => 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(brand)}</title>
+${faviconLink(content.brand?.logo)}
 ${googleFontsLink(mergeStyle(sanitizeDesign(content.design), content.style))}
 <style>${css}${booking ? BOOKING_CSS : ''}</style>
 </head>
