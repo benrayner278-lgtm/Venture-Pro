@@ -207,7 +207,7 @@ const updateSettings = async (req, res) => {
     if (!site) return;
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!ownerAllowsBooking(user?.plan)) {
-      return res.status(403).json({ error: 'Online booking is included in Business and above' });
+      return res.status(403).json({ error: 'Online booking is included in Premium and above' });
     }
     const { value, error } = cleanSettings(req.body);
     if (error) return res.status(400).json({ error });
@@ -226,7 +226,7 @@ const applyTemplate = async (req, res) => {
     if (!site) return;
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!ownerAllowsBooking(user?.plan)) {
-      return res.status(403).json({ error: 'Online booking is included in Business and above' });
+      return res.status(403).json({ error: 'Online booking is included in Premium and above' });
     }
     const template = templateOf(req.body?.templateId);
     if (!template) return res.status(400).json({ error: 'Choose a booking preset from the list' });
@@ -285,7 +285,7 @@ const advisor = async (req, res) => {
     if (!site) return;
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!ownerAllowsBooking(user?.plan)) {
-      return res.status(403).json({ error: 'Online booking is included in Business and above' });
+      return res.status(403).json({ error: 'Online booking is included in Premium and above' });
     }
     const { chatPerDay } = PLANS[planKey(user.plan)];
     const day = new Date().toISOString().slice(0, 10);
