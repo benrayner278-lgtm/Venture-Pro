@@ -28,9 +28,9 @@ const getJourney = async (req, res) => {
     const bookingOn = sites.some((site) => site.bookingSettings?.enabled === true);
     const talkedThrough = Array.isArray(thread?.messages) && thread.messages.some((turn) => turn.role === 'user');
     const domainOn = sites.some((site) => site.customDomainVerifiedAt);
-    // Own domains need a paid plan. Booking and card payments (with the shop) need Business or above.
+    // Own domains need a paid plan. Booking and card payments (with the shop) need Premium or above.
     const domainAllowed = plan.price > 0;
-    const steps = [
+    const allSteps = [
       {
         key: 'plan',
         title: 'Shape your business idea',
@@ -73,9 +73,9 @@ const getJourney = async (req, res) => {
         description: 'Let customers book appointments straight from your site.',
         done: bookingOn,
         allowed: plan.booking,
-        requiredPlan: 'Business',
+        requiredPlan: 'Premium',
         href: plan.booking ? '/bookings' : '/billing?needs=booking',
-        action: !plan.booking ? 'Unlock with the Business plan' : bookingOn ? 'Change booking' : 'Set up booking',
+        action: !plan.booking ? 'Unlock with the Premium plan' : bookingOn ? 'Change booking' : 'Set up booking',
       },
       {
         key: 'payments',
@@ -83,11 +83,13 @@ const getJourney = async (req, res) => {
         description: 'Connect Stripe so customers can pay you by card. Venture-Pro takes no fee on it.',
         done: Boolean(user.paymentsEnabled),
         allowed: plan.booking,
-        requiredPlan: 'Business',
+        requiredPlan: 'Premium',
         href: plan.booking ? '/settings' : '/billing?needs=payments',
-        action: !plan.booking ? 'Unlock with the Business plan' : user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
+        action: !plan.booking ? 'Unlock with the Premium plan' : user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
       },
     ];
+    // Booking and payments are left off the board on plans that do not include them.
+    const steps = allSteps.filter((step) => plan.booking || (step.key !== 'booking' && step.key !== 'payments'));
 
     // The first step not yet done is the next one. A step the plan does not include is skipped for "next".
     const next = steps.find((step) => !step.done && step.allowed !== false);

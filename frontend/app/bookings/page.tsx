@@ -272,7 +272,7 @@ export default function BookingsPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {!allowed ? (
             <div className={`${cardClass} max-w-xl space-y-3`}>
-              <p className="text-sm font-medium text-white">Online booking is included in Business and above.</p>
+              <p className="text-sm font-medium text-white">Online booking is included in Premium and above.</p>
               <p className="text-xs text-gray-400">Upgrade to let visitors book appointments straight from your website.</p>
               <Link href="/billing" className="inline-block bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition">
                 See plans

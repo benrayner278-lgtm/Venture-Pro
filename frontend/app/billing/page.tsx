@@ -52,8 +52,8 @@ export default function BillingPage() {
   const NEEDS_TEXT: Record<string, string> = {
     domain: 'Your own domain needs the Standard plan or above.',
     email: 'A business email address needs the Standard plan or above.',
-    booking: 'Online booking needs the Business plan or above.',
-    payments: 'Taking card payments needs the Business plan or above, the same as the shop.',
+    booking: 'Online booking needs the Premium plan or above.',
+    payments: 'Taking card payments needs the Premium plan or above, the same as the shop.',
   };
 
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;

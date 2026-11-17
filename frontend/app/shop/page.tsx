@@ -112,7 +112,7 @@ export default function ShopPage() {
           )}
 
           {!allowed && (
-            <p className="text-sm text-amber-300 border border-amber-300/20 rounded-xl p-4">The shop is included in Business and above. Upgrade on the Billing page to sell items.</p>
+            <p className="text-sm text-amber-300 border border-amber-300/20 rounded-xl p-4">The shop is included in Premium and above. Upgrade on the Billing page to sell items.</p>
           )}
           {allowed && !paymentsEnabled && (
             <p className="text-sm text-amber-300 border border-amber-300/20 rounded-xl p-4">

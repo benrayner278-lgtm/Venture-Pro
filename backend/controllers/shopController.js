@@ -65,7 +65,7 @@ const updateShop = async (req, res) => {
     if (!site) return;
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!ownerAllowsShop(user?.plan)) {
-      return res.status(403).json({ error: 'The shop is included in Business and above' });
+      return res.status(403).json({ error: 'The shop is included in Premium and above' });
     }
     const { value, error } = cleanItems(req.body?.items);
     if (error) return res.status(400).json({ error });
