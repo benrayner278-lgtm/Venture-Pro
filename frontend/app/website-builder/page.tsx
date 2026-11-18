@@ -364,8 +364,8 @@ export default function WebsiteBuilderPage() {
           )}
 
           {step === 'result' && content && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              <aside className="w-full lg:w-96 shrink-0 space-y-6">
+            <div className="flex flex-col gap-6 lg:h-[calc(100dvh-9rem)] lg:flex-row lg:gap-5">
+              <aside className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6 lg:overflow-y-auto lg:pr-2">
                 {content.format !== 'page' && (
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</label>
@@ -465,6 +465,15 @@ export default function WebsiteBuilderPage() {
                   </div>
                 )}
 
+                {content?.format === 'page' && (
+                  <PagePhotos
+                    images={content.images || {}}
+                    onChange={(images) => setContent((current) => (current ? { ...current, images } : current))}
+                    onPlace={() => runChange('Place my uploaded photos where they fit best, replacing the stock picture placeholders.')}
+                    disabled={tweaking}
+                  />
+                )}
+
                 <div className="space-y-2">
                   {content.format !== 'page' && (
                   <button
@@ -496,7 +505,7 @@ export default function WebsiteBuilderPage() {
                 <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} buildId={buildId} />
               </aside>
 
-              <div className="flex-1 min-w-0 flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
+              <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4">
                 <div className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3">
                   <p className="text-sm font-medium text-white">You can change all of this at any time.</p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -507,7 +516,7 @@ export default function WebsiteBuilderPage() {
                 {previewError && <p className="text-sm text-red-400">{previewError}</p>}
 
                 {/* Scripts are allowed only so double-clicks can be reported. Without same-origin access, the preview cannot reach this page. */}
-                <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02] h-[60vh] lg:h-[calc(100vh-15rem)] min-h-[480px]">
+                <div className="flex-1 min-h-[420px] rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
                   <iframe
                     ref={frameRef}
                     title="Website preview"
@@ -517,20 +526,13 @@ export default function WebsiteBuilderPage() {
                   />
                 </div>
 
-                {content?.format === 'page' && (
-                  <PagePhotos
-                    images={content.images || {}}
-                    onChange={(images) => setContent((current) => (current ? { ...current, images } : current))}
-                    onPlace={() => runChange('Place my uploaded photos where they fit best, replacing the stock picture placeholders.')}
-                    disabled={tweaking}
-                  />
-                )}
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Assistant</p>
-                  <p className="text-xs text-gray-500 mb-3">The same assistant as Chat. Ask for a change, and approve it before it goes live.</p>
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] h-[520px] overflow-hidden">
-                    <AssistantChat compact context="Website Builder" onApplied={refreshFromLive} />
-                  </div>
+              </div>
+
+              <div className="flex w-full shrink-0 flex-col lg:w-[380px] xl:w-[420px] min-h-[480px] lg:min-h-0">
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">Assistant</p>
+                <p className="text-xs text-gray-500 mb-3">The same assistant as Chat. Ask for a change, and approve it before it goes live.</p>
+                <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+                  <AssistantChat compact context="Website Builder" onApplied={refreshFromLive} />
                 </div>
               </div>
             </div>
