@@ -11,6 +11,7 @@ const { createPage, revisePage } = require('../lib/pageGenerator');
 const { cleanStock, fillStockPhotos } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { logUsage } = require('../lib/usageLog');
+const { PLANS, planKey } = require('../lib/plans');
 
 const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
 
@@ -85,9 +86,9 @@ Design is the design brief for this business. Design the site around this busine
   "effect": "none" | "reveal" | "stack"
 }
 FontKey is one of: ${Object.keys(FONTS).join(', ')}.
-Palette rules: every colour is a six-digit hex code like #1e3a8a. Text must read clearly on the background (at least 4.5 to 1 contrast). accentText must read clearly on accent (at least 3 to 1). Choose colours that suit the business, not the same ones every time. Always include the design field.
+Palette rules: every colour is a six-digit hex code like #1e3a8a. Text must read clearly on the background (at least 4.5 to 1 contrast). accentText must read clearly on accent (at least 3 to 1). Choose colours that suit the business, not the same ones every time. Default to a minimal look: a light or neutral background, dark text, and one restrained accent used for buttons and links. Do not fill large areas with bright or saturated colour unless the owner asks for it. Always include the design field.
 
-Effect: set "reveal" when the owner asks for sections to fade or rise in as the visitor scrolls, and "stack" when they ask for sections to overlap. Use "none" otherwise, unless motion clearly suits the business.
+Effect: set "reveal" when the owner asks for sections to fade or rise in as the visitor scrolls, and "stack" when they ask for sections to overlap. Use "none" otherwise. Do not add motion unless the owner asks for it.
 
 Each Section is one of these shapes (the "type" field is required):
 Every section may also have a "layout" string, chosen from the list for its type. Pick the layout that suits the content, and vary layouts so the page does not repeat the same arrangement. Layouts by type: hero (centred, split, editorial), text (centred, columns), cards (grid, list, numbered), steps (timeline, columns), gallery (grid, featured, list), pricing (cards, rows), faq (accordion, columns), contact (centred, split), cta (banner, inline).
@@ -162,6 +163,21 @@ Specific requests: ${fields.requests || 'none'}`;
     let brief = briefTextFrom(briefFields);
 
     if (isChange) {
+      // Each plan has a monthly limit on website changes. Every attempt counts, since each one calls the AI.
+      const owner = await prisma.user.findUnique({ where: { id: req.userId } });
+      const { tweaksPerMonth } = PLANS[planKey(owner?.plan)];
+      const month = new Date().toISOString().slice(0, 7);
+      const tweakKey = { userId_month: { userId: req.userId, month } };
+      const tweaksUsed = (await prisma.tweakMonthlyUsage.findUnique({ where: tweakKey }))?.count || 0;
+      if (tweaksUsed >= tweaksPerMonth) {
+        return res.status(429).json({ error: `You have used this month's ${tweaksPerMonth} website changes. The limit resets on the 1st, or you can upgrade your plan.` });
+      }
+      await prisma.tweakMonthlyUsage.upsert({
+        where: tweakKey,
+        create: { userId: req.userId, month, count: 1 },
+        update: { count: { increment: 1 } },
+      });
+
       const build = await openBuild({
         userId: req.userId,
         kind: 'website',

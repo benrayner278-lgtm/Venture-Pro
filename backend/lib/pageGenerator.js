@@ -13,7 +13,9 @@ Start by deciding the kind of page this business needs, then build that:
 - product or shop page: a promo strip, a grid of product or offer cards and a simple navigation
 - editorial page: long-form layout with a strong typographic hierarchy, columns and pull quotes
 - data-led page: stats strip, comparison blocks and dense, tidy typography
-Pick the one that fits the brief, and vary the layout, spacing, type scale, shape language and decoration so no two pages look the same.
+Pick the one that fits the brief, and vary the layout, spacing, type scale and shape language so no two pages look the same.
+
+Default to a minimal, calm look: plenty of white space, one clear typeface pairing, a light or neutral background, dark text and a single restrained accent colour. Bold, saturated or busy designs are only for a business that clearly needs them, and only when the owner asks for that look.
 
 Respond with only a JSON object, no markdown or code fences:
 {
@@ -32,10 +34,10 @@ Rules for pictures:
 - Use the owner's uploaded images wherever a picture fits: <img data-image="KEY" alt="what the picture shows">, using a KEY from the list of uploads.
 - Where no upload fits, use <img data-stock="two to four search words" alt="what the picture should show">. It is replaced with a licensed stock photo.
 - Never draw, paint or describe people, products, places or scenes as illustrations, and never write image files or URLs.
-- Decoration is allowed as CSS or simple geometric SVG only: circles, lines, grids, dots, bands and blocks.
+- Decoration is optional and restrained: at most one simple geometric accent, such as a thin line, a dot or a single block. No sunbursts, rays, gradients, patterns or neon colour.
 Rules for the whole page:
 - No JavaScript, no forms, no style attributes, no external images or fonts.
-- Palette: text must read clearly on the background (at least 4.5 to 1), and accentText must read clearly on accent (at least 3 to 1). Choose colours from the brand kit.
+- Palette: text must read clearly on the background (at least 4.5 to 1), and accentText must read clearly on accent (at least 3 to 1). Choose colours from the brand kit. Use a light or neutral background, and keep the accent colour for buttons, links and small details. Do not fill large areas with saturated or bright colour unless the owner has asked for it.
 - Contact: use mailto: or tel: links only if the brief gives an address or number. Otherwise use an in-page call to action. Never invent contact details, testimonials, client names, statistics, awards or prices.
 - Copy is British English, clear, confident and specific to this business.`;
 
