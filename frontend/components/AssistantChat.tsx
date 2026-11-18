@@ -4,10 +4,8 @@
 // Changes to websites wait for the owner's approval, which is shown in a pop-out from the header.
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import { Turn, groupConversations, conversationKey, conversationTitle } from './ChatHistory';
 
-// One message in the shared thread. `context` is the page it was sent from; older messages have none and were sent from Chat.
-type Turn = { role: 'user' | 'assistant'; text: string; at?: string; context?: string };
-type Conversation = { context: string; turns: Turn[] };
 type Proposal = { id: string; siteId: string; siteTitle: string; summary: string; status: string };
 type Attachment = { name: string; type: string; data: string };
 
@@ -24,24 +22,6 @@ const readFile = (file: File) =>
     reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
     reader.readAsDataURL(file);
   });
-
-// A new conversation starts when the owner moves to another page, or after six quiet hours on the same page.
-const GAP_MS = 6 * 60 * 60 * 1000;
-const groupConversations = (turns: Turn[]): Conversation[] => {
-  const groups: Conversation[] = [];
-  for (const turn of turns) {
-    const context = turn.context || 'Chat';
-    const group = groups[groups.length - 1];
-    const last = group?.turns[group.turns.length - 1];
-    const gap = last?.at && turn.at ? Date.parse(turn.at) - Date.parse(last.at) : 0;
-    if (group && group.context === context && gap <= GAP_MS) group.turns.push(turn);
-    else groups.push({ context, turns: [turn] });
-  }
-  return groups;
-};
-
-const whenLabel = (at?: string) =>
-  at ? new Date(at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 
 // Shows an assistant reply as clean blocks: headings, bullet lists and paragraphs. Markdown symbols are removed, not shown.
 type BlockKind = 'heading' | 'list' | 'paragraph';
@@ -78,8 +58,6 @@ const renderInline = (text: string) =>
       <span key={index}>{part.replace(/\*/g, '')}</span>
     ),
   );
-
-const plainText = (text: string) => text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*/g, '');
 
 function Reply({ text }: { text: string }) {
   return (
@@ -135,6 +113,10 @@ export default function AssistantChat({
   const [busyId, setBusyId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [approvalsOpen, setApprovalsOpen] = useState(false);
+  // Which chat history conversation is open. Null shows the current conversation.
+  const [viewingKey, setViewingKey] = useState<string | null>(null);
+  // Approval requests the owner has chosen to decide later. They stay in the Approvals list.
+  const [laterIds, setLaterIds] = useState<string[]>([]);
 
   const loadProposals = async () => {
     const response = await apiFetch('/api/assistant/proposals');
@@ -144,10 +126,32 @@ export default function AssistantChat({
   useEffect(() => {
     apiFetch('/api/assistant/thread')
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => data && setMessages(data.messages))
+      .then((data) => {
+        if (!data) return;
+        setMessages(data.messages);
+        // A conversation chosen in the history panel from another page waits in sessionStorage until Chat has loaded.
+        if (compact) return;
+        try {
+          const saved = sessionStorage.getItem('chat:open');
+          if (saved) {
+            sessionStorage.removeItem('chat:open');
+            setViewingKey(saved);
+          }
+        } catch {
+          // Storage can be blocked; the event listener still works on this page.
+        }
+      })
       .catch(() => {});
     loadProposals().catch(() => {});
-  }, []);
+  }, [compact]);
+
+  // Opening a conversation from the Chat history panel while Chat is on another page.
+  useEffect(() => {
+    if (compact) return;
+    const onOpen = (event: Event) => setViewingKey((event as CustomEvent<string>).detail);
+    window.addEventListener('chat:open', onOpen);
+    return () => window.removeEventListener('chat:open', onOpen);
+  }, [compact]);
 
   useEffect(() => {
     // Scroll only the conversation, so the page itself does not jump when the builder opens.
@@ -184,6 +188,7 @@ export default function AssistantChat({
     setInput('');
     setFiles([]);
     setError('');
+    setViewingKey(null);
     setSending(true);
     setMessages((current) => [...current, { role: 'user', text: `${text}${note}`, at: new Date().toISOString(), context }]);
     try {
@@ -220,17 +225,30 @@ export default function AssistantChat({
   const pending = proposals.filter((proposal) => proposal.status === 'pending');
   const applied = proposals.filter((proposal) => proposal.status === 'applied');
 
-  // The main view shows this page's latest conversation. Everything else sits under Previous conversations.
+  // The main view shows this page's latest conversation, or a conversation picked from the history panel.
   const conversations = groupConversations(messages);
   const current = [...conversations].reverse().find((conversation) => conversation.context === context);
-  const previous = conversations.filter((conversation) => conversation !== current).reverse();
-  const shown = current?.turns ?? [];
+  const viewing = viewingKey ? conversations.find((conversation) => conversationKey(conversation) === viewingKey) : undefined;
+  const shown = (viewing ?? current)?.turns ?? [];
+
+  // The approval request the owner must answer now. It is shown as a pop-up until they decide or choose later.
+  const nextApproval = pending.find((proposal) => !laterIds.includes(proposal.id));
+  const approvalNumber = nextApproval ? pending.indexOf(nextApproval) + 1 : 0;
 
   return (
     <div className={compact ? 'flex flex-col h-full min-h-0 min-w-0' : 'flex flex-1 flex-col min-w-0 h-[calc(100dvh-3.5rem)] md:h-screen'}>
       {/* A slim header: an optional title, and the approvals button, which opens a pop-out. */}
       <header className="shrink-0 flex items-center gap-3 px-4 md:px-6 h-12 border-b border-white/[0.06]">
-        {title && <h1 className="text-sm font-medium text-white truncate">{title}</h1>}
+        {viewing ? (
+          <>
+            <h1 className="text-sm font-medium text-white truncate">{conversationTitle(viewing.turns)}</h1>
+            <button type="button" onClick={() => setViewingKey(null)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs text-gray-400 hover:bg-white/[0.06] hover:text-gray-200">
+              Back to current chat
+            </button>
+          </>
+        ) : (
+          title && <h1 className="text-sm font-medium text-white truncate">{title}</h1>
+        )}
         <button
           type="button"
           onClick={() => setApprovalsOpen(true)}
@@ -240,38 +258,6 @@ export default function AssistantChat({
           Approvals{pending.length > 0 ? ` (${pending.length})` : ''}
         </button>
       </header>
-
-      {/* Collapsed by default. The owner can open earlier conversations from other pages; the assistant remembers them all. */}
-      {previous.length > 0 && (
-        <details className="group shrink-0 border-b border-white/[0.06] px-4 md:px-6 py-2.5">
-          <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-gray-400 hover:text-gray-200">
-            Previous conversations ({previous.length})
-            <span className="text-gray-500 transition group-open:rotate-180" aria-hidden="true">
-              ▾
-            </span>
-          </summary>
-          <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-            {previous.map((conversation, index) => (
-              <details key={index} className="rounded-lg border border-white/[0.06] px-3 py-2">
-                <summary className="cursor-pointer list-none text-xs text-gray-300">
-                  <span className="font-medium text-gray-100">{conversation.context}</span>
-                  <span className="text-gray-500">
-                    {' '}· {whenLabel(conversation.turns[0].at)} · {conversation.turns.length} {conversation.turns.length === 1 ? 'message' : 'messages'}
-                  </span>
-                </summary>
-                <div className="mt-2 space-y-2 text-xs leading-relaxed text-gray-400">
-                  {conversation.turns.map((turn, turnIndex) => (
-                    <p key={turnIndex} className="whitespace-pre-wrap">
-                      <span className="text-gray-500">{turn.role === 'user' ? 'You: ' : 'Assistant: '}</span>
-                      {plainText(turn.text)}
-                    </p>
-                  ))}
-                </div>
-              </details>
-            ))}
-          </div>
-        </details>
-      )}
 
       {/* The conversation. Newest messages are at the bottom; scroll up for earlier ones. */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
@@ -349,6 +335,44 @@ export default function AssistantChat({
       </div>
 
       {/* Approvals pop out from the right. Nothing goes live until it is approved here. */}
+      {nextApproval && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="approval-title">
+          <div className="w-full max-w-md rounded-2xl border border-amber-300/50 bg-[#0c0c0c] p-6 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-300">Approval needed</p>
+            <h2 id="approval-title" className="mt-2 text-lg font-semibold text-white">{nextApproval.siteTitle}</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-200">{nextApproval.summary}</p>
+            <p className="mt-4 text-xs text-gray-500">Nothing changes on your site until you approve it.</p>
+            {pending.length > 1 && <p className="mt-1 text-xs text-gray-500">Request {approvalNumber} of {pending.length}</p>}
+            {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={busyId === nextApproval.id}
+                onClick={() => decide(nextApproval, 'approve')}
+                className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition disabled:opacity-40"
+              >
+                Approve change
+              </button>
+              <button
+                type="button"
+                disabled={busyId === nextApproval.id}
+                onClick={() => decide(nextApproval, 'reject')}
+                className="rounded-lg border border-white/15 px-4 py-2.5 text-sm text-gray-200 transition hover:bg-white/[0.06] disabled:opacity-40"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => setLaterIds((ids) => [...ids, nextApproval.id])}
+                className="px-3 py-2.5 text-sm text-gray-400 transition hover:text-white"
+              >
+                Decide later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {approvalsOpen && (
         <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Waiting for your approval">
           <button type="button" className="absolute inset-0 bg-black/60" onClick={() => setApprovalsOpen(false)} aria-label="Close approvals" />
