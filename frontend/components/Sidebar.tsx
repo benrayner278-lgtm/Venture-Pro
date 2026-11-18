@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { clearSession } from '@/lib/api';
+import { ChatHistoryPanel } from './ChatHistory';
 
 const ICON_PATHS: Record<string, string[]> = {
   chat: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
@@ -45,6 +46,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   // On phones the sidebar is a drawer that opens from the top bar. On desktop it is always shown.
   const [open, setOpen] = useState(false);
+  // The chat history panel opens from the Chat tab, beside the sidebar.
+  const [historyOpen, setHistoryOpen] = useState(false);
   // Read after the first render, so the server and the browser show the same text.
   const [userName, setUserName] = useState('Account');
   useEffect(() => {
@@ -89,6 +92,8 @@ export default function Sidebar() {
         <span className="text-[15px] font-semibold tracking-tight text-white">Venture-Pro</span>
       </div>
 
+      {historyOpen && <ChatHistoryPanel onClose={() => setHistoryOpen(false)} />}
+
       {open && (
         <button
           type="button"
@@ -118,24 +123,39 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  active
-                    ? 'bg-white/[0.06] text-white'
-                    : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'
-                }`}
-              >
-                {active && (
-                  <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                )}
-                <span className={active ? 'text-white' : 'text-gray-500'}>
-                  <NavIcon name={item.icon} />
-                </span>
-                <span className="font-medium">{item.label}</span>
-              </Link>
+              <div key={item.href} className="relative">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    active
+                      ? 'bg-white/[0.06] text-white'
+                      : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  )}
+                  <span className={active ? 'text-white' : 'text-gray-500'}>
+                    <NavIcon name={item.icon} />
+                  </span>
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              {item.href === '/dashboard' && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen((value) => !value)}
+                  aria-label="Chat history"
+                  aria-expanded={historyOpen}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-500 transition hover:bg-white/[0.06] hover:text-gray-200"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
+              </div>
             );
           })}
         </nav>
