@@ -95,21 +95,25 @@ const validContent = (content) =>
 // With booking on, "#book" links (in the AI's copy and the section renderer) point at the /book page.
 const toBookingLinks = (html) => html.replace(/href="#book"/g, 'href="/book"');
 
+// With the shop on, any link to a shop-like section ("#shop", "#checkout", "#basket" and so on) goes to the /shop page.
+const SHOP_ANCHOR = /href="#(shop|checkout|basket|cart|buy|products|store)[^"]*"/gi;
+const toShopLinks = (html) => html.replace(SHOP_ANCHOR, 'href="/shop"');
+
+const withShopLinks = (extras, html) => (extras?.shop ? toShopLinks(html) : html);
+
 const renderContent = (content, themeId, shuffle, extras) =>
   content.format === 'page'
     ? renderPage({
         brand: content.brand,
         palette: content.palette,
         fonts: content.fonts,
-        body: extras?.booking ? toBookingLinks(content.body) : content.body,
+        body: withShopLinks(extras, extras?.booking ? toBookingLinks(content.body) : content.body),
         css: content.css,
         images: content.images,
         stock: content.stock,
         contact: content.contact,
       })
-    : extras?.booking
-      ? toBookingLinks(renderSite(content, themeId, shuffle, extras))
-      : renderSite(content, themeId, shuffle, extras);
+    : withShopLinks(extras, extras?.booking ? toBookingLinks(renderSite(content, themeId, shuffle, extras)) : renderSite(content, themeId, shuffle, extras));
 
 // Free accounts only get the teaser. Downloads and the full preview need a paid plan.
 const isPaidUser = async (userId) => {
@@ -373,9 +377,10 @@ const shopHeaders = {
 const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
-  let html = renderContent(site.content, site.themeId, site.shuffle, { booking });
+  const shop = itemsOf(site).length > 0 && ownerAllowsShop(owner?.plan);
+  let html = renderContent(site.content, site.themeId, site.shuffle, { booking, shop });
   // A small link to the shop, added at the bottom of the page, only when the owner has items to sell.
-  if (itemsOf(site).length > 0 && ownerAllowsShop(owner?.plan) && html.includes('</body>')) {
+  if (shop && html.includes('</body>')) {
     html = html.replace('</body>', '<p style="text-align:center;padding:12px 0"><a href="shop" style="color:inherit">Shop</a></p></body>');
   }
   res.set(publicHeaders).send(html);
