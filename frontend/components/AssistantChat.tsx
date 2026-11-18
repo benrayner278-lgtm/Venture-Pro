@@ -43,6 +43,69 @@ const groupConversations = (turns: Turn[]): Conversation[] => {
 const whenLabel = (at?: string) =>
   at ? new Date(at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 
+// Shows an assistant reply as clean blocks: headings, bullet lists and paragraphs. Markdown symbols are removed, not shown.
+type BlockKind = 'heading' | 'list' | 'paragraph';
+type ReplyBlock = { kind: BlockKind; lines: string[] };
+
+const parseReply = (text: string): ReplyBlock[] => {
+  const blocks: ReplyBlock[] = [];
+  let last: ReplyBlock | undefined;
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      last = undefined;
+      continue;
+    }
+    const heading = line.match(/^\*\*(.+?)\*\*:?$/);
+    const item = line.match(/^[-*•]\s+(.*)$/);
+    const kind: BlockKind = heading ? 'heading' : item ? 'list' : 'paragraph';
+    const content = heading ? heading[1] : item ? item[1] : line;
+    if (!last || last.kind !== kind || kind === 'heading') {
+      last = { kind, lines: [] };
+      blocks.push(last);
+    }
+    last.lines.push(content);
+  }
+  return blocks;
+};
+
+// Bold text is kept as bold; any other asterisks are dropped.
+const renderInline = (text: string) =>
+  text.split(/\*\*(.+?)\*\*/g).map((part, index) =>
+    index % 2 === 1 ? (
+      <strong key={index} className="font-semibold text-white">{part.replace(/\*/g, '')}</strong>
+    ) : (
+      <span key={index}>{part.replace(/\*/g, '')}</span>
+    ),
+  );
+
+const plainText = (text: string) => text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*/g, '');
+
+function Reply({ text }: { text: string }) {
+  return (
+    <div className="space-y-3 text-[15px] leading-7 text-gray-200">
+      {parseReply(text).map((block, index) => {
+        if (block.kind === 'heading') {
+          return <p key={index} className="pt-3 font-semibold text-white">{renderInline(block.lines[0])}</p>;
+        }
+        if (block.kind === 'list') {
+          return (
+            <ul key={index} className="space-y-1.5">
+              {block.lines.map((item, itemIndex) => (
+                <li key={itemIndex} className="flex gap-3">
+                  <span className="mt-[0.7em] h-1 w-1 shrink-0 rounded-full bg-gray-500" aria-hidden="true" />
+                  <span>{renderInline(item)}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={index}>{renderInline(block.lines.join(' '))}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function AssistantChat({
   title,
   context = 'Chat',
@@ -164,7 +227,7 @@ export default function AssistantChat({
   const shown = current?.turns ?? [];
 
   return (
-    <div className={compact ? 'flex flex-col h-full min-h-0 min-w-0' : 'flex flex-col min-w-0 h-[calc(100dvh-3.5rem)] md:h-screen'}>
+    <div className={compact ? 'flex flex-col h-full min-h-0 min-w-0' : 'flex flex-1 flex-col min-w-0 h-[calc(100dvh-3.5rem)] md:h-screen'}>
       {/* A slim header: an optional title, and the approvals button, which opens a pop-out. */}
       <header className="shrink-0 flex items-center gap-3 px-4 md:px-6 h-12 border-b border-white/[0.06]">
         {title && <h1 className="text-sm font-medium text-white truncate">{title}</h1>}
@@ -200,7 +263,7 @@ export default function AssistantChat({
                   {conversation.turns.map((turn, turnIndex) => (
                     <p key={turnIndex} className="whitespace-pre-wrap">
                       <span className="text-gray-500">{turn.role === 'user' ? 'You: ' : 'Assistant: '}</span>
-                      {turn.text}
+                      {plainText(turn.text)}
                     </p>
                   ))}
                 </div>
@@ -212,7 +275,7 @@ export default function AssistantChat({
 
       {/* The conversation. Newest messages are at the bottom; scroll up for earlier ones. */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
-        <div className="max-w-2xl mx-auto space-y-4">
+        <div className="w-full max-w-4xl mx-auto space-y-6">
           {shown.length === 0 && <p className="text-sm text-gray-500">{hint}</p>}
           {shown.map((turn, index) =>
             turn.role === 'user' ? (
@@ -221,9 +284,9 @@ export default function AssistantChat({
               </div>
             ) : (
               // Assistant replies are plain text, so the conversation reads cleanly.
-              <p key={index} className="max-w-[92%] text-sm leading-relaxed text-gray-200 whitespace-pre-wrap">
-                {turn.text}
-              </p>
+              <div key={index} className="max-w-3xl">
+                <Reply text={turn.text} />
+              </div>
             ),
           )}
           {sending && <p className="text-sm text-gray-500">Thinking...</p>}
@@ -231,7 +294,7 @@ export default function AssistantChat({
       </div>
 
       <div className="shrink-0 border-t border-white/[0.06] px-4 md:px-6 py-3">
-        <div className="max-w-2xl mx-auto">
+        <div className="w-full max-w-4xl mx-auto">
           {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
