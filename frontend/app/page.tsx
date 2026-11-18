@@ -35,10 +35,10 @@ const STEPS = [
 
 // Keep in step with backend/lib/plans.js.
 const PLANS = [
-  { name: 'Standard', price: '£29.99', description: 'Your business online, with one live website.', features: ['100 chatbot messages a day', 'Publish 1 live website on your own address', 'AI website design, with fonts, colours and style controls', 'AI logo builder', 'Business plan, email and legal templates'], featured: false },
-  { name: 'Premium', price: '£44.99', description: 'Everything in Standard, plus a portfolio to show your work.', features: ['500 chatbot messages a day', 'Publish 1 live website', 'Portfolio maker with photo uploads', 'Online booking and card payments on your website', 'Everything in Standard'], featured: true },
-  { name: 'Business', price: '£59.99', description: 'Run up to three live websites.', features: ['1,000 chatbot messages a day', 'Publish up to 3 live websites', 'Everything in Premium'], featured: false },
-  { name: 'Corporate', price: '£179.99', description: 'For teams and brands that need five websites.', features: ['Up to 5 live websites', '1,000 chatbot messages a day', 'Online booking on every website', 'Everything in Business'], featured: false },
+  { name: 'Standard', price: '£29.99', description: 'Your business online, with one live website.', features: ['30 chatbot messages a day', '20 website changes a month', 'Publish 1 live website on your own address', 'AI website design, with fonts, colours and style controls', 'AI logo builder', 'Business plan, email and legal templates'], featured: false },
+  { name: 'Premium', price: '£44.99', description: 'Everything in Standard, plus a portfolio to show your work.', features: ['50 chatbot messages a day', '40 website changes a month', 'Publish 1 live website', 'Portfolio maker with photo uploads', 'Online booking and card payments on your website', 'Everything in Standard'], featured: true },
+  { name: 'Business', price: '£59.99', description: 'Run up to three live websites.', features: ['60 chatbot messages a day', '60 website changes a month', 'Publish up to 3 live websites', 'Everything in Premium'], featured: false },
+  { name: 'Corporate', price: '£179.99', description: 'For teams and brands that need five websites.', features: ['Up to 5 live websites', '150 chatbot messages a day', '150 website changes a month', 'Online booking on every website', 'Everything in Business'], featured: false },
 ];
 
 const grid = {
