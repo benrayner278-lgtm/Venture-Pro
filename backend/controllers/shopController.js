@@ -11,7 +11,8 @@ const { offerFor, holdSlots, bookFreeSlots, confirmPaidBookings, releaseHolds, e
 const { presetOf } = require('../lib/bookingPresets');
 const { ownerMessage } = require('../lib/bookingMessages');
 const { formatSlot } = require('../lib/bookingTime');
-const { defaultForm, generateShopForm, checkAnswers, isSessionText, ensureSessionFields } = require('../lib/shopForm');
+const { defaultForm, generateShopForm, checkAnswers } = require('../lib/shopForm');
+const { cleanClasses, ruleFromText, expandRule, classOffers, MAX_OCCURRENCES } = require('../lib/classSchedule');
 const { API_ORIGIN } = require('./bookingController');
 
 // Phone numbers: digits with an optional leading +, spaces, brackets or dashes. 10 to 15 digits.
@@ -44,16 +45,13 @@ const ownedSite = async (req, res) => {
 };
 
 // The form a visitor fills in. Shops that have not written one yet get the standard form.
-// When bookings are on, a date and time come from the booking picker, so those questions are left out here.
-// Shops that sell classes or sessions keep them, because those items need their own date and time.
+// The dated classes a shop has set up. Empty when none are set.
+const scheduleOf = (site) => (Array.isArray(site?.shopSchedule) ? site.shopSchedule : []);
+
+// When bookings or dated classes are on, a date and time come from the booking picker, so those questions are left out here.
 const formOf = (site) => {
   const form = Array.isArray(site?.shopForm) && site.shopForm.length ? site.shopForm : defaultForm();
-  if (!site?.bookingSettings?.enabled) return form;
-  const items = Array.isArray(site?.shopItems) ? site.shopItems : [];
-  if (items.some((item) => isSessionText(item?.name) || isSessionText(item?.description))) {
-    // Forms saved before this rule may lack the date and time, so they are added here too.
-    return ensureSessionFields(form, items.map((item) => `${item?.name} ${item?.description || ''}`).join(' '));
-  }
+  if (!(site?.bookingSettings?.enabled || scheduleOf(site).length > 0)) return form;
   return form.filter((field) => field.type !== 'date' && field.type !== 'time');
 };
 
@@ -65,7 +63,7 @@ const contactOf = (site) => {
 const shopSections = (site, plan) => {
   const allowed = ownerAllowsShop(plan);
   const products = allowed ? itemsOf(site) : [];
-  const bookingOn = allowed && site.bookingSettings?.enabled === true;
+  const bookingOn = allowed && (site.bookingSettings?.enabled === true || scheduleOf(site).length > 0);
   const contact = allowed ? contactOf(site) : null;
   // Enquiry details are shown only when there is nothing to buy or book online.
   const enquiry = Boolean(contact) && products.length === 0 && !bookingOn;
@@ -85,6 +83,7 @@ const getShop = async (req, res) => {
       form: formOf(site),
       contact: site.shopContact || null,
       bookingsOn: Boolean(site.bookingSettings?.enabled),
+      classes: scheduleOf(site),
       allowed: ownerAllowsShop(user?.plan),
       paymentsEnabled: Boolean(user?.paymentsEnabled),
       orders: orders.map((order) => ({
@@ -238,6 +237,78 @@ const recordPaidSession = async (session, accountId) => {
   return order;
 };
 
+// ---- Dated classes (owner) ----
+
+// The owner's sign-in and plan check, shared by the class endpoints. Returns the site, or null after sending a reply.
+const ownedShopSite = async (req, res) => {
+  const site = await ownedSite(req, res);
+  if (!site) return null;
+  const user = await prisma.user.findUnique({ where: { id: req.userId } });
+  if (!ownerAllowsShop(user?.plan)) {
+    res.status(403).json({ error: 'The shop is included in Premium and above' });
+    return null;
+  }
+  return site;
+};
+
+// Turns the owner's words into a list of dates. Nothing is saved until the owner checks the list and saves it.
+const previewClasses = async (req, res) => {
+  try {
+    const site = await ownedShopSite(req, res);
+    if (!site) return;
+    const instruction = String(req.body?.instruction || '').trim().slice(0, 300);
+    const minutes = Math.round(Number(req.body?.minutes));
+    if (!instruction) return res.status(400).json({ error: 'Describe the days and times the class runs' });
+    if (!(minutes >= 15 && minutes <= 480)) return res.status(400).json({ error: 'Enter how long each class lasts, between 15 and 480 minutes' });
+    const timezone = site.bookingSettings?.timezone || 'Europe/London';
+    const nowMs = Date.now();
+    let rule;
+    try {
+      rule = await ruleFromText({ instruction, timezone, nowMs });
+    } catch (error) {
+      console.error('Class schedule rule error:', error);
+      return res.status(400).json({ error: 'Could not work out the dates from that. Say which days, the start and end times, and how often.' });
+    }
+    const occurrences = expandRule(rule, { minutes, timezone, nowMs });
+    if (occurrences.length === 0) return res.status(400).json({ error: 'No dates fall in that pattern. Check the days and times.' });
+    res.json({ occurrences, timezone, truncated: occurrences.length >= MAX_OCCURRENCES });
+  } catch (error) {
+    console.error('Preview classes error:', error);
+    res.status(500).json({ error: 'Could not make the dates' });
+  }
+};
+
+// Saves the owner's checked list of classes. Dates that have already passed are dropped.
+const saveClasses = async (req, res) => {
+  try {
+    const site = await ownedShopSite(req, res);
+    if (!site) return;
+    const cleaned = cleanClasses(req.body?.classes, Date.now());
+    if (cleaned.error) return res.status(400).json({ error: cleaned.error });
+    await prisma.site.update({ where: { id: site.id }, data: { shopSchedule: cleaned.value } });
+    res.json({ classes: cleaned.value });
+  } catch (error) {
+    console.error('Save classes error:', error);
+    res.status(500).json({ error: 'Could not save the classes' });
+  }
+};
+
+// The dated classes the shop page offers: only times with places left.
+const publicClassOffers = async (site, nowMs = Date.now()) => {
+  const classes = scheduleOf(site);
+  if (classes.length === 0) return [];
+  const rows = await prisma.booking.findMany({
+    where: {
+      siteId: site.id,
+      serviceName: { in: classes.map((cls) => cls.name) },
+      startsAt: { gte: new Date(nowMs) },
+      OR: [{ status: { in: ['confirmed', 'requested'] } }, { status: 'held', holdUntil: { gt: new Date(nowMs) } }],
+    },
+    select: { startsAt: true, serviceName: true },
+  });
+  return classOffers({ classes, timezone: site.bookingSettings?.timezone || 'Europe/London', nowMs, rows });
+};
+
 // ---- Public endpoints (no sign-in) ----
 
 const loadPublicSite = async (slug) => {
@@ -278,7 +349,7 @@ const startCheckout = async (req, res) => {
       notes: String(answers.answers.notes?.value || '').slice(0, 500),
     };
 
-    const settings = site.bookingSettings || {};
+    const settings = { ...(site.bookingSettings || {}), classes: scheduleOf(site) };
     const nowMs = Date.now();
     const priced = [];
     for (const slot of basket.slots) {
@@ -415,4 +486,4 @@ const completeCheckout = async (req, res) => {
   }
 };
 
-module.exports = { getShop, updateShop, updateContact, generateForm, startCheckout, completeCheckout, recordPaidSession, ownerAllowsShop, loadPublicSite, formOf, shopSections };
+module.exports = { getShop, updateShop, updateContact, generateForm, previewClasses, saveClasses, startCheckout, completeCheckout, recordPaidSession, ownerAllowsShop, loadPublicSite, formOf, shopSections, publicClassOffers };

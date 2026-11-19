@@ -10,7 +10,7 @@ const { cleanStyle } = require('../lib/styleOptions');
 const { cleanLogo } = require('../lib/logoSpec');
 const { PLANS, planKey } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView, publicBookingOffers } = require('./bookingController');
-const { formOf, shopSections } = require('./shopController');
+const { formOf, shopSections, publicClassOffers } = require('./shopController');
 const { renderShopPage } = require('../lib/shopPage');
 const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
 
@@ -394,7 +394,17 @@ const sendShopPage = async (res, site, back) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const sections = shopSections(site, owner?.plan);
   if (!sections.available) return notFoundPage(res);
-  const bookings = sections.bookingOn ? await publicBookingOffers(site, owner?.plan) : null;
+  // Weekly services and classes from the booking page, plus dated classes from the shop schedule. One picker shows both.
+  const weekly = sections.bookingOn ? await publicBookingOffers(site, owner?.plan) : null;
+  const dated = sections.bookingOn ? await publicClassOffers(site) : [];
+  const bookings = dated.length === 0
+    ? weekly
+    : {
+        kind: weekly?.kind || 'sessions',
+        heading: weekly?.heading || 'Book a place',
+        timezone: site.bookingSettings?.timezone || 'Europe/London',
+        offers: [...(weekly?.offers || []), ...dated],
+      };
   res.set(shopHeaders).send(
     renderShopPage({
       content: site.content,

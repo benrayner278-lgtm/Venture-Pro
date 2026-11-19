@@ -3,6 +3,7 @@
 const prisma = require('./prisma');
 const { slotFits, sessionStarts, formatSlot } = require('./bookingTime');
 const { presetOf } = require('./bookingPresets');
+const { classOffer } = require('./classSchedule');
 const { sendEmail } = require('./email');
 const { getStripe } = require('./stripe');
 const { customerConfirmedMessage, customerRequestedMessage } = require('./bookingMessages');
@@ -15,6 +16,9 @@ const HOLD_MINUTES = 35;
 
 // What the owner offers at this time, or null when that service is not on offer at that time.
 const offerFor = (settings, serviceName, startMs, nowMs) => {
+  // Dated classes from the shop come first. They are checked on their own list of times.
+  const dated = classOffer(settings.classes, serviceName, startMs, nowMs);
+  if (dated) return dated;
   if (settings.kind === 'sessions') {
     const session = (settings.sessions || []).find((item) => item.name === serviceName);
     if (!session) return null;
