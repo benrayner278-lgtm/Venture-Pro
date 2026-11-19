@@ -8,6 +8,9 @@ import { apiFetch } from '@/lib/api';
 type Item = { id?: string; name: string; description: string; price: string };
 type Order = { id: string; itemName: string; amountPence: number; customerName: string; customerEmail: string; createdAt: string };
 type SiteRow = { id: string; slug: string; title: string };
+type FormField = { id: string; label: string; type: string; required: boolean; options?: string[] };
+
+const FIELD_NAMES: Record<string, string> = { text: 'Short text', textarea: 'Longer text', email: 'Email', phone: 'Phone', date: 'Date', time: 'Time', select: 'Choose one' };
 
 const MAX_ITEMS = 12;
 
@@ -18,6 +21,10 @@ export default function ShopPage() {
   const [siteId, setSiteId] = useState('');
   const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [form, setForm] = useState<FormField[]>([]);
+  const [description, setDescription] = useState('');
+  const [writingForm, setWritingForm] = useState(false);
+  const [formMessage, setFormMessage] = useState('');
   const [allowed, setAllowed] = useState(true);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const [message, setMessage] = useState('');
@@ -49,6 +56,7 @@ export default function ShopPage() {
           price: (item.pricePence / 100).toFixed(2),
         })));
         setOrders(data.orders || []);
+        setForm(data.form || []);
         setAllowed(data.allowed !== false);
         setPaymentsEnabled(Boolean(data.paymentsEnabled));
       })
@@ -84,6 +92,23 @@ export default function ShopPage() {
       setError(err instanceof Error ? err.message : 'Could not save the shop');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const writeForm = async () => {
+    setFormMessage('');
+    setError('');
+    setWritingForm(true);
+    try {
+      const response = await apiFetch(`/api/shop/sites/${siteId}/form`, { method: 'POST', json: { description: description.trim() } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not write the order form');
+      setForm(data.form || []);
+      setFormMessage('Order form saved. Customers will see these questions at checkout.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not write the order form');
+    } finally {
+      setWritingForm(false);
     }
   };
 
@@ -156,6 +181,39 @@ export default function ShopPage() {
             </div>
             {message && <p className="text-sm text-green-400">{message}</p>}
             {error && <p className="text-sm text-red-400">{error}</p>}
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-white">Order form</h2>
+            <p className="text-xs text-gray-500">
+              Customers fill this in before they pay. Describe what you sell and the assistant writes the questions: a delivery address for products, a date and time for sessions or bookings.
+            </p>
+            <div className="rounded-2xl border border-white/10 p-4 space-y-3">
+              <ul className="space-y-2 text-sm">
+                {form.map((field) => (
+                  <li key={field.id} className="flex justify-between gap-4 text-gray-200">
+                    <span>
+                      {field.label}
+                      {!field.required && <span className="text-gray-500"> (optional)</span>}
+                    </span>
+                    <span className="text-xs text-gray-500">{FIELD_NAMES[field.type] || field.type}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={300}
+              placeholder="For example: I sell handmade ceramic mugs, posted to the UK, or I run one-hour photography sessions at my studio."
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm min-h-[70px]"
+            />
+            <div className="flex flex-wrap gap-3 items-center">
+              <button type="button" onClick={writeForm} disabled={writingForm || !allowed || items.length === 0} className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm disabled:opacity-40">
+                {writingForm ? 'Writing…' : 'Write the order form with AI'}
+              </button>
+              {formMessage && <span className="text-sm text-green-400">{formMessage}</span>}
+            </div>
           </section>
 
           <section className="space-y-3">
