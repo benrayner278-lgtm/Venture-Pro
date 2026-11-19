@@ -93,8 +93,9 @@ const validContent = (content) =>
 // With booking on, "#book" links (in the AI's copy and the section renderer) point at the /book page.
 const toBookingLinks = (html) => html.replace(/href="#book"/g, 'href="/book"');
 
-// With the shop on, any link to a shop-like section ("#shop", "#checkout", "#basket" and so on) goes to the /shop page.
-const SHOP_ANCHOR = /href="#(shop|checkout|basket|cart|buy|products|store)[^"]*"/gi;
+// With the shop on, any link to a shop-like section ("#shop", "#checkout", "#basket", "#book" and so on) goes to the /shop page.
+// /shop also holds bookings, so a booking link goes there too when the booking form is off.
+const SHOP_ANCHOR = /href="#(shop|checkout|basket|cart|buy|products|store|book)[^"]*"/gi;
 const toShopLinks = (html) => html.replace(SHOP_ANCHOR, 'href="/shop"');
 
 const withShopLinks = (extras, html) => (extras?.shop ? toShopLinks(html) : html);
