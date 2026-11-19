@@ -2,7 +2,6 @@ const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const { renderSite, designKey, renderEditablePreview } = require('../lib/siteRenderer');
 const { renderPage } = require('../lib/pageRenderer');
-const { renderBookingPage } = require('../lib/bookingPage');
 const { cleanStock } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { renderTeaser } = require('../lib/teaser');
@@ -10,9 +9,8 @@ const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
 const { cleanLogo } = require('../lib/logoSpec');
 const { PLANS, planKey } = require('../lib/plans');
-const { API_ORIGIN, publicBookingView } = require('./bookingController');
-const { ownerAllowsShop, formOf } = require('./shopController');
-const { itemsOf } = require('../lib/shop');
+const { API_ORIGIN, publicBookingView, publicBookingOffers } = require('./bookingController');
+const { formOf, shopSections } = require('./shopController');
 const { renderShopPage } = require('../lib/shopPage');
 const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
 
@@ -380,7 +378,7 @@ const shopHeaders = {
 const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
-  const shop = itemsOf(site).length > 0 && ownerAllowsShop(owner?.plan);
+  const shop = shopSections(site, owner?.plan).available;
   let html = renderContent(site.content, site.themeId, site.shuffle, { booking, shop });
   // A small link to the shop, added at the bottom of the page, only when the owner has items to sell.
   if (shop && html.includes('</body>')) {
@@ -389,13 +387,25 @@ const sendPublicSite = async (res, site) => {
   res.set(publicHeaders).send(html);
 };
 
-// The shop page at /shop. Only open while the owner has items and the plan includes the shop.
+// The shop page at /shop, which also serves /book. One page for products, bookings and enquiries.
+// It only opens when the owner has something to show (items, bookings, or enquiry details) and the plan includes the shop.
 const sendShopPage = async (res, site, back) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
-  const items = itemsOf(site);
-  if (!ownerAllowsShop(owner?.plan) || items.length === 0) return notFoundPage(res);
-  const apiOrigin = API_ORIGIN;
-  res.set(shopHeaders).send(renderShopPage({ content: site.content, items, slug: site.slug, back, apiOrigin, form: formOf(site) }));
+  const sections = shopSections(site, owner?.plan);
+  if (!sections.available) return notFoundPage(res);
+  const bookings = sections.bookingOn ? await publicBookingOffers(site, owner?.plan) : null;
+  res.set(shopHeaders).send(
+    renderShopPage({
+      content: site.content,
+      items: sections.products,
+      slug: site.slug,
+      back,
+      apiOrigin: API_ORIGIN,
+      form: formOf(site),
+      bookings,
+      contact: sections.contact,
+    })
+  );
 };
 
 const publicShopPage = async (req, res) => {
@@ -412,13 +422,8 @@ const publicShopPageByDomain = async (req, res) => {
   return sendShopPage(res, site, `https://${host}`);
 };
 
-// The booking page at /book. Page and section sites both have one, while booking is switched on for the plan.
-const sendBookingPage = async (res, site) => {
-  const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
-  const booking = await publicBookingView(site, owner?.plan);
-  if (!booking) return notFoundPage(res);
-  res.set(publicHeaders).send(renderBookingPage({ content: site.content, booking }));
-};
+// The booking page at /book. Booking now lives on the single shop page, so /book shows that page.
+const sendBookingPage = (res, site, back) => sendShopPage(res, site, back);
 
 const notFoundPage = (res) => res.status(404).type('html').send('<!doctype html><title>Not found</title><p>This site does not exist.</p>');
 
@@ -441,14 +446,14 @@ const publicBookingPage = async (req, res) => {
   const slug = String(req.params.slug || '').toLowerCase();
   const site = SLUG_PATTERN.test(slug) ? await prisma.site.findUnique({ where: { slug } }) : null;
   if (!site) return notFoundPage(res);
-  return sendBookingPage(res, site);
+  return sendBookingPage(res, site, `https://${site.slug}.venture-pro.io`);
 };
 
 const publicBookingPageByDomain = async (req, res) => {
   const host = String(req.params.host || '').toLowerCase();
   const site = await prisma.site.findUnique({ where: { customDomain: host } });
   if (!site || !site.customDomainVerifiedAt) return notFoundPage(res);
-  return sendBookingPage(res, site);
+  return sendBookingPage(res, site, `https://${host}`);
 };
 
 // Puts a logo from the logo builder on one of the user's sites. Only the logo changes; the design and content stay as they are.

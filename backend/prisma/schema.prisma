@@ -93,6 +93,7 @@ model Site {
   // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
   shopItems Json?
   shopForm  Json?
+  shopContact Json?
   // The owner's own domain, such as www.yourbusiness.com. It is served only after the DNS checks pass.
   customDomain           String?   @unique
   customDomainToken      String?
@@ -113,6 +114,7 @@ model ShopOrder {
   customerName    String
   customerEmail   String
   status          String   @default("paid")
+  paymentIntent   String?
   items           Json?
   details         Json?
   createdAt       DateTime @default(now())
@@ -134,10 +136,16 @@ model Booking {
   customerPhone String   @default("")
   notes         String   @default("")
   status        String   @default("confirmed")
+  // Paid bookings: the order they belong to, and what the visitor paid for this slot.
+  orderId       String?
+  amountPence   Int      @default(0)
+  // Held while the visitor pays. 'held' bookings count as taken until holdUntil passes.
+  holdUntil     DateTime?
   createdAt     DateTime @default(now())
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   // Not unique: a class with places can have several people at the same start time. Capacity is checked when booking.
   @@index([siteId, startsAt])
   @@map("bookings")
