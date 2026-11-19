@@ -11,7 +11,7 @@ const { offerFor, holdSlots, bookFreeSlots, confirmPaidBookings, releaseHolds, e
 const { presetOf } = require('../lib/bookingPresets');
 const { ownerMessage } = require('../lib/bookingMessages');
 const { formatSlot } = require('../lib/bookingTime');
-const { defaultForm, generateShopForm, checkAnswers } = require('../lib/shopForm');
+const { defaultForm, generateShopForm, checkAnswers, isSessionText, ensureSessionFields } = require('../lib/shopForm');
 const { API_ORIGIN } = require('./bookingController');
 
 // Phone numbers: digits with an optional leading +, spaces, brackets or dashes. 10 to 15 digits.
@@ -45,9 +45,15 @@ const ownedSite = async (req, res) => {
 
 // The form a visitor fills in. Shops that have not written one yet get the standard form.
 // When bookings are on, a date and time come from the booking picker, so those questions are left out here.
+// Shops that sell classes or sessions keep them, because those items need their own date and time.
 const formOf = (site) => {
   const form = Array.isArray(site?.shopForm) && site.shopForm.length ? site.shopForm : defaultForm();
   if (!site?.bookingSettings?.enabled) return form;
+  const items = Array.isArray(site?.shopItems) ? site.shopItems : [];
+  if (items.some((item) => isSessionText(item?.name) || isSessionText(item?.description))) {
+    // Forms saved before this rule may lack the date and time, so they are added here too.
+    return ensureSessionFields(form, items.map((item) => `${item?.name} ${item?.description || ''}`).join(' '));
+  }
   return form.filter((field) => field.type !== 'date' && field.type !== 'time');
 };
 
