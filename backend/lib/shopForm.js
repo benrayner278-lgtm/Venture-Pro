@@ -31,6 +31,21 @@ const PRESETS = {
 
 const defaultForm = () => [...CONTACT_FIELDS, ...PRESETS.default];
 
+// Words that mean the buyer is booking a time: classes, sessions, runs, lessons and so on.
+const SESSION_WORDS = /session|class|run|lesson|booking|book|appointment|training|workout|tour|course|consult/i;
+const isSessionText = (text) => SESSION_WORDS.test(String(text || ''));
+
+// A shop that sells classes or sessions must ask for a date and time. Adds them when the AI left them out.
+const ensureSessionFields = (form, text) => {
+  if (!isSessionText(text)) return form;
+  const types = form.slice(CONTACT_FIELDS.length).map((field) => field.type);
+  const missing = [];
+  if (!types.includes('date')) missing.push({ id: 'date', label: 'Date of your class or session', type: 'date', required: true });
+  if (!types.includes('time')) missing.push({ id: 'time', label: 'Time of your class or session', type: 'time', required: true });
+  if (missing.length === 0) return form;
+  return [...CONTACT_FIELDS, ...missing, ...form.slice(CONTACT_FIELDS.length)].slice(0, CONTACT_FIELDS.length + MAX_FIELDS);
+};
+
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 
 // Keeps only valid fields. Adds the name and email fields in front, and never more than MAX_FIELDS extra fields.
@@ -67,12 +82,15 @@ Rules:
 - Do not include the buyer's name or email; those are added already.
 - type must be one of: text, textarea, email, phone, date, time, select.
 - Use "select" only with at least two "options".
-- Products that are posted need a delivery address (textarea). Bookings or sessions need a date and a time.
+- Products that are posted need a delivery address (textarea).
+- If any item is a class, session, run, lesson or other timed event, always include a required "date" field and a required "time" field.
 - Never ask for card numbers, bank details, passwords, passport or national ID numbers.
 - Keep labels short and plain, in British English.`;
 
 // Writes the form with the AI. Falls back to a preset when the AI fails or its answer is not usable.
 const generateShopForm = async ({ shopName, description, itemNames }) => {
+  // Item names and the description together decide whether the buyer must pick a date and time.
+  const timed = [description, ...itemNames].join(' ');
   const text = `Business: ${shopName || 'a small business'}
 What it sells: ${description || 'see the items below'}
 Items: ${itemNames.join(', ') || 'none yet'}`;
@@ -88,13 +106,12 @@ Items: ${itemNames.join(', ') || 'none yet'}`;
     const raw = response.content.find((block) => block.type === 'text')?.text || '';
     const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
     const form = cleanForm(JSON.parse(cleaned)?.fields);
-    if (form) return form;
+    if (form) return ensureSessionFields(form, timed);
     throw new Error('Order form had no usable fields');
   } catch (error) {
     console.error('Shop order form error:', error);
-    const text = String(description || '');
-    if (/deliver|post|ship|send/i.test(text)) return cleanForm(PRESETS.products) || defaultForm();
-    if (/session|booking|book|appointment|lesson|class|date|time/i.test(text)) return cleanForm(PRESETS.sessions) || defaultForm();
+    if (isSessionText(timed)) return cleanForm(PRESETS.sessions) || defaultForm();
+    if (/deliver|post|ship|send/i.test(timed)) return cleanForm(PRESETS.products) || defaultForm();
     return defaultForm();
   }
 };
@@ -118,4 +135,4 @@ const checkAnswers = (form, body) => {
   return { answers };
 };
 
-module.exports = { cleanForm, defaultForm, generateShopForm, checkAnswers, PRESETS, CONTACT_FIELDS, MAX_ANSWER };
+module.exports = { cleanForm, defaultForm, generateShopForm, checkAnswers, isSessionText, ensureSessionFields, PRESETS, CONTACT_FIELDS, MAX_ANSWER };
