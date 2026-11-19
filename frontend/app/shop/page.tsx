@@ -25,6 +25,11 @@ export default function ShopPage() {
   const [description, setDescription] = useState('');
   const [writingForm, setWritingForm] = useState(false);
   const [formMessage, setFormMessage] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactError, setContactError] = useState('');
+  const [bookingsOn, setBookingsOn] = useState(false);
   const [allowed, setAllowed] = useState(true);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const [message, setMessage] = useState('');
@@ -57,6 +62,9 @@ export default function ShopPage() {
         })));
         setOrders(data.orders || []);
         setForm(data.form || []);
+        setContactEmail(data.contact?.email || '');
+        setContactPhone(data.contact?.phone || '');
+        setBookingsOn(Boolean(data.bookingsOn));
         setAllowed(data.allowed !== false);
         setPaymentsEnabled(Boolean(data.paymentsEnabled));
       })
@@ -92,6 +100,19 @@ export default function ShopPage() {
       setError(err instanceof Error ? err.message : 'Could not save the shop');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveContact = async () => {
+    setContactMessage('');
+    setContactError('');
+    try {
+      const response = await apiFetch(`/api/shop/sites/${siteId}/contact`, { method: 'PUT', json: { email: contactEmail.trim(), phone: contactPhone.trim() } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save the contact details');
+      setContactMessage('Contact details saved. They appear on your shop page only when nothing is for sale or booked online.');
+    } catch (err) {
+      setContactError(err instanceof Error ? err.message : 'Could not save the contact details');
     }
   };
 
@@ -214,6 +235,25 @@ export default function ShopPage() {
               </button>
               {formMessage && <span className="text-sm text-green-400">{formMessage}</span>}
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-white">Enquiry contact details</h2>
+            <p className="text-xs text-gray-500">
+              If you only take enquiries, not online sales or bookings, customers see these details on your shop page. Enter both, so they can reach you by email or phone.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} type="email" placeholder="Email address" className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm" />
+              <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} type="tel" placeholder="Phone number, with area code" className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm" />
+            </div>
+            <div className="flex flex-wrap gap-3 items-center">
+              <button type="button" onClick={saveContact} disabled={!allowed} className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm disabled:opacity-40">
+                Save contact details
+              </button>
+              {contactMessage && <span className="text-sm text-green-400">{contactMessage}</span>}
+              {contactError && <span className="text-sm text-red-400">{contactError}</span>}
+            </div>
+            {bookingsOn && <p className="text-xs text-gray-500">Bookings are on, so customers can book on your shop page and these details stay hidden.</p>}
           </section>
 
           <section className="space-y-3">

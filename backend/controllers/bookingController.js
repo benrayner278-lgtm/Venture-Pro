@@ -7,6 +7,7 @@ const { TEMPLATES, TEMPLATE_IDS, templateOf, catalogueForAdvisor } = require('..
 const { sendEmail } = require('../lib/email');
 const { googleCalendarUrl, ownerMessage, customerConfirmedMessage, customerRequestedMessage } = require('../lib/bookingMessages');
 const { verify: verifyTurnstile } = require('../lib/turnstile');
+const { refundDeclined } = require('../lib/bookingCheckout');
 
 // Where the public booking form posts to. Published sites are served from another domain, so this must be the API's address.
 const API_ORIGIN = process.env.API_PUBLIC_URL || 'https://venture-pro-production.up.railway.app';
@@ -32,6 +33,9 @@ const FRONTEND_ORIGIN = (process.env.FRONTEND_URL || 'https://venture-pro.io').s
 const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 
 // Checks the owner's settings and keeps only valid values. Returns an error message when something is wrong.
+const MAX_PENCE = 500000;
+const cleanPence = (value) => Math.min(MAX_PENCE, Math.max(0, Math.round(Number(value) || 0)));
+
 const cleanSettings = (input) => {
   if (!input || typeof input !== 'object') return { error: 'Booking settings are missing' };
   const timezone = TIMEZONES.includes(input.timezone) ? input.timezone : null;
@@ -56,6 +60,8 @@ const cleanSettings = (input) => {
       name: clip(service?.name, 60),
       minutes: Math.round(Number(service?.minutes)),
       price: clip(service?.price, 40),
+      // The amount charged online, in pence. 0 means free: the slot is booked straight away.
+      pricePence: cleanPence(service?.pricePence),
     }))
     .filter((service) => service.name && service.minutes >= 15 && service.minutes <= MAX_SERVICE_MINUTES);
 
@@ -67,6 +73,7 @@ const cleanSettings = (input) => {
       time: toMinutes(session?.time) === null ? null : session.time,
       minutes: Math.round(Number(session?.minutes)),
       capacity: Math.round(Number(session?.capacity)),
+      pricePence: cleanPence(session?.pricePence),
     }))
     .filter((session) => session.name && session.day && session.time && session.minutes >= 15 && session.minutes <= MAX_SERVICE_MINUTES && session.capacity >= 1 && session.capacity <= 500);
 
@@ -96,11 +103,16 @@ const cleanSettings = (input) => {
 };
 
 // Bookings that already take up time in the window the form covers.
+// A held booking (waiting for payment) counts as taken until its hold runs out.
+const takingPlace = (nowMs) => ({
+  OR: [{ status: { in: ['confirmed', 'requested'] } }, { status: 'held', holdUntil: { gt: new Date(nowMs) } }],
+});
+
 const bookingRows = (siteId, nowMs, daysAhead) =>
   prisma.booking.findMany({
     where: {
       siteId,
-      status: { in: ['confirmed', 'requested'] },
+      ...takingPlace(nowMs),
       startsAt: { gte: new Date(nowMs - DAY), lte: new Date(nowMs + (daysAhead + 2) * DAY) },
     },
     select: { startsAt: true, durationMin: true, serviceName: true },
@@ -158,6 +170,54 @@ const publicBookingView = async (site, ownerPlan) => {
   };
 };
 
+// The times on offer for each service or class, for the shop page. Each service has its own times, because a longer service needs more free time.
+// Returns null when booking is off, or the plan does not include it.
+const publicBookingOffers = async (site, ownerPlan) => {
+  const settings = site.bookingSettings;
+  if (!settings?.enabled || !ownerAllowsBooking(ownerPlan)) return null;
+  const nowMs = Date.now();
+  const rows = await bookingRows(site.id, nowMs, settings.daysAhead);
+  const group = (items) => {
+    const days = [];
+    for (const item of items) {
+      const key = localDate(item.startMs, settings.timezone);
+      let day = days.find((entry) => entry.key === key);
+      if (!day) {
+        day = { key, label: dayLabel(item.startMs, settings.timezone), slots: [] };
+        days.push(day);
+      }
+      day.slots.push({ value: item.value, label: item.label });
+    }
+    return days;
+  };
+  const offers = [];
+  if (settings.kind === 'sessions') {
+    for (const session of settings.sessions || []) {
+      const items = [];
+      for (const { startMs, session: offered } of sessionStarts({ settings, nowMs })) {
+        if (offered.name !== session.name) continue;
+        const taken = rows.filter((row) => row.startsAt.getTime() === startMs && row.serviceName === session.name).length;
+        const left = session.capacity - taken;
+        if (left <= 0) continue;
+        items.push({ startMs, value: new Date(startMs).toISOString(), label: `${timeLabel(startMs, settings.timezone)} · ${left} ${left === 1 ? 'place' : 'places'} left` });
+      }
+      offers.push({ name: session.name, minutes: session.minutes, pricePence: session.pricePence || 0, days: group(items) });
+    }
+    return { kind: 'sessions', heading: 'Book a place', timezone: settings.timezone, offers };
+  }
+  const isCall = settings.kind === 'call';
+  for (const service of settings.services || []) {
+    const perService = { ...settings, services: [service] };
+    const items = availableSlots({ settings: perService, nowMs, booked: toRanges(rows) }).map((slot) => ({
+      startMs: slot.startMs,
+      value: new Date(slot.startMs).toISOString(),
+      label: timeLabel(slot.startMs, settings.timezone),
+    }));
+    offers.push({ name: service.name, minutes: service.minutes, pricePence: service.pricePence || 0, price: service.price || '', days: group(items) });
+  }
+  return { kind: settings.kind, heading: isCall ? 'Book a call' : 'Book a time', timezone: settings.timezone, callDetails: isCall ? settings.callDetails || '' : '', offers };
+};
+
 // ---- Owner endpoints (signed in) ----
 
 // The preset catalogue for the Bookings page.
@@ -177,7 +237,8 @@ const getOwnerBookings = async (req, res) => {
     const site = await ownedSite(req, res);
     if (!site) return;
     const bookings = await prisma.booking.findMany({
-      where: { siteId: site.id, startsAt: { gte: new Date(Date.now() - DAY) } },
+      // Held bookings (not yet paid) are not shown to the owner.
+      where: { siteId: site.id, status: { not: 'held' }, startsAt: { gte: new Date(Date.now() - DAY) } },
       orderBy: { startsAt: 'asc' },
       take: 200,
     });
@@ -351,8 +412,10 @@ const confirmBooking = async (req, res) => {
 
 const cancelBooking = async (req, res) => {
   try {
-    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId }, include: { site: { select: { userId: true } } } });
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId }, include: { site: { select: { userId: true, title: true, slug: true } } } });
     if (!booking || booking.site.userId !== req.userId) return res.status(404).json({ error: 'Booking not found' });
+    // A declined request that was paid for is refunded first. If the refund fails, the booking is kept so it can be tried again.
+    await refundDeclined({ booking, businessName: booking.site.title || booking.site.slug });
     await prisma.booking.delete({ where: { id: booking.id } });
     res.json({ message: 'Booking cancelled' });
   } catch (error) {
@@ -421,6 +484,10 @@ const createPublicBooking = async (req, res) => {
     const service = isSessions
       ? session && { name: session.name, minutes: session.minutes, capacity: session.capacity }
       : settings.services.find((item) => item.name === body.service) && { ...settings.services.find((item) => item.name === body.service), capacity: 1 };
+    // Paid times are booked through the shop basket, which takes payment first.
+    if (service && service.pricePence > 0) {
+      return res.status(400).type('html').send(page('Book on the shop page', `<h1>This time is paid</h1><p>Please book it on the shop page, where you can pay for it.</p><p><a href="${back}/shop">Go to the shop</a></p>`));
+    }
     if (!name || !EMAIL_RE.test(email) || !service || !Number.isFinite(startMs)) {
       return res.status(400).type('html').send(page('Check your details', `<h1>Please check your details</h1><p>Choose a time, and fill in your name and a valid email address.</p><p><a href="${back}">Back to the site</a></p>`));
     }
@@ -500,4 +567,4 @@ const createPublicBooking = async (req, res) => {
   }
 };
 
-module.exports = { API_ORIGIN, publicBookingView, listPresets, getOwnerBookings, updateSettings, applyTemplate, advisor, confirmBooking, cancelBooking, createPublicBooking, cleanSettings, TIMEZONES };
+module.exports = { API_ORIGIN, publicBookingView, publicBookingOffers, listPresets, getOwnerBookings, updateSettings, applyTemplate, advisor, confirmBooking, cancelBooking, createPublicBooking, cleanSettings, TIMEZONES };

@@ -33,8 +33,8 @@ const formatPrice = (pence) => `£${(pence / 100).toFixed(2)}`;
 const MAX_LINES = 12;
 const MAX_QTY = 20;
 
-// Turns the basket a visitor sent into lines with the real names and prices from the database.
-// The browser only says which items and how many. Anything unknown or out of range is refused.
+// Turns the basket a visitor sent into lines. Product lines have an id and quantity; slot lines have a start time and a service.
+// Products get their real names and prices from the database. Slot prices are added later, from the booking settings.
 const basketLines = (site, rawBasket) => {
   let parsed;
   try {
@@ -46,15 +46,26 @@ const basketLines = (site, rawBasket) => {
   if (parsed.length > MAX_LINES) return { error: 'Your basket has too many different items' };
   const catalogue = new Map(itemsOf(site).map((item) => [item.id, item]));
   const lines = [];
+  const slots = [];
   for (const entry of parsed) {
+    if (entry && entry.slot !== undefined) {
+      const startMs = Date.parse(String(entry.slot));
+      const service = String(entry.service || '').slice(0, 60);
+      if (!Number.isFinite(startMs) || !service) return { error: 'One of the times in your basket could not be read. Please check your basket.' };
+      if (slots.some((slot) => slot.startMs === startMs && slot.service === service)) continue;
+      slots.push({ startMs, service });
+      continue;
+    }
     const item = catalogue.get(String(entry?.id || ''));
     const qty = Math.round(Number(entry?.qty));
     if (!item) return { error: 'One of the items is no longer for sale. Please check your basket.' };
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return { error: `Choose between 1 and ${MAX_QTY} of ${item.name}` };
     lines.push({ id: item.id, name: item.name, pricePence: item.pricePence, qty });
   }
+  if (lines.length + slots.length === 0) return { error: 'Your basket is empty' };
+  if (slots.length > MAX_LINES) return { error: 'Your basket has too many bookings' };
   const totalPence = lines.reduce((sum, line) => sum + line.pricePence * line.qty, 0);
-  return { lines, totalPence };
+  return { lines, slots, totalPence };
 };
 
 module.exports = { cleanItems, itemsOf, formatPrice, basketLines, MAX_ITEMS };

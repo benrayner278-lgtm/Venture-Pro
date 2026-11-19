@@ -6,8 +6,8 @@ import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
 
 type Hours = [string, string] | null;
-type Service = { name: string; minutes: number; price: string };
-type ClassTime = { name: string; day: string; time: string; minutes: number; capacity: number };
+type Service = { name: string; minutes: number; price: string; pricePence?: number };
+type ClassTime = { name: string; day: string; time: string; minutes: number; capacity: number; pricePence?: number };
 type Kind = 'appointments' | 'call' | 'sessions';
 type Preset = 'instant' | 'approve' | 'calendar' | 'quiet';
 type Settings = {
@@ -543,7 +543,11 @@ export default function BookingsPage() {
                           <input className={`${inputClass} flex-1 min-w-[10rem]`} placeholder="Service name" value={service.name} maxLength={60} onChange={(e) => setService(index, { name: e.target.value })} />
                           <input type="number" min={15} max={480} className={`${inputClass} w-28`} value={service.minutes} onChange={(e) => setService(index, { minutes: Number(e.target.value) })} />
                           <span className="text-sm text-gray-500">minutes</span>
-                          <input className={`${inputClass} w-28`} placeholder="Price (optional)" value={service.price} maxLength={40} onChange={(e) => setService(index, { price: e.target.value })} />
+                          <input className={`${inputClass} w-28`} placeholder="Price note (optional)" value={service.price} maxLength={40} onChange={(e) => setService(index, { price: e.target.value })} />
+                          <label className="flex items-center gap-1 text-sm text-gray-400">
+                            Online £
+                            <input type="number" min={0} max={5000} step="0.50" className={`${inputClass} w-24`} value={((service.pricePence || 0) / 100).toString()} onChange={(e) => setService(index, { pricePence: Math.round(Math.max(0, Number(e.target.value) || 0) * 100) })} />
+                          </label>
                           {settings.services.length > 1 && (
                             <button type="button" onClick={() => set({ services: settings.services.filter((_, i) => i !== index) })} className="text-sm text-gray-400 hover:text-gray-200">
                               Remove
@@ -584,6 +588,10 @@ export default function BookingsPage() {
                           <span className="text-sm text-gray-500">minutes</span>
                           <input type="number" min={1} max={500} className={`${inputClass} w-24`} value={item.capacity} onChange={(e) => setClass(index, { capacity: Number(e.target.value) })} />
                           <span className="text-sm text-gray-500">places</span>
+                          <label className="flex items-center gap-1 text-sm text-gray-400">
+                            Online £
+                            <input type="number" min={0} max={5000} step="0.50" className={`${inputClass} w-24`} value={((item.pricePence || 0) / 100).toString()} onChange={(e) => setClass(index, { pricePence: Math.round(Math.max(0, Number(e.target.value) || 0) * 100) })} />
+                          </label>
                           {settings.sessions.length > 1 && (
                             <button type="button" onClick={() => set({ sessions: settings.sessions.filter((_, i) => i !== index) })} className="text-sm text-gray-400 hover:text-gray-200">
                               Remove
