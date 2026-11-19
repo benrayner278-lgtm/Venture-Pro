@@ -92,6 +92,7 @@ model Site {
   mailboxes       Mailbox[]
   // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
   shopItems Json?
+  shopForm  Json?
   // The owner's own domain, such as www.yourbusiness.com. It is served only after the DNS checks pass.
   customDomain           String?   @unique
   customDomainToken      String?
@@ -111,6 +112,9 @@ model ShopOrder {
   amountPence     Int
   customerName    String
   customerEmail   String
+  status          String   @default("paid")
+  items           Json?
+  details         Json?
   createdAt       DateTime @default(now())
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)

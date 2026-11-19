@@ -11,7 +11,7 @@ const { cleanStyle } = require('../lib/styleOptions');
 const { cleanLogo } = require('../lib/logoSpec');
 const { PLANS, planKey } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView } = require('./bookingController');
-const { ownerAllowsShop } = require('./shopController');
+const { ownerAllowsShop, formOf } = require('./shopController');
 const { itemsOf } = require('../lib/shop');
 const { renderShopPage } = require('../lib/shopPage');
 const { normaliseDomain, newToken, checkDomain, domainSetup, registerHostname } = require('../lib/customDomain');
@@ -369,9 +369,12 @@ const publicHeaders = {
 };
 
 // Shop pages need to send the visitor to Stripe, so the form may post to the API and then redirect to Stripe Checkout.
+// The shop page also runs a small script for the basket, so it allows inline scripts. Other pages keep the strict policy.
 const shopHeaders = {
   ...publicHeaders,
-  'Content-Security-Policy': publicHeaders['Content-Security-Policy'].replace(`form-action ${API_ORIGIN}`, `form-action ${API_ORIGIN} https://checkout.stripe.com`),
+  'Content-Security-Policy': publicHeaders['Content-Security-Policy']
+    .replace(`form-action ${API_ORIGIN}`, `form-action ${API_ORIGIN} https://checkout.stripe.com`)
+    .replace("default-src 'none';", "default-src 'none'; script-src 'unsafe-inline';"),
 };
 
 const sendPublicSite = async (res, site) => {
@@ -392,7 +395,7 @@ const sendShopPage = async (res, site, back) => {
   const items = itemsOf(site);
   if (!ownerAllowsShop(owner?.plan) || items.length === 0) return notFoundPage(res);
   const apiOrigin = API_ORIGIN;
-  res.set(shopHeaders).send(renderShopPage({ content: site.content, items, slug: site.slug, back, apiOrigin }));
+  res.set(shopHeaders).send(renderShopPage({ content: site.content, items, slug: site.slug, back, apiOrigin, form: formOf(site) }));
 };
 
 const publicShopPage = async (req, res) => {

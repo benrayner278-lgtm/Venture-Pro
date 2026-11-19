@@ -30,4 +30,31 @@ const itemsOf = (site) => (Array.isArray(site?.shopItems) ? site.shopItems : [])
 
 const formatPrice = (pence) => `£${(pence / 100).toFixed(2)}`;
 
-module.exports = { cleanItems, itemsOf, formatPrice, MAX_ITEMS };
+const MAX_LINES = 12;
+const MAX_QTY = 20;
+
+// Turns the basket a visitor sent into lines with the real names and prices from the database.
+// The browser only says which items and how many. Anything unknown or out of range is refused.
+const basketLines = (site, rawBasket) => {
+  let parsed;
+  try {
+    parsed = typeof rawBasket === 'string' ? JSON.parse(rawBasket) : rawBasket;
+  } catch {
+    return { error: 'Your basket could not be read. Please try again.' };
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) return { error: 'Your basket is empty' };
+  if (parsed.length > MAX_LINES) return { error: 'Your basket has too many different items' };
+  const catalogue = new Map(itemsOf(site).map((item) => [item.id, item]));
+  const lines = [];
+  for (const entry of parsed) {
+    const item = catalogue.get(String(entry?.id || ''));
+    const qty = Math.round(Number(entry?.qty));
+    if (!item) return { error: 'One of the items is no longer for sale. Please check your basket.' };
+    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) return { error: `Choose between 1 and ${MAX_QTY} of ${item.name}` };
+    lines.push({ id: item.id, name: item.name, pricePence: item.pricePence, qty });
+  }
+  const totalPence = lines.reduce((sum, line) => sum + line.pricePence * line.qty, 0);
+  return { lines, totalPence };
+};
+
+module.exports = { cleanItems, itemsOf, formatPrice, basketLines, MAX_ITEMS };

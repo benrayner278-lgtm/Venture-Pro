@@ -20,7 +20,8 @@ const methodNotAllowed = () => new Response('Method not allowed', { status: 405,
 const fetchSite = async (request, path) => {
   let upstream;
   try {
-    upstream = await fetch(`${ORIGIN}${path}`, {
+    // The query string is passed on too, for example ?order=thanks after a payment on the shop page.
+    upstream = await fetch(`${ORIGIN}${path}${new URL(request.url).search}`, {
       method: request.method,
       // The visitor's own address and browser, so the backend can count unique visitors.
       headers: {
