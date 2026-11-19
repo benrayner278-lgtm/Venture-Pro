@@ -89,6 +89,8 @@ model Site {
   // The website builder project this site was published from, so the builder can find the live site again.
   buildId String?
   bookingSettings Json?
+  // Dated classes and sessions for the shop: [{ id, name, minutes, capacity, pricePence, instruction, occurrences: [ISO] }]
+  shopSchedule    Json?
   mailboxes       Mailbox[]
   // The items the owner sells: [{ id, name, description, pricePence }]. Empty or null when there is no shop.
   shopItems Json?

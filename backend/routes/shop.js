@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit').rateLimit;
 const auth = require('../middleware/auth');
-const { getShop, updateShop, updateContact, generateForm, startCheckout, completeCheckout } = require('../controllers/shopController');
+const { getShop, updateShop, updateContact, generateForm, previewClasses, saveClasses, startCheckout, completeCheckout } = require('../controllers/shopController');
 
 const router = express.Router();
 
@@ -18,6 +18,8 @@ router.get('/sites/:siteId', auth, getShop);
 router.put('/sites/:siteId', auth, updateShop);
 router.post('/sites/:siteId/form', auth, generateForm);
 router.put('/sites/:siteId/contact', auth, updateContact);
+router.post('/sites/:siteId/classes/preview', auth, previewClasses);
+router.put('/sites/:siteId/classes', auth, saveClasses);
 router.post('/public/:slug/checkout', shopLimiter, express.urlencoded({ extended: false, limit: '24kb' }), startCheckout);
 router.get('/public/:slug/complete', completeCheckout);
 
