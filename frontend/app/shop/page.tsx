@@ -4,23 +4,31 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { compressPhoto } from '@/lib/imageUpload';
 
-type Item = { id?: string; name: string; description: string; price: string };
+type Item = { id?: string; name: string; description: string; price: string; photos: string[] };
 type Order = { id: string; itemName: string; amountPence: number; customerName: string; customerEmail: string; createdAt: string };
 type SiteRow = { id: string; slug: string; title: string };
 type FormField = { id: string; label: string; type: string; required: boolean; options?: string[] };
-type ClassRow = { id: string; name: string; minutes: string; capacity: string; price: string; instruction: string; occurrences: string[]; timezone?: string };
-type SavedClass = { id: string; name: string; minutes: number; capacity: number; pricePence: number; instruction: string; occurrences: string[] };
+type ClassRow = { id: string; name: string; minutes: string; capacity: string; price: string; instruction: string; occurrences: string[]; photos: string[]; timezone?: string };
+type SavedClass = { id: string; name: string; minutes: number; capacity: number; pricePence: number; instruction: string; occurrences: string[]; photos?: string[] };
+type SavedItem = { id: string; name: string; description: string; pricePence: number; photos?: string[] };
 
 const FIELD_NAMES: Record<string, string> = { text: 'Short text', textarea: 'Longer text', email: 'Email', phone: 'Phone', date: 'Date', time: 'Time', select: 'Choose one' };
 
 const MAX_ITEMS = 12;
 
 const MAX_CLASSES = 8;
+const MAX_PHOTOS = 7;
+// Keep in step with MAX_PHOTO_CHARS in the backend (lib/photos.js).
+const PHOTO_CHARS = 150000;
 
 const pounds = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
-const emptyClass = (): ClassRow => ({ id: Math.random().toString(36).slice(2, 10), name: '', minutes: '60', capacity: '', price: '', instruction: '', occurrences: [] });
+const emptyClass = (): ClassRow => ({ id: Math.random().toString(36).slice(2, 10), name: '', minutes: '60', capacity: '', price: '', instruction: '', occurrences: [], photos: [] });
+
+const toItems = (list: SavedItem[]): Item[] =>
+  list.map((item) => ({ id: item.id, name: item.name, description: item.description || '', price: (item.pricePence / 100).toFixed(2), photos: item.photos || [] }));
 
 const toRows = (list: SavedClass[]): ClassRow[] =>
   list.map((cls) => ({
@@ -31,10 +39,52 @@ const toRows = (list: SavedClass[]): ClassRow[] =>
     price: (cls.pricePence / 100).toFixed(2),
     instruction: cls.instruction || '',
     occurrences: cls.occurrences || [],
+    photos: cls.photos || [],
   }));
 
 const formatWhen = (iso: string, timezone = 'Europe/London') =>
   new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone });
+
+// Photos for one item or class: up to MAX_PHOTOS, each resized to fit the stored size.
+function PhotoEditor({ photos, onChange }: { photos: string[]; onChange: (next: string[]) => void }) {
+  const [note, setNote] = useState('');
+  const add = async (files: FileList | null) => {
+    if (!files) return;
+    setNote('');
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) return setNote(`Up to ${MAX_PHOTOS} photos`);
+    const picked = Array.from(files).slice(0, room);
+    try {
+      const added = await Promise.all(picked.map((file) => compressPhoto(file, PHOTO_CHARS)));
+      onChange([...photos, ...added]);
+      if (files.length > room) setNote(`Only ${room} more fit. Up to ${MAX_PHOTOS} photos.`);
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : 'Could not add that photo');
+    }
+  };
+  return (
+    <div className="space-y-2">
+      {photos.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {photos.map((src, i) => (
+            <div key={i} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="" className="h-20 w-20 rounded-lg object-cover" />
+              <button type="button" aria-label="Remove photo" onClick={() => onChange(photos.filter((_, k) => k !== i))} className="absolute -top-2 -right-2 rounded-full bg-black/80 px-1.5 text-xs text-white">
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label className={`inline-block text-xs underline ${photos.length >= MAX_PHOTOS ? 'text-gray-600' : 'cursor-pointer text-gray-300'}`}>
+        {photos.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos added` : `Add photos (${photos.length} of ${MAX_PHOTOS})`}
+        <input type="file" accept="image/*" multiple className="hidden" disabled={photos.length >= MAX_PHOTOS} onChange={(e) => { add(e.target.files); e.target.value = ''; }} />
+      </label>
+      {note && <p className="text-xs text-red-400">{note}</p>}
+    </div>
+  );
+}
 
 export default function ShopPage() {
   const [sites, setSites] = useState<SiteRow[]>([]);
@@ -78,12 +128,7 @@ export default function ShopPage() {
     apiFetch(`/api/shop/sites/${siteId}`)
       .then((res) => res.json())
       .then((data) => {
-        setItems((data.items || []).map((item: { id: string; name: string; description: string; pricePence: number }) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description || '',
-          price: (item.pricePence / 100).toFixed(2),
-        })));
+        setItems(toItems(data.items || []));
         setOrders(data.orders || []);
         setForm(data.form || []);
         setContactEmail(data.contact?.email || '');
@@ -107,19 +152,14 @@ export default function ShopPage() {
       const price = Number(item.price);
       if (!item.name.trim()) return setError('Every item needs a name');
       if (!Number.isFinite(price) || price < 0.5 || price > 5000) return setError(`${item.name || 'An item'}: the price must be between £0.50 and £5,000`);
-      payload.push({ id: item.id, name: item.name.trim(), description: item.description.trim(), pricePence: Math.round(price * 100) });
+      payload.push({ id: item.id, name: item.name.trim(), description: item.description.trim(), pricePence: Math.round(price * 100), photos: item.photos });
     }
     setSaving(true);
     try {
       const response = await apiFetch(`/api/shop/sites/${siteId}`, { method: 'PUT', json: { items: payload } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save the shop');
-      setItems(data.items.map((item: { id: string; name: string; description: string; pricePence: number }) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description || '',
-        price: (item.pricePence / 100).toFixed(2),
-      })));
+      setItems(toItems(data.items || []));
       setMessage('Shop saved');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the shop');
@@ -166,7 +206,7 @@ export default function ShopPage() {
       const price = Number(row.price || 0);
       if (!row.name.trim()) return setError('Every class or session needs a name');
       if (!Number.isFinite(price) || price < 0 || price > 5000) return setError(`${row.name}: the price must be between £0 and £5,000`);
-      payload.push({ id: row.id, name: row.name.trim(), minutes: Number(row.minutes), capacity: Number(row.capacity), pricePence: Math.round(price * 100), instruction: row.instruction.trim(), occurrences: row.occurrences });
+      payload.push({ id: row.id, name: row.name.trim(), minutes: Number(row.minutes), capacity: Number(row.capacity), pricePence: Math.round(price * 100), instruction: row.instruction.trim(), occurrences: row.occurrences, photos: row.photos });
     }
     setClassBusy(-1);
     try {
@@ -261,6 +301,7 @@ export default function ShopPage() {
                   <input value={item.price} onChange={(e) => update(index, 'price', e.target.value)} inputMode="decimal" placeholder="Price £" className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm" />
                 </div>
                 <textarea value={item.description} onChange={(e) => update(index, 'description', e.target.value)} maxLength={200} placeholder="Short description (optional)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm min-h-[60px]" />
+                <PhotoEditor photos={item.photos} onChange={(next) => setItems((current) => current.map((entry, i) => (i === index ? { ...entry, photos: next } : entry)))} />
                 <button type="button" onClick={() => setItems((current) => current.filter((_, i) => i !== index))} className="text-xs text-gray-400 hover:text-white">
                   Remove item
                 </button>
@@ -270,7 +311,7 @@ export default function ShopPage() {
               <button
                 type="button"
                 disabled={items.length >= MAX_ITEMS || !allowed}
-                onClick={() => setItems((current) => [...current, { name: '', description: '', price: '' }])}
+                onClick={() => setItems((current) => [...current, { name: '', description: '', price: '', photos: [] }])}
                 className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm disabled:opacity-40"
               >
                 Add item
@@ -297,6 +338,7 @@ export default function ShopPage() {
                   <input value={row.price} onChange={(e) => updateClass(index, { price: e.target.value })} inputMode="decimal" placeholder="Price £ (0 = free)" className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm" />
                 </div>
                 <textarea value={row.instruction} onChange={(e) => updateClass(index, { instruction: e.target.value })} maxLength={300} placeholder="When does it run? Describe it in your own words." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm min-h-[60px]" />
+                <PhotoEditor photos={row.photos} onChange={(next) => updateClass(index, { photos: next })} />
                 <div className="flex flex-wrap gap-3 items-center">
                   <button type="button" onClick={() => makeDates(index)} disabled={classBusy !== null || !allowed} className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm disabled:opacity-40">
                     {classBusy === index ? 'Making dates…' : row.occurrences.length > 0 ? 'Make the dates again' : 'Make the dates'}
