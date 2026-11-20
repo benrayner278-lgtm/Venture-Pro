@@ -11,7 +11,7 @@ const { offerFor, holdSlots, bookFreeSlots, confirmPaidBookings, releaseHolds, e
 const { presetOf } = require('../lib/bookingPresets');
 const { ownerMessage } = require('../lib/bookingMessages');
 const { formatSlot } = require('../lib/bookingTime');
-const { defaultForm, generateShopForm, checkAnswers } = require('../lib/shopForm');
+const { defaultForm, generateShopForm, checkAnswers, withDeliveryField, requireDelivery } = require('../lib/shopForm');
 const { cleanClasses, ruleFromText, expandRule, classOffers, RuleError, MAX_OCCURRENCES } = require('../lib/classSchedule');
 const { API_ORIGIN } = require('./bookingController');
 
@@ -50,7 +50,8 @@ const scheduleOf = (site) => (Array.isArray(site?.shopSchedule) ? site.shopSched
 
 // When bookings or dated classes are on, a date and time come from the booking picker, so those questions are left out here.
 const formOf = (site) => {
-  const form = Array.isArray(site?.shopForm) && site.shopForm.length ? site.shopForm : defaultForm();
+  let form = Array.isArray(site?.shopForm) && site.shopForm.length ? site.shopForm : defaultForm();
+  if (itemsOf(site).length > 0) form = withDeliveryField(form);
   if (!(site?.bookingSettings?.enabled || scheduleOf(site).length > 0)) return form;
   return form.filter((field) => field.type !== 'date' && field.type !== 'time');
 };
@@ -338,7 +339,8 @@ const startCheckout = async (req, res) => {
     if (basket.slots.length > 0 && !sections.bookingOn) {
       return res.status(400).type('html').send(page('Bookings not available', `<h1>Bookings are not available</h1><p><a href="${back}/shop">Back to the shop</a></p>`));
     }
-    const answers = checkAnswers(formOf(site), req.body);
+    // A basket with an item needs a delivery address. Bookings alone do not.
+    const answers = checkAnswers(basket.lines.length > 0 ? requireDelivery(formOf(site)) : formOf(site), req.body);
     if (answers.error) {
       return res.status(400).type('html').send(page('Check your order', `<h1>Please check your order</h1><p>${escapeHtml(answers.error)}</p><p><a href="${back}/shop">Back to the shop</a></p>`));
     }

@@ -116,6 +116,17 @@ Items: ${itemNames.join(', ') || 'none yet'}`;
   }
 };
 
+// Shops that sell items need a delivery address whenever the basket holds an item. The field is always on the form for them,
+// and marked with delivery so the page shows it only when an item is in the basket.
+const ADDRESS_FIELD = { id: 'address', label: 'Delivery address', type: 'textarea', required: false, delivery: true };
+const withDeliveryField = (form) => {
+  const index = form.findIndex((field, i) => i >= CONTACT_FIELDS.length && (field.id === 'address' || /address/i.test(field.label)));
+  if (index >= 0) return form.map((field, i) => (i === index ? { ...field, delivery: true } : field));
+  return [...form.slice(0, CONTACT_FIELDS.length), ADDRESS_FIELD, ...form.slice(CONTACT_FIELDS.length)];
+};
+// The delivery address becomes required, for a basket that holds an item.
+const requireDelivery = (form) => form.map((field) => (field.delivery ? { ...field, required: true } : field));
+
 // Checks what a visitor typed into the form. Returns the cleaned answers, or an error naming the field.
 const checkAnswers = (form, body) => {
   const answers = {};
@@ -135,4 +146,4 @@ const checkAnswers = (form, body) => {
   return { answers };
 };
 
-module.exports = { cleanForm, defaultForm, generateShopForm, checkAnswers, isSessionText, ensureSessionFields, PRESETS, CONTACT_FIELDS, MAX_ANSWER };
+module.exports = { cleanForm, defaultForm, generateShopForm, checkAnswers, isSessionText, ensureSessionFields, withDeliveryField, requireDelivery, PRESETS, CONTACT_FIELDS, MAX_ANSWER };
