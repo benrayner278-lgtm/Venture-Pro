@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { getAnthropic } = require('./anthropic');
 const { logUsage } = require('./usageLog');
 const { DAY_KEYS, toMinutes, zonedToUtc, localDate, dayLabel, timeLabel, NOTICE_MINUTES } = require('./bookingTime');
+const { cleanPhotos } = require('./photos');
 
 const MAX_CLASSES = 8;
 const MAX_OCCURRENCES = 1200;
@@ -20,25 +21,64 @@ const cleanPence = (value) => {
   return Number.isFinite(n) && n >= 0 && n <= 500000 ? n : 0;
 };
 
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
+const ALL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+// Words people use for groups of days. Anything else is matched on its first three letters, such as "Tuesdays" or "tue".
+const DAY_GROUPS = { weekday: WEEKDAYS, weekdays: WEEKDAYS, 'week day': WEEKDAYS, 'week days': WEEKDAYS, weekend: ['sat', 'sun'], weekends: ['sat', 'sun'], 'every day': ALL_DAYS, daily: ALL_DAYS };
+
+// Reads a time as HH:MM. Accepts 6am, 6:00am, 6pm, 06:00, 18:30, 10 am, noon and midnight. Returns null when it is not a time.
+const parseClock = (value) => {
+  const text = String(value ?? '').trim().toLowerCase().replace(/\./g, '').replace(/\s+/g, '');
+  if (text === 'noon') return '12:00';
+  if (text === 'midnight') return '00:00';
+  const match = /^(\d{1,2})(?::(\d{2}))?(am|pm)?$/.exec(text);
+  if (!match) return null;
+  let hours = Number(match[1]);
+  const minutes = match[2] ? Number(match[2]) : 0;
+  if (match[3]) {
+    if (hours < 1 || hours > 12) return null;
+    if (match[3] === 'am' && hours === 12) hours = 0;
+    if (match[3] === 'pm' && hours !== 12) hours += 12;
+  }
+  if (hours > 23 || minutes > 59) return null;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+// Turns a list of day names into day keys, expanding words such as "weekdays".
+const dayKeysOf = (list) => {
+  const keys = [];
+  for (const item of Array.isArray(list) ? list : []) {
+    const word = String(item ?? '').trim().toLowerCase();
+    const group = DAY_GROUPS[word];
+    const found = group || (DAY_KEYS.includes(word.slice(0, 3)) ? [word.slice(0, 3)] : []);
+    for (const key of found) if (!keys.includes(key)) keys.push(key);
+  }
+  return keys;
+};
+
 // Checks a schedule rule, from the AI or from the database. Returns null when it cannot be used.
+// A rule ends on endDate (inclusive), or after months. With neither, it runs for six months.
 const cleanRule = (raw) => {
   if (!raw || typeof raw !== 'object') return null;
-  const days = (Array.isArray(raw.days) ? raw.days : []).filter((day, i, all) => DAY_KEYS.includes(day) && all.indexOf(day) === i);
-  const from = toMinutes(raw.from);
-  const to = toMinutes(raw.to);
+  const days = dayKeysOf(raw.days);
+  const from = toMinutes(parseClock(raw.from));
+  const to = toMinutes(parseClock(raw.to));
   const everyMinutes = raw.everyMinutes === undefined || raw.everyMinutes === null ? 60 : Math.round(Number(raw.everyMinutes));
-  const months = raw.months === undefined || raw.months === null ? 6 : Math.round(Number(raw.months));
+  const endDate = DATE_PATTERN.test(raw.endDate) ? raw.endDate : null;
+  const hasMonths = raw.months !== undefined && raw.months !== null && raw.months !== '';
+  const months = hasMonths ? Math.round(Number(raw.months)) : endDate ? null : 6;
   if (days.length === 0 || from === null || to === null || to <= from) return null;
-  if (!(everyMinutes >= 15 && everyMinutes <= 480) || !(months >= 1 && months <= MAX_MONTHS)) return null;
+  if (!(everyMinutes >= 15 && everyMinutes <= 480)) return null;
+  if (months !== null && !(months >= 1 && months <= MAX_MONTHS)) return null;
   let skipWeeks = null;
   if (raw.skipWeeks && typeof raw.skipWeeks === 'object') {
     const every = Math.round(Number(raw.skipWeeks.every));
-    const skipDays = (Array.isArray(raw.skipWeeks.days) ? raw.skipWeeks.days : []).filter((day) => DAY_KEYS.includes(day));
+    const skipDays = dayKeysOf(raw.skipWeeks.days);
     if (every >= 2 && every <= 12 && skipDays.length > 0) skipWeeks = { every, days: skipDays };
   }
   const exclude = (Array.isArray(raw.exclude) ? raw.exclude : []).filter((d) => DATE_PATTERN.test(d)).slice(0, MAX_EXCLUDE);
   const startDate = DATE_PATTERN.test(raw.startDate) ? raw.startDate : null;
-  return { days, from, to, everyMinutes, months, skipWeeks, exclude, startDate };
+  return { days, from, to, everyMinutes, months, endDate, skipWeeks, exclude, startDate };
 };
 
 // Every start time the rule gives, as ISO strings. A class must finish by the rule's end time.
@@ -46,7 +86,11 @@ const expandRule = (rule, { minutes, timezone, nowMs }) => {
   const startKey = rule.startDate || localDate(nowMs, timezone);
   const [y, m, d] = startKey.split('-').map(Number);
   const start = Date.UTC(y, m - 1, d);
-  const end = Date.UTC(y, m - 1 + rule.months, d);
+  // The window ends at the end date (included), or after the number of months. Never more than MAX_MONTHS ahead.
+  const cap = Date.UTC(y, m - 1 + MAX_MONTHS, d);
+  const byMonths = rule.months === null ? cap : Date.UTC(y, m - 1 + rule.months, d);
+  const byDate = rule.endDate ? Date.parse(rule.endDate) + DAY_MS : cap;
+  const end = Math.min(byDate, byMonths, cap);
   const exclude = new Set(rule.exclude);
   const earliest = nowMs + NOTICE_MINUTES * MINUTE;
   const out = [];
@@ -64,23 +108,27 @@ const expandRule = (rule, { minutes, timezone, nowMs }) => {
   return out;
 };
 
-const RULE_PROMPT = (today) => `You turn a business owner's description of their class or session times into a schedule rule.
-Return ONLY JSON, with no other text:
-{"days":["tue"],"from":"10:00","to":"17:00","everyMinutes":60,"months":6,"skipWeeks":{"every":4,"days":["tue"]},"exclude":[],"startDate":null}
+const RULE_PROMPT = (today) => `You turn a business owner's description of when a class or session runs into a schedule rule.
+Return ONLY JSON, with no other text. Example for "every weekday from 6am to 10am, every hour on the hour, until the new year":
+{"days":["mon","tue","wed","thu","fri"],"from":"06:00","to":"10:00","everyMinutes":60,"months":null,"endDate":"2027-01-01","skipWeeks":null,"exclude":[],"startDate":null}
 
 Rules:
-- days: any of mon, tue, wed, thu, fri, sat, sun.
-- from and to: 24-hour times, HH:MM. "to" is when the last class must have finished. "10am to 5pm, every hour on the hour, one hour each" is from 10:00 to 17:00 with everyMinutes 60.
-- everyMinutes: how often a class starts, in minutes. Default 60.
-- months: how many months ahead to schedule, for example "the next 6 months" is 6. Default 6, at most 12.
-- skipWeeks: only when the owner names weeks to miss. "every 4th week I don't do Tuesdays" is {"every":4,"days":["tue"]}. Use null if there are none.
-- exclude: dates to miss, as YYYY-MM-DD. Use [] if there are none.
+- days: a list of mon, tue, wed, thu, fri, sat, sun. "week days" or "weekdays" means mon to fri. "every day" means all seven.
+- from and to: 24-hour times as HH:MM, so 6am is "06:00", 10am is "10:00", 5pm is "17:00". "to" is when the last class must have finished.
+- everyMinutes: how often a class starts, in minutes. "every hour" is 60. Default 60.
+- endDate: the last day the classes run, as YYYY-MM-DD, when the owner names one. "until the new year" means 1 January of the next year. Otherwise null.
+- months: only when the owner gives a length, such as "for the next 6 months". Otherwise null. Never more than 12.
+- skipWeeks: only when the owner names weeks to miss. "every 4th week I don't do Tuesdays" is {"every":4,"days":["tue"]}. Otherwise null.
+- exclude: dates to miss, as YYYY-MM-DD. Otherwise [].
 - startDate: YYYY-MM-DD if the owner names a start date, otherwise null.
 Today is ${today}.
-If the description does not say when classes happen, return {"error":"short reason"}.`;
+If the description does not say which days or which times, return {"error":"say what is missing"}.`;
 
-// Asks the AI for the rule. Throws when the answer cannot be used.
-const ruleFromText = async ({ instruction, timezone, nowMs }) => {
+// A rule the AI gave that could not be used. The message is shown to the owner.
+class RuleError extends Error {}
+
+// One attempt at asking the AI for a rule. Throws RuleError when the answer cannot be used.
+const askForRule = async ({ instruction, timezone, nowMs }) => {
   const today = localDate(nowMs, timezone);
   const response = await getAnthropic().messages.create({
     model: 'claude-sonnet-5-5',
@@ -89,13 +137,33 @@ const ruleFromText = async ({ instruction, timezone, nowMs }) => {
     messages: [{ role: 'user', content: instruction }],
   });
   logUsage('class schedule', response);
-  if (response.stop_reason === 'max_tokens') throw new Error('Schedule rule was cut off');
+  if (response.stop_reason === 'max_tokens') throw new RuleError('the answer was too long');
   const raw = response.content.find((block) => block.type === 'text')?.text || '';
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
-  const parsed = JSON.parse(cleaned);
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (error) {
+    console.error('Class schedule answer was not JSON:', cleaned.slice(0, 300));
+    throw new RuleError('the answer was not readable');
+  }
+  if (parsed?.error) throw new RuleError(String(parsed.error));
   const rule = cleanRule(parsed);
-  if (!rule) throw new Error(parsed?.error ? `Rule not usable: ${parsed.error}` : 'Rule not usable');
+  if (!rule) {
+    console.error('Class schedule rule not usable:', JSON.stringify(parsed).slice(0, 300));
+    throw new RuleError('the days or times were not clear');
+  }
   return rule;
+};
+
+// Asks the AI for the rule, trying once more when the first answer cannot be used.
+const ruleFromText = async (args) => {
+  try {
+    return await askForRule(args);
+  } catch (error) {
+    if (!(error instanceof RuleError)) throw error;
+    return askForRule(args);
+  }
 };
 
 // Checks the owner's list of classes. Keeps only future dates, so a saved list does not show the past.
@@ -128,6 +196,7 @@ const cleanClasses = (input, nowMs) => {
       pricePence: cleanPence(raw?.pricePence),
       instruction: clip(raw?.instruction, 300),
       occurrences,
+      photos: cleanPhotos(raw?.photos),
     });
   }
   return { value: classes };
@@ -162,9 +231,9 @@ const classOffers = ({ classes, timezone, nowMs, rows }) => {
       }
       day.slots.push({ value: new Date(startMs).toISOString(), label: `${timeLabel(startMs, timezone)} · ${left} ${left === 1 ? 'place' : 'places'} left` });
     }
-    if (days.length > 0) offers.push({ name: cls.name, minutes: cls.minutes, pricePence: cls.pricePence, days });
+    if (days.length > 0) offers.push({ name: cls.name, minutes: cls.minutes, pricePence: cls.pricePence, photos: cls.photos || [], days });
   }
   return offers;
 };
 
-module.exports = { MAX_OCCURRENCES, cleanRule, expandRule, ruleFromText, cleanClasses, classOffer, classOffers };
+module.exports = { MAX_OCCURRENCES, parseClock, cleanRule, expandRule, ruleFromText, RuleError, cleanClasses, classOffer, classOffers };

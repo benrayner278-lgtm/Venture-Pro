@@ -3,7 +3,7 @@ const MAX_PHOTO_CHARS = 400000;
 const MAX_SIDE = 1200;
 
 // Resizes a photo to fit in MAX_SIDE pixels and returns it as a JPEG data URL small enough to store.
-export const compressPhoto = (file: File): Promise<string> =>
+export const compressPhoto = (file: File, maxChars = MAX_PHOTO_CHARS): Promise<string> =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -25,11 +25,11 @@ export const compressPhoto = (file: File): Promise<string> =>
 
       let quality = 0.82;
       let data = canvas.toDataURL('image/jpeg', quality);
-      while (data.length > MAX_PHOTO_CHARS && quality > 0.4) {
+      while (data.length > maxChars && quality > 0.4) {
         quality -= 0.1;
         data = canvas.toDataURL('image/jpeg', quality);
       }
-      if (data.length > MAX_PHOTO_CHARS) {
+      if (data.length > maxChars) {
         reject(new Error('That photo is too detailed. Try a smaller version.'));
         return;
       }

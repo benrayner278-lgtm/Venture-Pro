@@ -12,7 +12,7 @@ const { presetOf } = require('../lib/bookingPresets');
 const { ownerMessage } = require('../lib/bookingMessages');
 const { formatSlot } = require('../lib/bookingTime');
 const { defaultForm, generateShopForm, checkAnswers } = require('../lib/shopForm');
-const { cleanClasses, ruleFromText, expandRule, classOffers, MAX_OCCURRENCES } = require('../lib/classSchedule');
+const { cleanClasses, ruleFromText, expandRule, classOffers, RuleError, MAX_OCCURRENCES } = require('../lib/classSchedule');
 const { API_ORIGIN } = require('./bookingController');
 
 // Phone numbers: digits with an optional leading +, spaces, brackets or dashes. 10 to 15 digits.
@@ -266,8 +266,8 @@ const previewClasses = async (req, res) => {
     try {
       rule = await ruleFromText({ instruction, timezone, nowMs });
     } catch (error) {
-      console.error('Class schedule rule error:', error);
-      return res.status(400).json({ error: 'Could not work out the dates from that. Say which days, the start and end times, and how often.' });
+      if (!(error instanceof RuleError)) throw error;
+      return res.status(400).json({ error: `Could not work out the dates: ${error.message}. Say which days, the start and end times, how often, and either an end date or how many months.` });
     }
     const occurrences = expandRule(rule, { minutes, timezone, nowMs });
     if (occurrences.length === 0) return res.status(400).json({ error: 'No dates fall in that pattern. Check the days and times.' });

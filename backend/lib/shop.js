@@ -1,5 +1,6 @@
 // Shop items a site owner sells. Prices are in pence (GBP) and are only ever read from the database, never from the form a visitor posts.
 const crypto = require('crypto');
+const { cleanPhotos } = require('./photos');
 
 const MAX_ITEMS = 12;
 const MIN_PENCE = 50; // £0.50
@@ -20,7 +21,7 @@ const cleanItems = (input) => {
     if (!Number.isFinite(pricePence) || pricePence < MIN_PENCE || pricePence > MAX_PENCE) {
       return { error: `${name}: the price must be between £0.50 and £5,000` };
     }
-    items.push({ id: clip(item?.id, 36) || crypto.randomUUID(), name, description, pricePence });
+    items.push({ id: clip(item?.id, 36) || crypto.randomUUID(), name, description, pricePence, photos: cleanPhotos(item?.photos) });
   }
   return { value: items };
 };
