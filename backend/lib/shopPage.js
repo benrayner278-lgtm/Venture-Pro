@@ -239,7 +239,8 @@ const clientScript = function (config) {
 
 const fieldHtml = (field) => {
   const id = `f_${escapeHtml(field.id)}`;
-  const required = field.required ? ' required' : '';
+  // The delivery field is required only while an item is in the basket, so the script sets that. It is never marked required on load.
+  const required = field.required && !field.delivery ? ' required' : '';
   const label = `${escapeHtml(field.label)}${field.required ? '' : ' <span style="font-weight:400;color:var(--muted)">(optional)</span>'}`;
   let control;
   if (field.type === 'textarea') {
