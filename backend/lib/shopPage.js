@@ -118,45 +118,74 @@ const clientScript = function (config) {
     render();
   };
 
-  document.querySelectorAll('[data-add]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      change({ type: 'product', id: button.getAttribute('data-add'), qty: 1 }, 1);
-    });
-  });
-
-  // Booking picker: choose a service, then a time. Times are grouped by day.
-  var serviceSelect = document.getElementById('vp-service');
+  // The picker: an item is added at once. A session needs a date, then a time, from the times that still have places.
+  var pick = document.getElementById('vp-pick');
+  var dateSelect = document.getElementById('vp-date');
   var timeSelect = document.getElementById('vp-time');
+  var addButton = document.getElementById('vp-add');
   var bookError = document.getElementById('vp-book-error');
+  var option = function (value, text) {
+    var el = document.createElement('option');
+    el.value = value; el.textContent = text;
+    return el;
+  };
+  var choice = function () {
+    var value = pick ? pick.value : '';
+    if (value.indexOf('p:') === 0) return { type: 'product', id: value.slice(2) };
+    if (value.indexOf('s:') === 0) return { type: 'session', name: value.slice(2) };
+    return null;
+  };
+  var sessionDay = function () {
+    var c = choice();
+    var offer = c && c.type === 'session' ? offers[c.name] : null;
+    if (!offer || dateSelect.value === '') return null;
+    return offer.days[Number(dateSelect.value)] || null;
+  };
   var fillTimes = function () {
     timeSelect.innerHTML = '';
-    var offer = offers[serviceSelect.value];
-    if (!offer) return;
-    var first = document.createElement('option');
-    first.value = ''; first.textContent = offer.days.length ? 'Choose a time' : 'No times free in the next few weeks';
-    timeSelect.appendChild(first);
-    offer.days.forEach(function (day) {
-      var group = document.createElement('optgroup');
-      group.label = day.label;
-      day.slots.forEach(function (slot) {
-        var option = document.createElement('option');
-        option.value = slot.value;
-        option.textContent = slot.label;
-        group.appendChild(option);
-      });
-      timeSelect.appendChild(group);
-    });
+    var day = sessionDay();
+    if (!day) { timeSelect.appendChild(option('', 'Choose a date first')); return; }
+    timeSelect.appendChild(option('', 'Choose a time'));
+    day.slots.forEach(function (slot) { timeSelect.appendChild(option(slot.value, slot.label)); });
   };
-  if (serviceSelect) {
-    serviceSelect.addEventListener('change', fillTimes);
+  var fillDates = function () {
+    dateSelect.innerHTML = ''; timeSelect.innerHTML = '';
+    var c = choice();
+    if (!c || c.type === 'product') {
+      dateSelect.appendChild(option('', 'N/A'));
+      timeSelect.appendChild(option('', 'N/A'));
+      dateSelect.disabled = true; timeSelect.disabled = true;
+      return;
+    }
+    dateSelect.disabled = false; timeSelect.disabled = false;
+    var offer = offers[c.name];
+    if (!offer || offer.days.length === 0) {
+      dateSelect.appendChild(option('', 'No places left'));
+      timeSelect.appendChild(option('', 'No times left'));
+      dateSelect.disabled = true; timeSelect.disabled = true;
+      return;
+    }
+    dateSelect.appendChild(option('', 'Choose a date'));
+    offer.days.forEach(function (day, i) { dateSelect.appendChild(option(String(i), day.label)); });
     fillTimes();
-    document.getElementById('vp-book-add').addEventListener('click', function () {
+  };
+  if (pick) {
+    pick.addEventListener('change', function () { bookError.textContent = ''; fillDates(); });
+    dateSelect.addEventListener('change', function () { bookError.textContent = ''; fillTimes(); });
+    addButton.addEventListener('click', function () {
       bookError.textContent = '';
-      if (!timeSelect.value) { bookError.textContent = 'Choose a time first.'; return; }
-      var line = { type: 'slot', service: serviceSelect.value, slot: timeSelect.value };
+      var c = choice();
+      if (!c) return;
+      if (c.type === 'product') {
+        change({ type: 'product', id: c.id, qty: 1 }, 1);
+        return;
+      }
+      if (!timeSelect.value) { bookError.textContent = 'Choose a date and time first.'; return; }
+      var line = { type: 'slot', service: c.name, slot: timeSelect.value };
       if (basket.some(function (entry) { return sameLine(entry, line); })) { bookError.textContent = 'That time is already in your basket.'; return; }
       change(line, 1);
     });
+    fillDates();
   }
 
   form.addEventListener('submit', function (event) {
@@ -210,21 +239,26 @@ const renderShopPage = ({ content, items, slug, back, apiOrigin, form, bookings,
   const cards = items
     .map(
       (item) =>
-        `<article class="shop-card"><h2>${escapeHtml(item.name)}</h2>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}<div class="shop-price">${formatPrice(item.pricePence)}</div><button type="button" class="shop-btn" data-add="${escapeHtml(item.id)}">Add to basket</button></article>`
+        `<article class="shop-card"><h2>${escapeHtml(item.name)}</h2>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}<div class="shop-price">${formatPrice(item.pricePence)}</div></article>`
     )
     .join('');
   const productSection = hasProducts ? `<section id="shop" class="shop-section-top"><h2>Shop</h2><div class="shop-grid">${cards}</div></section>` : '';
 
-  const bookingSection = hasBookings
-    ? `<section id="book" class="shop-section"><h2>${escapeHtml(bookings.heading)}</h2>
-<p class="shop-note">Pick what you would like, then a time. Your time is held while you pay.</p>
+  const offersList = hasBookings ? bookings.offers : [];
+  const hasPicker = hasProducts || offersList.length > 0;
+  const itemOptions = items.map((item) => `<option value="p:${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(formatPrice(item.pricePence))}</option>`).join('');
+  const sessionOptions = offersList.map((offer) => `<option value="s:${escapeHtml(offer.name)}">${escapeHtml(offer.name)} · ${escapeHtml(priceText(offer.pricePence, offer.price))}</option>`).join('');
+  const pickerSection = hasPicker
+    ? `<section id="book" class="shop-section"><h2>Choose what you would like</h2>
+<p class="shop-note">Items are added straight away. For a session, choose a date and time. Your place is held while you pay.</p>
 <div class="shop-row">
-<label>${bookings.kind === 'sessions' ? 'Class' : 'Service'}<select id="vp-service" class="shop-select">${bookings.offers.map((offer) => `<option value="${escapeHtml(offer.name)}">${escapeHtml(offer.name)} · ${escapeHtml(priceText(offer.pricePence, offer.price))}</option>`).join('')}</select></label>
+<label>What would you like<select id="vp-pick" class="shop-select">${hasProducts ? `<optgroup label="Items">${itemOptions}</optgroup>` : ''}${offersList.length ? `<optgroup label="Sessions">${sessionOptions}</optgroup>` : ''}</select></label>
+<label>Date<select id="vp-date" class="shop-select"></select></label>
 <label>Time<select id="vp-time" class="shop-select"></select></label>
-<button type="button" class="shop-btn" id="vp-book-add">Add to basket</button>
+<button type="button" class="shop-btn" id="vp-add">Add to basket</button>
 </div>
 <p id="vp-book-error" class="shop-error" role="alert"></p>
-${bookings.kind === 'call' && bookings.callDetails ? `<p class="shop-note">${escapeHtml(bookings.callDetails)}</p>` : ''}
+${bookings && bookings.kind === 'call' && bookings.callDetails ? `<p class="shop-note">${escapeHtml(bookings.callDetails)}</p>` : ''}
 </section>`
     : '';
 
@@ -253,7 +287,7 @@ ${(Array.isArray(form) ? form : []).map(fieldHtml).join('')}
 <h1>${escapeHtml(title)}</h1><p class="shop-lead">${canBuy ? 'Add what you would like to your basket, then pay once by card. The payment goes straight to the business.' : 'Contact the business below.'}</p>
 <p id="vp-thanks" class="shop-thanks" hidden>Thank you. Your order has been received, and the business has been emailed.</p>
 ${productSection}
-${bookingSection}
+${pickerSection}
 ${basketSection}
 ${contactSection}
 </div></main>`;
@@ -262,9 +296,7 @@ ${contactSection}
   const config = {
     slug,
     products: items.map((item) => ({ id: item.id, name: item.name, pricePence: item.pricePence })),
-    offers: hasBookings
-      ? bookings.offers.map((offer) => ({ name: offer.name, pricePence: offer.pricePence, days: offer.days }))
-      : [],
+    offers: offersList.map((offer) => ({ name: offer.name, pricePence: offer.pricePence, days: offer.days })),
   };
   const json = JSON.stringify(config).replace(/</g, '\\u003c');
   const page = renderDocument({
