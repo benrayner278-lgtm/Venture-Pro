@@ -69,7 +69,19 @@ const clientScript = function (config) {
     return a.type === b.type && (a.type === 'product' ? a.id === b.id : a.service === b.service && a.slot === b.slot);
   };
 
+  // The delivery address is needed only when the basket holds an item.
+  var deliveryFields = document.querySelectorAll('[data-delivery]');
+  var syncDelivery = function () {
+    var needed = basket.some(function (line) { return line.type === 'product'; });
+    deliveryFields.forEach(function (label) {
+      label.hidden = !needed;
+      var control = label.querySelector('textarea,input,select');
+      if (control) control.required = needed;
+    });
+  };
+
   var render = function () {
+    syncDelivery();
     lines.innerHTML = '';
     basket.forEach(function (line) {
       var li = document.createElement('li');
@@ -238,7 +250,8 @@ const fieldHtml = (field) => {
     const type = { email: 'email', phone: 'tel', date: 'date', time: 'time' }[field.type] || 'text';
     control = `<input type="${type}" name="${id}" maxlength="${field.type === 'text' ? 200 : 254}"${required}>`;
   }
-  return `<label>${label}${control}</label>`;
+  // Delivery fields are shown, and required, only while the basket holds an item. The script switches them.
+  return field.delivery ? `<label data-delivery hidden>${label}${control}</label>` : `<label>${label}${control}</label>`;
 };
 
 // A row of photos, or nothing when there are none. Photos are data URLs stored by the owner, so they are escaped like any text.
