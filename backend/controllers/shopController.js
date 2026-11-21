@@ -11,8 +11,10 @@ const { offerFor, holdSlots, bookFreeSlots, confirmPaidBookings, releaseHolds, e
 const { presetOf } = require('../lib/bookingPresets');
 const { ownerMessage } = require('../lib/bookingMessages');
 const { formatSlot } = require('../lib/bookingTime');
-const { defaultForm, generateShopForm, checkAnswers, withDeliveryField, setDelivery } = require('../lib/shopForm');
-const { cleanClasses, ruleFromText, expandRule, classOffers, RuleError, MAX_OCCURRENCES } = require('../lib/classSchedule');
+const { defaultForm, generateShopForm, checkAnswers, cleanForm, withDeliveryField, setDelivery } = require('../lib/shopForm');
+const { cleanClasses, classOffers } = require('../lib/classSchedule');
+const { runToolLoop } = require('../lib/agentLoop');
+const { TOOLS: SETUP_TOOLS, applyTool, summarise } = require('../lib/setupTools');
 const { API_ORIGIN } = require('./bookingController');
 
 // Phone numbers: digits with an optional leading +, spaces, brackets or dashes. 10 to 15 digits.
@@ -252,6 +254,63 @@ const ownedShopSite = async (req, res) => {
   return site;
 };
 
+const SETUP_PROMPT = `You help a small business owner set up what they sell on their website: products, classes or sessions, and the questions customers answer before they pay.
+Talk plainly, in short British English sentences. Ask one question at a time when something is missing, such as a price, how many people a class allows, or when it runs.
+Record what you learn with the tools. Only say something is recorded after a tool has confirmed it. You cannot publish the site, take payments or change prices online. The owner does that.`;
+
+// The assistant fills in a draft of the shop. The draft is returned to the owner to check, and nothing is saved here.
+const setupChat = async (req, res) => {
+  try {
+    const site = await ownedShopSite(req, res);
+    if (!site) return;
+    const message = String(req.body?.message || '').trim().slice(0, 1000);
+    if (!message) return res.status(400).json({ error: 'Tell the assistant what you sell' });
+    const nowMs = Date.now();
+    const timezone = site.bookingSettings?.timezone || 'Europe/London';
+    // The draft comes back from the browser, so each part is checked again before the assistant sees it.
+    const incoming = req.body?.draft && typeof req.body.draft === 'object' ? req.body.draft : {};
+    let draft = {};
+    const items = incoming.shopItems ? cleanItems(incoming.shopItems) : null;
+    if (items?.value) draft.shopItems = items.value;
+    const classes = incoming.classes ? cleanClasses(incoming.classes, nowMs) : null;
+    if (classes?.value) draft.classes = classes.value;
+    const form = Array.isArray(incoming.shopForm) ? cleanForm(incoming.shopForm) : null;
+    if (form) draft.shopForm = form;
+
+    const saved = itemsOf(site).map((item) => item.name).join(', ') || 'none';
+    const context = `Business: ${site.title || site.slug}
+Saved items: ${saved}
+Draft so far:
+${summarise(draft)}`;
+    const apply = async (name, input) => {
+      const result = await applyTool({ name, input, draft, timezone, nowMs });
+      if (result.error) return { text: result.error, error: true };
+      draft = result.draft;
+      return { text: result.text, action: result.text };
+    };
+    const outcome = await runToolLoop({ system: SETUP_PROMPT, context, request: message, tools: SETUP_TOOLS, apply, label: 'shop setup' });
+    res.json({ reply: outcome.reply || 'Done. Check the draft below, then apply it to your shop.', draft, actions: outcome.actions });
+  } catch (error) {
+    console.error('Shop setup assistant error:', error);
+    res.status(500).json({ error: 'The assistant could not finish that. Please try again.' });
+  }
+};
+
+// Saves the order form questions. The name and email are always included.
+const saveForm = async (req, res) => {
+  try {
+    const site = await ownedShopSite(req, res);
+    if (!site) return;
+    const form = cleanForm(Array.isArray(req.body?.fields) ? req.body.fields : []);
+    if (!form) return res.status(400).json({ error: 'The order form needs at least one question' });
+    await prisma.site.update({ where: { id: site.id }, data: { shopForm: form } });
+    res.json({ form });
+  } catch (error) {
+    console.error('Save order form error:', error);
+    res.status(500).json({ error: 'Could not save the order form' });
+  }
+};
+
 // Turns the owner's words into a list of dates. Nothing is saved until the owner checks the list and saves it.
 const previewClasses = async (req, res) => {
   try {
@@ -488,4 +547,4 @@ const completeCheckout = async (req, res) => {
   }
 };
 
-module.exports = { getShop, updateShop, updateContact, generateForm, previewClasses, saveClasses, startCheckout, completeCheckout, recordPaidSession, ownerAllowsShop, loadPublicSite, formOf, shopSections, publicClassOffers };
+module.exports = { getShop, updateShop, updateContact, generateForm, saveForm, setupChat, previewClasses, saveClasses, startCheckout, completeCheckout, recordPaidSession, ownerAllowsShop, loadPublicSite, formOf, shopSections, publicClassOffers };

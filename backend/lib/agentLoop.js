@@ -59,7 +59,8 @@ const runToolLoop = async ({ system, context, request, tools, apply, label }) =>
         reply = String(call.input?.message || '').trim();
         continue;
       }
-      const outcome = apply(call.name, call.input || {});
+      // apply may be slow (the class tool asks the AI for dates), so it is awaited.
+      const outcome = await apply(call.name, call.input || {});
       if (outcome.action) actions.push(outcome.action);
       // A tool can return an image (a preview) as well as text, so the model can see what it made.
       const content = outcome.image
