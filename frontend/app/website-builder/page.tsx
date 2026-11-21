@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import Collapsible from '@/components/Collapsible';
 import { MAX_PHOTOS, PORTFOLIO_PLANS, WEBSITE_PRESETS, WebsiteContent, WebsiteSection, randomLayoutSeed } from '@/lib/websiteTemplates';
 import { apiFetch } from '@/lib/api';
 import PublishPanel from '@/components/PublishPanel';
@@ -31,6 +32,9 @@ export default function WebsiteBuilderPage() {
   const [looks, setLooks] = useState<LookPick[]>([]);
   const [lookError, setLookError] = useState('');
   const [choosingLook, setChoosingLook] = useState(false);
+  // The tools and the assistant can be hidden, so the preview has the room.
+  const [toolsOpen, setToolsOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(true);
   const [themeId, setThemeId] = useState(WEBSITE_PRESETS[0].id);
   const [shuffle, setShuffle] = useState(0);
   const [tweaking, setTweaking] = useState(false);
@@ -424,7 +428,8 @@ export default function WebsiteBuilderPage() {
 
           {step === 'result' && content && (
             <div className="flex flex-col gap-6 lg:h-[calc(100dvh-9rem)] lg:flex-row lg:gap-5">
-              <aside className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6 lg:overflow-y-auto lg:pr-2">
+              {toolsOpen && (
+              <aside className="w-full lg:w-72 xl:w-80 shrink-0 space-y-6 lg:overflow-y-auto lg:pr-2">
                 {content.format !== 'page' && (
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Style</label>
@@ -448,8 +453,7 @@ export default function WebsiteBuilderPage() {
                 </div>
                 )}
 
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Edit your site</p>
+                <Collapsible title="Edit your site">
                   <div className="space-y-1.5">
                     {(
                       [
@@ -475,7 +479,7 @@ export default function WebsiteBuilderPage() {
                       </button>
                     ))}
                   </div>
-                </div>
+                </Collapsible>
 
                 {editingPath && (
                   <TextEditPanel
@@ -525,12 +529,14 @@ export default function WebsiteBuilderPage() {
                 )}
 
                 {content?.format === 'page' && (
+                  <Collapsible title="Your photos" defaultOpen={false}>
                   <PagePhotos
                     images={content.images || {}}
                     onChange={(images) => setContent((current) => (current ? { ...current, images } : current))}
                     onPlace={() => runChange('Place my uploaded photos where they fit best, replacing the stock picture placeholders.')}
                     disabled={tweaking}
                   />
+                  </Collapsible>
                 )}
 
                 <div className="space-y-2">
@@ -561,10 +567,21 @@ export default function WebsiteBuilderPage() {
                   </button>
                 </div>
 
-                <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} buildId={buildId} />
+                <Collapsible title="Publish">
+                  <PublishPanel content={content} themeId={themeId} shuffle={shuffle} onShuffleChange={setShuffle} buildId={buildId} />
+                </Collapsible>
               </aside>
+              )}
 
               <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button type="button" onClick={() => setToolsOpen((value) => !value)} aria-expanded={toolsOpen} className="border border-white/10 hover:bg-white/5 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition">
+                    {toolsOpen ? 'Hide tools' : 'Show tools'}
+                  </button>
+                  <button type="button" onClick={() => setAssistantOpen((value) => !value)} aria-expanded={assistantOpen} className="border border-white/10 hover:bg-white/5 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition">
+                    {assistantOpen ? 'Hide assistant' : 'Show assistant'}
+                  </button>
+                </div>
                 <div className="rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3">
                   <p className="text-sm font-medium text-white">You can change all of this at any time.</p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -587,13 +604,15 @@ export default function WebsiteBuilderPage() {
 
               </div>
 
-              <div className="flex w-full shrink-0 flex-col lg:w-[380px] xl:w-[420px] min-h-[480px] lg:min-h-0">
+              {assistantOpen && (
+              <div className="flex w-full shrink-0 flex-col lg:w-[340px] xl:w-[380px] min-h-[480px] lg:min-h-0">
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-1">Assistant</p>
                 <p className="text-xs text-gray-500 mb-3">The same assistant as Chat. Ask for a change, and approve it before it goes live.</p>
                 <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
                   <AssistantChat compact context="Website Builder" onApplied={refreshFromLive} />
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
