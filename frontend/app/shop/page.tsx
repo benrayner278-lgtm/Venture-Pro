@@ -13,6 +13,9 @@ type FormField = { id: string; label: string; type: string; required: boolean; o
 type ClassRow = { id: string; name: string; minutes: string; capacity: string; price: string; instruction: string; occurrences: string[]; photos: string[]; timezone?: string };
 type SavedClass = { id: string; name: string; minutes: number; capacity: number; pricePence: number; instruction: string; occurrences: string[]; photos?: string[] };
 type SavedItem = { id: string; name: string; description: string; pricePence: number; photos?: string[] };
+// The draft the setup assistant builds. It is only saved when the owner clicks Apply.
+type SetupDraft = { shopItems?: { id?: string; name: string; description: string; pricePence: number }[]; classes?: SavedClass[]; shopForm?: FormField[] };
+type SetupMessage = { role: 'owner' | 'assistant'; text: string };
 
 const FIELD_NAMES: Record<string, string> = { text: 'Short text', textarea: 'Longer text', email: 'Email', phone: 'Phone', date: 'Date', time: 'Time', select: 'Choose one' };
 
@@ -109,6 +112,12 @@ export default function ShopPage() {
   const [classNote, setClassNote] = useState<Record<number, string>>({});
   const [classBusy, setClassBusy] = useState<number | null>(null);
   const [classesSaved, setClassesSaved] = useState('');
+  const [setupMessages, setSetupMessages] = useState<SetupMessage[]>([]);
+  const [setupInput, setSetupInput] = useState('');
+  const [setupDraft, setSetupDraft] = useState<SetupDraft>({});
+  const [setupBusy, setSetupBusy] = useState(false);
+  const [setupError, setSetupError] = useState('');
+  const [setupApplied, setSetupApplied] = useState('');
 
   useEffect(() => {
     apiFetch('/api/sites')
@@ -222,6 +231,62 @@ export default function ShopPage() {
     }
   };
 
+  // Sends the owner's words to the setup assistant. The draft it returns is shown, and only Apply saves it.
+  const askSetup = async () => {
+    const message = setupInput.trim();
+    if (!message) return;
+    setSetupError('');
+    setSetupApplied('');
+    setSetupBusy(true);
+    setSetupMessages((current) => [...current, { role: 'owner', text: message }]);
+    setSetupInput('');
+    try {
+      const response = await apiFetch(`/api/shop/sites/${siteId}/setup`, { method: 'POST', json: { message, draft: setupDraft } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'The assistant could not finish that');
+      setSetupDraft(data.draft || {});
+      setSetupMessages((current) => [...current, { role: 'assistant', text: data.reply || 'Done.' }]);
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'The assistant could not finish that');
+    } finally {
+      setSetupBusy(false);
+    }
+  };
+
+  // Saves the draft with the same routes as the manual forms, which check everything again.
+  const applySetup = async () => {
+    setSetupError('');
+    setSetupApplied('');
+    setSetupBusy(true);
+    try {
+      if (setupDraft.shopItems) {
+        const response = await apiFetch(`/api/shop/sites/${siteId}`, { method: 'PUT', json: { items: setupDraft.shopItems } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save the items');
+        setItems(toItems(data.items || []));
+      }
+      if (setupDraft.classes) {
+        const response = await apiFetch(`/api/shop/sites/${siteId}/classes`, { method: 'PUT', json: { classes: setupDraft.classes } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save the classes');
+        setClasses(toRows(data.classes || []));
+      }
+      if (setupDraft.shopForm) {
+        const fields = setupDraft.shopForm.slice(2);
+        const response = await apiFetch(`/api/shop/sites/${siteId}/form`, { method: 'PUT', json: { fields } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save the order form');
+        setForm(data.form || []);
+      }
+      setSetupApplied('Applied to your shop. Check the sections below, then publish when you are happy.');
+      setSetupDraft({});
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Could not apply the draft');
+    } finally {
+      setSetupBusy(false);
+    }
+  };
+
   const saveContact = async () => {
     setContactMessage('');
     setContactError('');
@@ -290,6 +355,67 @@ export default function ShopPage() {
               Your shop page: <a className="underline text-gray-200" href={`https://${site.slug}.venture-pro.io/shop`} target="_blank" rel="noopener noreferrer">{site.slug}.venture-pro.io/shop</a>
             </p>
           )}
+
+          <section className="space-y-4">
+            <h2 className="text-sm font-semibold text-white">Set up with the assistant</h2>
+            <p className="text-xs text-gray-500">
+              Tell the assistant what you sell, your classes and the questions you need answered. It builds a draft for you to check. Nothing is saved until you click Apply.
+            </p>
+            {setupMessages.length > 0 && (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {setupMessages.map((message, index) => (
+                  <p key={index} className={`text-sm rounded-xl px-3 py-2 ${message.role === 'owner' ? 'bg-white/[0.06] text-gray-100 ml-8' : 'text-gray-300 mr-8'}`}>
+                    {message.text}
+                  </p>
+                ))}
+              </div>
+            )}
+            <textarea
+              value={setupInput}
+              onChange={(e) => setSetupInput(e.target.value)}
+              maxLength={1000}
+              placeholder="For example: I sell tennis shoes at £120, and run a group run every weekday from 6am to 10am, every hour, until the new year, for 10 people at £15."
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm min-h-[70px]"
+            />
+            <div className="flex flex-wrap gap-3 items-center">
+              <button type="button" onClick={askSetup} disabled={setupBusy || !allowed || !setupInput.trim()} className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm disabled:opacity-40">
+                {setupBusy ? 'Working…' : 'Send'}
+              </button>
+              {setupError && <span className="text-sm text-red-400">{setupError}</span>}
+            </div>
+            {(setupDraft.shopItems || setupDraft.classes || setupDraft.shopForm) && (
+              <div className="rounded-2xl border border-white/10 p-4 space-y-3 text-sm">
+                <p className="text-xs uppercase tracking-wider text-gray-500">Draft to check</p>
+                {setupDraft.shopItems && (
+                  <div>
+                    <p className="text-gray-300">Items</p>
+                    <ul className="text-gray-100">{setupDraft.shopItems.map((item, i) => <li key={i}>{item.name} · {pounds(item.pricePence)}</li>)}</ul>
+                  </div>
+                )}
+                {setupDraft.classes && (
+                  <div>
+                    <p className="text-gray-300">Classes and sessions</p>
+                    <ul className="text-gray-100">{setupDraft.classes.map((cls, i) => <li key={i}>{cls.name} · {cls.occurrences.length} dates · {cls.capacity} places</li>)}</ul>
+                  </div>
+                )}
+                {setupDraft.shopForm && (
+                  <div>
+                    <p className="text-gray-300">Questions at checkout</p>
+                    <ul className="text-gray-100">{setupDraft.shopForm.slice(2).map((field) => <li key={field.id}>{field.label}</li>)}</ul>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <button type="button" onClick={applySetup} disabled={setupBusy} className="bg-white text-black px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-40">
+                    Apply to my shop
+                  </button>
+                  <button type="button" onClick={() => setSetupDraft({})} className="text-xs text-gray-400 hover:text-white">
+                    Discard draft
+                  </button>
+                </div>
+              </div>
+            )}
+            {setupApplied && <p className="text-sm text-green-400">{setupApplied}</p>}
+          </section>
 
           <section className="space-y-4">
             <h2 className="text-sm font-semibold text-white">Items for sale</h2>
