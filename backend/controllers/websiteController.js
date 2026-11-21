@@ -9,7 +9,7 @@ const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
 const { createBrandKit, kitForPrompt } = require('../lib/brandKit');
 const { createPage, revisePage } = require('../lib/pageGenerator');
-const { cleanStock, fillStockPhotos } = require('../lib/stockPhotos');
+const { cleanStock, fillStockPhotos, addSectionPhotos } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { logUsage } = require('../lib/usageLog');
 const { PLANS, planKey } = require('../lib/plans');
@@ -36,8 +36,9 @@ const cleanSiteState = (content) => {
 const outlineOf = (sections) =>
   sections.map((section, index) => `${index}: ${section.type}${section.layout ? ` (${section.layout})` : ''}${section.title || section.headline ? ` - ${section.title || section.headline}` : ''}`).join('\n');
 
-// New websites use the page format unless WEBSITE_FORMAT=sections is set, which keeps the section builder available.
-const SITE_FORMAT = process.env.WEBSITE_FORMAT === 'sections' ? 'sections' : 'page';
+// New websites use the section format: typed blocks that the renderer draws, so the AI never writes raw HTML.
+// WEBSITE_FORMAT=page switches new websites back to whole-page HTML. Existing pages keep their own format either way.
+const SITE_FORMAT = process.env.WEBSITE_FORMAT === 'page' ? 'page' : 'sections';
 
 // Page photos are keyed img1 to img8 and must be JPEG data URLs, the same rule the sites controller applies on save.
 const IMAGE_KEY = /^img[1-9][0-9]?$/;
@@ -93,11 +94,11 @@ Effect: set "reveal" when the owner asks for sections to fade or rise in as the 
 
 Each Section is one of these shapes (the "type" field is required):
 Every section may also have a "layout" string, chosen from the list for its type. Pick the layout that suits the content, and vary layouts so the page does not repeat the same arrangement. Layouts by type: hero (centred, split, editorial), text (centred, columns), cards (grid, list, numbered), steps (timeline, columns), gallery (grid, featured, list), pricing (cards, rows), faq (accordion, columns), contact (centred, split), cta (banner, inline).
-- { "type": "hero", "eyebrow": string, "headline": string, "subheadline": string, "primaryCta": string, "secondaryCta": string }
+- { "type": "hero", "eyebrow": string, "headline": string, "subheadline": string, "primaryCta": string, "secondaryCta": string, "photoQuery": string }  (photoQuery is two to four plain words for a photo of the business or its setting, such as "bakery counter morning", with no quotation marks)
 - { "type": "text", "title": string, "paragraphs": [string] }
 - { "type": "cards", "title": string, "intro": string, "items": [{ "title": string, "description": string }] }  (use for features, benefits, services, values)
 - { "type": "steps", "title": string, "items": [{ "title": string, "description": string }] }  (use for how it works or a process)
-- { "type": "gallery", "title": string, "intro": string, "items": [{ "title": string, "description": string, "tag": string }] }  (use for showing work, projects, case studies, portfolio pieces; describe each item in plain words, never claim real clients)
+- { "type": "gallery", "title": string, "intro": string, "items": [{ "title": string, "description": string, "tag": string, "photoQuery": string }] }  (use for showing work, projects, case studies, portfolio pieces; describe each item in plain words, never claim real clients; photoQuery is two to four plain words for a photo that would suit the item, such as "yoga studio interior", and has no quotation marks)
 - { "type": "pricing", "title": string, "tiers": [{ "name": string, "price": string, "description": string, "features": [string] }] }
 - { "type": "faq", "title": string, "items": [{ "question": string, "answer": string }] }
 - { "type": "contact", "title": string, "body": string, "email": string, "phone": string }
@@ -293,7 +294,7 @@ ${JSON.stringify(content)}`;
         if (response.stop_reason === 'max_tokens') {
           throw new Error('Response was cut off before the JSON finished');
         }
-        content = parseContent(text);
+        content = await addSectionPhotos(parseContent(text));
       } catch (error) {
         lastError = error;
       }

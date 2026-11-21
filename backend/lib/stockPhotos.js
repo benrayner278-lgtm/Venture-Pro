@@ -76,4 +76,34 @@ const fillStockPhotos = async (body, stock) => {
   return cleanStock({ ...current, ...Object.fromEntries(results.filter(([, photo]) => photo)) });
 };
 
-module.exports = { cleanStock, fillStockPhotos };
+// Adds a stock photo to each gallery item that asks for one with photoQuery. Items without a photo keep the neutral tile.
+// The query is dropped from the item once its photo is found, so the saved site carries only the photo.
+const addSectionPhotos = async (content) => {
+  const sections = Array.isArray(content?.sections) ? content.sections : null;
+  if (!sections) return content;
+  const queryOf = (item) => (typeof item?.photoQuery === 'string' ? item.photoQuery.replace(/["<>]/g, '').trim().slice(0, 80) : '');
+  // A hero carries its query on the section itself. A gallery carries one on each item.
+  const queriesOf = (section) => (section?.type === 'hero' ? [queryOf(section)] : section?.type === 'gallery' ? (section.items || []).map(queryOf) : []);
+  const queries = [...new Set(sections.flatMap(queriesOf).filter((q) => q.length >= 2))];
+  if (queries.length === 0) return content;
+  const stock = await fillStockPhotos(queries.map((q) => `data-stock="${q}"`).join(' '), {});
+  const nextSections = sections.map((section) => {
+    if (section?.type === 'hero') {
+      const { photoQuery, ...rest } = section;
+      const photo = stock[queryOf(section)];
+      return photo ? { ...rest, image: photo } : rest;
+    }
+    if (section?.type !== 'gallery') return section;
+    return {
+      ...section,
+      items: (section.items || []).map((item) => {
+        const { photoQuery, ...rest } = item || {};
+        const photo = stock[queryOf(item)];
+        return photo ? { ...rest, image: photo } : rest;
+      }),
+    };
+  });
+  return { ...content, sections: nextSections };
+};
+
+module.exports = { cleanStock, fillStockPhotos, addSectionPhotos };

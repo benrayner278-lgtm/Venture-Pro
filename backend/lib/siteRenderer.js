@@ -40,14 +40,16 @@ const cardGrid = (items) =>
 
 const renderHero = (s, variant, brand, links) => {
   const eyebrow = s.eyebrow ? `<p class="eyebrow">${escapeHtml(s.eyebrow)}</p>` : '';
+  const photo = safeImage(s.image);
+  const picture = photo ? `<figure class="hero-photo"><img src="${photo}" alt=""></figure>` : '';
   if (variant === 'split') {
     const initials = escapeHtml(brand.split(/\s+/).map((w) => w[0] || '').join('').slice(0, 3).toUpperCase());
-    return `<header class="hero hero-split"><div class="wrap split"><div>${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}</div><div class="visual"><span>${initials}</span></div></div></header>`;
+    return `<header class="hero hero-split"><div class="wrap split"><div>${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}</div><div class="visual">${photo ? picture : `<span>${initials}</span>`}</div></div></header>`;
   }
   if (variant === 'editorial') {
-    return `<header class="hero hero-editorial"><div class="wrap">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}</div></header>`;
+    return `<header class="hero hero-editorial"><div class="wrap">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub left">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, true, links)}${picture}</div></header>`;
   }
-  return `<header class="hero hero-centred"><div class="wrap centre">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, false, links)}</div></header>`;
+  return `<header class="hero hero-centred"><div class="wrap centre">${eyebrow}<h1>${escapeHtml(s.headline)}</h1><p class="sub">${escapeHtml(s.subheadline)}</p>${ctaButtons(s.primaryCta, s.secondaryCta, false, links)}${picture}</div></header>`;
 };
 
 const renderSection = (section, index, seed, brand, links) => {
@@ -175,7 +177,7 @@ section{padding:calc(96px * var(--space)) 0;border-top:1px solid var(--border)}
 .hero{padding:120px 0 104px;border-top:none;background:${t.heroBackground}}
 .hero-centred{text-align:center}
 .hero-editorial .wrap{max-width:820px}
-.hero-split .split{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}
+.hero-split .split{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}.hero-photo{margin:0}.hero-photo img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover;border-radius:var(--radius)}.hero-centred .hero-photo,.hero-editorial .hero-photo{margin-top:40px}
 .visual{aspect-ratio:4/3;border-radius:var(--radius);background:linear-gradient(135deg,var(--surface),var(--accent));display:flex;align-items:center;justify-content:center;color:var(--accent-text);font-size:64px;font-family:${t.headingFont};font-weight:${t.headingWeight};letter-spacing:-0.04em}
 .eyebrow{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 18px}
 h1,h2,h3{font-family:${t.headingFont};font-weight:${t.headingWeight};text-transform:${t.headingTransform};letter-spacing:-0.02em;line-height:1.1}
