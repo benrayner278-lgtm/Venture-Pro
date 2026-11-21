@@ -13,7 +13,9 @@ import StyleEditor from '@/components/StyleEditor';
 import TextEditPanel from '@/components/TextEditPanel';
 import { ContentPath, describePath, getAt, setAt } from '@/lib/contentPath';
 
-type Step = 'form' | 'generating' | 'result';
+type Step = 'form' | 'looks' | 'generating' | 'result';
+// One of the three looks offered before a website is built.
+type LookPick = { id: string; name: string; description: string; reason: string; bg: string; surface: string; text: string; accent: string; accentText: string };
 type View = 'preview' | 'style' | 'contact' | 'portfolio';
 
 export default function WebsiteBuilderPage() {
@@ -26,6 +28,9 @@ export default function WebsiteBuilderPage() {
     requests: '',
   });
   const [content, setContent] = useState<WebsiteContent | null>(null);
+  const [looks, setLooks] = useState<LookPick[]>([]);
+  const [lookError, setLookError] = useState('');
+  const [choosingLook, setChoosingLook] = useState(false);
   const [themeId, setThemeId] = useState(WEBSITE_PRESETS[0].id);
   const [shuffle, setShuffle] = useState(0);
   const [tweaking, setTweaking] = useState(false);
@@ -85,7 +90,7 @@ export default function WebsiteBuilderPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const requestContent = async (extra: { currentContent?: WebsiteContent; instruction?: string; buildId?: string }) => {
+  const requestContent = async (extra: { currentContent?: WebsiteContent; instruction?: string; buildId?: string; look?: string }) => {
     const response = await apiFetch('/api/website/generate', {
       method: 'POST',
       json: { ...formData, ...extra },
@@ -111,11 +116,28 @@ export default function WebsiteBuilderPage() {
     }
   };
 
+  // Step one of a new website: three looks to choose from. Step two (buildWebsite) builds with the one the owner picks.
   const handleGenerateWebsite = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLookError('');
+    setChoosingLook(true);
+    try {
+      const response = await apiFetch('/api/website/looks', { method: 'POST', json: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not choose looks');
+      setLooks(data.looks || []);
+      setStep('looks');
+    } catch (error) {
+      setLookError(error instanceof Error ? error.message : 'Could not choose looks');
+    } finally {
+      setChoosingLook(false);
+    }
+  };
+
+  const buildWebsite = async (lookId?: string) => {
     setStep('generating');
     try {
-      const result = await requestContent({});
+      const result = await requestContent({ look: lookId });
       setContent(await withSavedContact(result.content));
       setBuildId(result.buildId);
       setTweakReply(result.reply);
@@ -346,13 +368,50 @@ export default function WebsiteBuilderPage() {
                   />
                 </div>
 
+                {lookError && <p className="text-sm text-red-400">{lookError}</p>}
                 <button
                   type="submit"
-                  className="w-full bg-white hover:bg-gray-200 text-black font-medium text-sm py-3 rounded-xl transition mt-6"
+                  disabled={choosingLook}
+                  className="w-full bg-white hover:bg-gray-200 disabled:opacity-50 text-black font-medium text-sm py-3 rounded-xl transition mt-6"
                 >
-                  Generate Website
+                  {choosingLook ? 'Choosing looks…' : 'Choose a look'}
                 </button>
               </form>
+            </div>
+          )}
+
+          {step === 'looks' && (
+            <div className="max-w-4xl space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Choose a look</h2>
+                <p className="text-sm text-gray-400 mt-1">These three suit your business. Pick one, and the website is built with its colours and feel.</p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {looks.map((look) => (
+                  <div key={look.id} className="rounded-2xl border border-white/10 p-4 flex flex-col gap-3">
+                    <div className="rounded-xl p-4" style={{ background: look.bg, color: look.text }}>
+                      <p className="text-xs opacity-70">Preview</p>
+                      <p className="text-lg font-semibold">{look.name}</p>
+                      <span className="mt-2 inline-block rounded-md px-3 py-1 text-xs font-medium" style={{ background: look.accent, color: look.accentText }}>
+                        Get in touch
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-200">{look.description}</p>
+                    <p className="text-xs text-gray-400 flex-1">{look.reason}</p>
+                    <button type="button" onClick={() => buildWebsite(look.id)} className="bg-white text-black px-4 py-2 rounded-xl text-sm font-medium">
+                      Use this look
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-3 items-center">
+                <button type="button" onClick={() => buildWebsite(undefined)} className="border border-white/10 text-gray-200 px-4 py-2 rounded-xl text-sm">
+                  Let the assistant design it instead
+                </button>
+                <button type="button" onClick={() => setStep('form')} className="text-sm text-gray-400 hover:text-white">
+                  Back
+                </button>
+              </div>
             </div>
           )}
 

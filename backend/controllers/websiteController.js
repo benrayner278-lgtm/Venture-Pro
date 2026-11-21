@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma');
 const { FONTS } = require('../lib/styleOptions');
 const { sanitizeDesign, sanitizeSections } = require('../lib/designBrief');
 const { randomCreativeBrief } = require('../lib/creativeBrief');
+const { shortlistLooks, lookDirection, findLook } = require('../lib/lookPicker');
 const { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool } = require('../lib/websiteEdits');
 const { runToolLoop } = require('../lib/agentLoop');
 const { openBuild, historyForPrompt, recordChange } = require('../lib/builderMemory');
@@ -127,9 +128,30 @@ const parseContent = (text) => {
   return content;
 };
 
+// Three looks to choose from for a new website. The owner picks one, then the build uses it.
+const pickLooks = async (req, res) => {
+  try {
+    const { businessName, features, tagline, callToAction, requests } = req.body || {};
+    if (!businessName || !features) return res.status(400).json({ error: 'Business name and what it offers are needed to choose a look' });
+    const brief = `Business name: ${String(businessName).slice(0, 120)}
+Tagline: ${String(tagline || '').slice(0, 200)}
+What the business offers: ${String(features).slice(0, 1000)}
+Main call to action: ${String(callToAction || '').slice(0, 200)}
+Specific requests: ${String(requests || 'none').slice(0, 500)}`;
+    const looks = await shortlistLooks({ brief });
+    res.json({ looks });
+  } catch (error) {
+    console.error('Pick looks error:', error);
+    res.status(500).json({ error: 'Could not choose looks. You can still let the assistant design the look.' });
+  }
+};
+
 const generateWebsite = async (req, res) => {
   try {
-    const { businessName, tagline, features, callToAction, requests, currentContent, instruction, buildId } = req.body || {};
+    const { businessName, tagline, features, callToAction, requests, currentContent, instruction, buildId, look } = req.body || {};
+    // The look the owner chose from the shortlist. Unknown ids are ignored, and the AI designs the look as before.
+    const chosenLook = typeof look === 'string' ? findLook(look) : null;
+    const directionFor = () => (chosenLook ? lookDirection(chosenLook) : randomCreativeBrief());
 
     // If a project is given, it must belong to the caller
     const { projectId } = req.body || {};
@@ -244,7 +266,7 @@ ${JSON.stringify(content)}`;
 
     if (SITE_FORMAT === 'page') {
       const kit = await createBrandKit(brief);
-      const { page } = await createPage({ briefText: `${brief}\n\n${randomCreativeBrief()}`, kitText: kitForPrompt(kit) });
+      const { page } = await createPage({ briefText: `${brief}\n\n${directionFor()}`, kitText: kitForPrompt(kit) });
       const stock = await fillStockPhotos(page.body, {});
       const content = cleanPageState({ ...page, images: {}, stock });
       const reply = `Designed a new page for ${content.brand?.name || businessName}. Ask for changes below.`;
@@ -254,7 +276,7 @@ ${JSON.stringify(content)}`;
     }
 
     const kit = await createBrandKit(brief);
-    const userMessage = `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${randomCreativeBrief()}\n\nBrand kit:\n${kitForPrompt(kit)}\n\nBusiness brief:\n${brief}`;
+    const userMessage = `Plan and write the website for this business. Build a completely new website for it, designed from scratch.\n\n${directionFor()}\n\nBrand kit:\n${kitForPrompt(kit)}\n\nBusiness brief:\n${brief}`;
 
     let content;
     let lastError;
@@ -370,4 +392,4 @@ const latestWebsite = async (req, res) => {
   }
 };
 
-module.exports = { generateWebsite, proofreadText, saveWebsite, latestWebsite };
+module.exports = { generateWebsite, pickLooks, proofreadText, saveWebsite, latestWebsite };
