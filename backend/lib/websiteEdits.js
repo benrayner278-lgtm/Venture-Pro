@@ -1,4 +1,5 @@
 const { sanitizeDesign, sanitizeSections } = require('./designBrief');
+const { findLook } = require('./lookPicker');
 
 const SECTION_TYPES = ['hero', 'text', 'cards', 'steps', 'gallery', 'pricing', 'faq', 'contact', 'cta', 'custom'];
 const MIN_SECTIONS = 5;
@@ -76,6 +77,21 @@ const WEBSITE_EDIT_TOOLS = [
     },
   },
 ];
+
+// Mixes two hex colours. Used for the border, which is a hex colour between the background and the text.
+const hexRgb = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+const mixHex = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+
+// Gives the website one of the looks from the bank. Its colours are checked like any other design change.
+const LOOK_TOOL = {
+  name: 'set_look',
+  description: 'Give the website one of the looks from the bank, with its colours and feel. Use it when the owner asks for a different look or style. Give the look id, such as "ocean" or "studio".',
+  input_schema: {
+    type: 'object',
+    properties: { id: { type: 'string', description: 'The look id from the bank.' } },
+    required: ['id'],
+  },
+};
 
 const checkIndex = (value, max) => Number.isInteger(value) && value >= 0 && value <= max;
 
@@ -177,9 +193,27 @@ const applyWebsiteTool = (content, name, input) => {
       if (changed.length === 0) return { text: 'No brand, navigation, footer or design fields were given, so nothing changed.', error: true };
       return { content: next, text: `Updated the ${changed.join(', ')}.`, action: `updated ${changed.join(', ')}` };
     }
+    case 'set_look': {
+      const look = findLook(input.id);
+      if (!look) return { text: `There is no look called "${input.id}". Choose one from the bank.`, error: true };
+      const palette = {
+        bg: look.bg,
+        surface: look.surface,
+        text: look.text,
+        muted: look.muted,
+        accent: look.accent,
+        accentText: look.accentText,
+        border: mixHex(look.bg, look.text, 0.15),
+      };
+      const design = mergeDesign(content.design, { palette });
+      if (!design) return { text: `The ${look.name} look could not be applied.`, error: true };
+      return { content: { ...content, design }, text: `Changed the look to ${look.name}.`, action: `changed the look to ${look.name}` };
+    }
     default:
       return { text: `Unknown tool ${name}`, error: true };
   }
 };
+
+WEBSITE_EDIT_TOOLS.push(LOOK_TOOL);
 
 module.exports = { SECTION_TYPES, WEBSITE_EDIT_TOOLS, applyWebsiteTool, MIN_SECTIONS, MAX_SECTIONS };
