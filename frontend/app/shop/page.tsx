@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
@@ -14,7 +14,13 @@ type ClassRow = { id: string; name: string; minutes: string; capacity: string; p
 type SavedClass = { id: string; name: string; minutes: number; capacity: number; pricePence: number; instruction: string; occurrences: string[]; photos?: string[] };
 type SavedItem = { id: string; name: string; description: string; pricePence: number; photos?: string[] };
 // The draft the setup assistant builds. It is only saved when the owner clicks Apply.
-type SetupDraft = { shopItems?: { id?: string; name: string; description: string; pricePence: number }[]; classes?: SavedClass[]; shopForm?: FormField[] };
+type SetupDraft = {
+  shopItems?: { id?: string; name: string; description: string; pricePence: number }[];
+  classes?: SavedClass[];
+  shopForm?: FormField[];
+  contact?: { email: string; phone: string };
+  bookingSettings?: { services: { name: string; minutes: number; pricePence: number }[] } & Record<string, unknown>;
+};
 type SetupMessage = { role: 'owner' | 'assistant'; text: string };
 
 const FIELD_NAMES: Record<string, string> = { text: 'Short text', textarea: 'Longer text', email: 'Email', phone: 'Phone', date: 'Date', time: 'Time', select: 'Choose one' };
@@ -118,6 +124,35 @@ export default function ShopPage() {
   const [setupBusy, setSetupBusy] = useState(false);
   const [setupError, setSetupError] = useState('');
   const [setupApplied, setSetupApplied] = useState('');
+  // The assistant's chat and draft are kept in this browser only, per site, so a refresh does not lose them.
+  // Nothing here is saved to the site until Apply.
+  const setupKey = `vp-setup:${siteId}`;
+  // The first save after a load would write the empty starting state over the saved chat, so it is skipped.
+  const skipNextSave = useRef(false);
+  useEffect(() => {
+    if (!siteId) return;
+    skipNextSave.current = true;
+    try {
+      const saved = JSON.parse(localStorage.getItem(setupKey) || 'null');
+      setSetupMessages(Array.isArray(saved?.messages) ? saved.messages : []);
+      setSetupDraft(saved?.draft && typeof saved.draft === 'object' ? saved.draft : {});
+    } catch {
+      setSetupMessages([]);
+      setSetupDraft({});
+    }
+  }, [siteId, setupKey]);
+  useEffect(() => {
+    if (!siteId) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(setupKey, JSON.stringify({ messages: setupMessages, draft: setupDraft }));
+    } catch {
+      /* private browsing: the chat lasts until the page closes */
+    }
+  }, [siteId, setupKey, setupMessages, setupDraft]);
 
   useEffect(() => {
     apiFetch('/api/sites')
@@ -278,6 +313,19 @@ export default function ShopPage() {
         if (!response.ok) throw new Error(data.error || 'Could not save the order form');
         setForm(data.form || []);
       }
+      if (setupDraft.contact) {
+        const response = await apiFetch(`/api/shop/sites/${siteId}/contact`, { method: 'PUT', json: setupDraft.contact });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save the contact details');
+        setContactEmail(setupDraft.contact.email);
+        setContactPhone(setupDraft.contact.phone);
+      }
+      if (setupDraft.bookingSettings) {
+        const response = await apiFetch(`/api/bookings/sites/${siteId}/settings`, { method: 'PUT', json: setupDraft.bookingSettings });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not save the booking settings');
+        setBookingsOn(true);
+      }
       setSetupApplied('Applied to your shop. Check the sections below, then publish when you are happy.');
       setSetupDraft({});
     } catch (err) {
@@ -383,7 +431,7 @@ export default function ShopPage() {
               </button>
               {setupError && <span className="text-sm text-red-400">{setupError}</span>}
             </div>
-            {(setupDraft.shopItems || setupDraft.classes || setupDraft.shopForm) && (
+            {(setupDraft.shopItems || setupDraft.classes || setupDraft.shopForm || setupDraft.contact || setupDraft.bookingSettings) && (
               <div className="rounded-2xl border border-white/10 p-4 space-y-3 text-sm">
                 <p className="text-xs uppercase tracking-wider text-gray-500">Draft to check</p>
                 {setupDraft.shopItems && (
@@ -396,6 +444,18 @@ export default function ShopPage() {
                   <div>
                     <p className="text-gray-300">Classes and sessions</p>
                     <ul className="text-gray-100">{setupDraft.classes.map((cls, i) => <li key={i}>{cls.name} · {cls.occurrences.length} dates · {cls.capacity} places</li>)}</ul>
+                  </div>
+                )}
+                {setupDraft.bookingSettings && (
+                  <div>
+                    <p className="text-gray-300">Online booking</p>
+                    <ul className="text-gray-100">{setupDraft.bookingSettings.services.map((service, i) => <li key={i}>{service.name} · {service.minutes} min · {service.pricePence > 0 ? pounds(service.pricePence) : 'Free'}</li>)}</ul>
+                  </div>
+                )}
+                {setupDraft.contact && (
+                  <div>
+                    <p className="text-gray-300">Enquiry details</p>
+                    <ul className="text-gray-100"><li>{setupDraft.contact.email}</li><li>{setupDraft.contact.phone}</li></ul>
                   </div>
                 )}
                 {setupDraft.shopForm && (

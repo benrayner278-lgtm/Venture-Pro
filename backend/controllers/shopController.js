@@ -15,6 +15,7 @@ const { defaultForm, generateShopForm, checkAnswers, cleanForm, withDeliveryFiel
 const { cleanClasses, classOffers } = require('../lib/classSchedule');
 const { runToolLoop } = require('../lib/agentLoop');
 const { TOOLS: SETUP_TOOLS, applyTool, summarise } = require('../lib/setupTools');
+const { cleanSettings } = require('./bookingController');
 const { API_ORIGIN } = require('./bookingController');
 
 // Phone numbers: digits with an optional leading +, spaces, brackets or dashes. 10 to 15 digits.
@@ -254,6 +255,8 @@ const ownedShopSite = async (req, res) => {
   return site;
 };
 
+const contactOk = (contact) => EMAIL_PATTERN.test(String(contact.email || '')) && PHONE_PATTERN.test(String(contact.phone || ''));
+
 const SETUP_PROMPT = `You help a small business owner set up what they sell on their website: products, classes or sessions, and the questions customers answer before they pay.
 Talk plainly, in short British English sentences. Ask one question at a time when something is missing, such as a price, how many people a class allows, or when it runs.
 Record what you learn with the tools. Only say something is recorded after a tool has confirmed it. You cannot publish the site, take payments or change prices online. The owner does that.`;
@@ -276,6 +279,11 @@ const setupChat = async (req, res) => {
     if (classes?.value) draft.classes = classes.value;
     const form = Array.isArray(incoming.shopForm) ? cleanForm(incoming.shopForm) : null;
     if (form) draft.shopForm = form;
+    if (incoming.contact && contactOk(incoming.contact)) draft.contact = { email: String(incoming.contact.email), phone: String(incoming.contact.phone) };
+    if (incoming.bookingSettings) {
+      const booking = cleanSettings(incoming.bookingSettings);
+      if (booking.value) draft.bookingSettings = booking.value;
+    }
 
     const saved = itemsOf(site).map((item) => item.name).join(', ') || 'none';
     const context = `Business: ${site.title || site.slug}
@@ -283,7 +291,7 @@ Saved items: ${saved}
 Draft so far:
 ${summarise(draft)}`;
     const apply = async (name, input) => {
-      const result = await applyTool({ name, input, draft, timezone, nowMs });
+      const result = await applyTool({ name, input, draft, timezone, nowMs, current: site.bookingSettings || {} });
       if (result.error) return { text: result.error, error: true };
       draft = result.draft;
       return { text: result.text, action: result.text };
