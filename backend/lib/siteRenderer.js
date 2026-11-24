@@ -232,7 +232,7 @@ h2{font-size:clamp(28px,4vw,44px);margin:0 0 20px}
 details{border-bottom:1px solid var(--border);padding:22px 0}
 summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none}
 details p{color:var(--muted);margin:12px 0 0}
-footer{padding:40px 0;border-top:1px solid var(--border);color:var(--muted);font-size:14px;text-align:center}
+footer{padding:40px 0;border-top:1px solid var(--border);color:var(--muted);font-size:14px;text-align:center}.made-with{margin:14px 0 0;font-size:12px;opacity:.8}.made-with a{color:inherit}
 @media (max-width:760px){section{padding:64px 0}.hero{padding:80px 0 64px}.hero-split .split,.text-cols,.row{grid-template-columns:1fr;gap:20px}nav{flex-direction:column;align-items:flex-start}.effect-stack section{margin-top:0}}
 @supports (animation-timeline: view()){
 .effect-reveal section>.wrap{animation:rise linear both;animation-timeline:view();animation-range:entry 0% cover 35%}
@@ -341,8 +341,9 @@ const buildPage = (content, themeId, shuffle, extras = {}) => {
 </nav>
 </div>`;
   const footerContact = [contact.email, contact.phone, contact.address].filter(Boolean).map(escapeHtml).join(' · ');
+  const madeWith = extras.madeWith ? '<p class="made-with">Made with <a href="https://venture-pro.io" rel="noopener">Venture-Pro</a></p>' : '';
   const footer = `<footer>
-<div class="wrap">${escapeHtml(content.footer?.note)}${footerContact ? `<div class="footer-contact">${footerContact}</div>` : ''}</div>
+<div class="wrap">${escapeHtml(content.footer?.note)}${footerContact ? `<div class="footer-contact">${footerContact}</div>` : ''}${madeWith}</div>
 </footer>`;
   return { brand, effect, css, navHtml, body, footer };
 };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import Celebration from '@/components/Celebration';
 import { apiFetch } from '@/lib/api';
 
 type Step = {
@@ -27,12 +28,28 @@ const STATE_LABEL: Record<Step['state'], string> = {
 export default function StartPage() {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [error, setError] = useState('');
+  // Set when a site was just published from the website builder. Shown once, then cleared.
+  const [celebrateUrl, setCelebrateUrl] = useState<string | null>(null);
+
+  // Read once the page has loaded. A publish that just happened shows its congratulations here.
+  const takeCelebration = () => {
+    try {
+      const url = localStorage.getItem('vp-celebrate');
+      if (url) {
+        localStorage.removeItem('vp-celebrate');
+        setCelebrateUrl(url);
+      }
+    } catch {
+      /* private browsing: no celebration this time */
+    }
+  };
 
   useEffect(() => {
     apiFetch('/api/journey')
       .then(async (res) => {
         if (!res.ok) throw new Error('Could not load your progress');
         setJourney(await res.json());
+        takeCelebration();
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load your progress'));
   }, []);
@@ -51,6 +68,8 @@ export default function StartPage() {
 
         <div className="p-4 md:p-8 max-w-3xl space-y-6">
           {error && <p className="text-sm text-red-400">{error}</p>}
+
+          {celebrateUrl && <Celebration url={celebrateUrl} onDismiss={() => setCelebrateUrl(null)} />}
 
           {journey && (
             <div className="rounded-2xl border border-white/10 p-5 space-y-3">
