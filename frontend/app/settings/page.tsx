@@ -4,18 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch, clearSession } from '@/lib/api';
-import { ContactEditor } from '@/components/SiteDetailsEditor';
-import type { ContactDetails } from '@/lib/websiteTemplates';
-
-type Account = {
-  id: string;
-  email: string;
-  name: string;
-  plan: string;
-  subscriptionStatus: string;
-  createdAt: string;
-  contact?: ContactDetails;
-};
+import { type Account, cardClass, buttonClass, inputClass, labelClass, readError } from '@/components/settings/shared';
 
 const PLAN_NAMES: Record<string, string> = {
   free: 'Free',
@@ -28,18 +17,7 @@ const PLAN_NAMES: Record<string, string> = {
   enterprise: 'Corporate',
 };
 
-const inputClass =
-  'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
-const cardClass = 'rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6';
-const buttonClass =
-  'bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed';
 
-// Reads the error the server sends back, or a fallback message.
-const readError = async (response: Response, fallback: string) => {
-  const data = await response.json().catch(() => ({}));
-  return data.error || fallback;
-};
 
 function ProfileSection({ account, onSaved }: { account: Account; onSaved: (account: Account) => void }) {
   const [name, setName] = useState(account.name);
@@ -87,44 +65,6 @@ function ProfileSection({ account, onSaved }: { account: Account; onSaved: (acco
         </button>
       </form>
     </section>
-  );
-}
-
-// The owner's business contact details. New sites start with these, and each site can change them.
-function ContactSection({ account, onSaved }: { account: Account; onSaved: (account: Account) => void }) {
-  const [contact, setContact] = useState<ContactDetails>(account.contact || {});
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  const save = async () => {
-    setSaving(true);
-    setMessage('');
-    setError('');
-    try {
-      const response = await apiFetch('/api/auth/contact', { method: 'PUT', json: { contact } });
-      if (!response.ok) throw new Error(await readError(response, 'Could not save your contact details'));
-      const data = await response.json();
-      onSaved(data.user);
-      setMessage('Saved. New sites start with these details.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save your contact details');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className={cardClass}>
-      <ContactEditor value={contact} onChange={setContact} />
-      <div className="mt-5 flex flex-wrap items-center gap-4">
-        <button type="button" onClick={save} disabled={saving} className={buttonClass}>
-          {saving ? 'Saving...' : 'Save contact details'}
-        </button>
-        {message && <p className="text-sm text-emerald-400">{message}</p>}
-        {error && <p className="text-sm text-red-400">{error}</p>}
-      </div>
-    </div>
   );
 }
 
@@ -186,92 +126,6 @@ function PasswordSection() {
         </button>
       </form>
     </section>
-  );
-}
-
-type PaymentStatus = {
-  connected: boolean;
-  paymentsEnabled: boolean;
-  state: 'not_started' | 'pending' | 'action_needed' | 'ready';
-  items: string[];
-};
-
-// Lets the business take card payments from its customers. Payments go to its own bank through Stripe.
-function PaymentsSection() {
-  const [status, setStatus] = useState<PaymentStatus | null>(null);
-  const [starting, setStarting] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  const load = async () => {
-    const response = await apiFetch('/api/connect/status');
-    if (!response.ok) throw new Error(await readError(response, 'Could not check payment setup'));
-    setStatus(await response.json());
-  };
-
-  useEffect(() => {
-    // Stripe sends the owner back here with payments=done or payments=refresh.
-    const returned = new URLSearchParams(window.location.search).get('payments');
-    if (returned === 'done') setMessage('Thanks. Stripe is checking your details, which can take a few minutes.');
-    if (returned === 'refresh') setMessage('Your Stripe sign-up was not finished. Carry on below.');
-    load().catch((err) => setError(err instanceof Error ? err.message : 'Could not check payment setup'));
-  }, []);
-
-  const start = async () => {
-    setStarting(true);
-    setError('');
-    try {
-      const response = await apiFetch('/api/connect/onboard', { method: 'POST' });
-      if (!response.ok) throw new Error(await readError(response, 'Could not start payment setup'));
-      const data = await response.json();
-      window.location.assign(data.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start payment setup');
-      setStarting(false);
-    }
-  };
-
-  const ready = Boolean(status?.paymentsEnabled);
-  const state = status?.state ?? 'not_started';
-
-  return (
-    <div className={cardClass}>
-      <h2 className="text-base font-semibold text-white mb-1">Payments</h2>
-      <p className="text-sm text-gray-400 mb-5">
-        Take card payments from your customers. The money goes straight to your bank through Stripe. Venture-Pro takes no fee on it.
-      </p>
-
-      {status === null && !error && <p className="text-sm text-gray-500">Checking your payment setup...</p>}
-      {status && (
-        <div className="text-sm mb-4 space-y-3">
-          {state === 'ready' && <p className="text-emerald-400">Payments are ready. Your shop can now take card payments.</p>}
-          {state === 'pending' && (
-            <p className="text-amber-300">Stripe is checking your details. This usually takes a few minutes, and you do not need to do anything else for now.</p>
-          )}
-          {state === 'action_needed' && (
-            <>
-              <p className="text-amber-300">Stripe needs a little more information before you can take payments.</p>
-              {status.items.length > 0 && (
-                <ul className="list-disc pl-5 text-gray-300 space-y-1">
-                  {status.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-          {state === 'not_started' && <p className="text-gray-400">Payments are not set up yet.</p>}
-        </div>
-      )}
-
-      {state !== 'ready' && state !== 'pending' && (
-        <button type="button" onClick={start} disabled={starting || status === null} className={buttonClass}>
-          {starting ? 'Opening Stripe...' : state === 'action_needed' ? 'Continue Stripe setup' : 'Set up payments'}
-        </button>
-      )}
-      {message && <p className="text-sm text-gray-300 mt-4">{message}</p>}
-      {error && <p className="text-sm text-red-400 mt-4">{error}</p>}
-    </div>
   );
 }
 
@@ -394,10 +248,8 @@ export default function SettingsPage() {
           {account && (
             <div className="max-w-2xl space-y-6">
               <ProfileSection account={account} onSaved={setAccount} />
-              <ContactSection account={account} onSaved={setAccount} />
               <PasswordSection />
               <PlanSection account={account} />
-              <PaymentsSection />
               <DangerSection account={account} />
             </div>
           )}
