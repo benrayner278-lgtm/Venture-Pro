@@ -8,7 +8,7 @@ const { renderTeaser } = require('../lib/teaser');
 const { PRESET_IDS } = require('../lib/designPresets');
 const { cleanStyle } = require('../lib/styleOptions');
 const { cleanLogo } = require('../lib/logoSpec');
-const { PLANS, planKey } = require('../lib/plans');
+const { PLANS, planKey, brandingOn } = require('../lib/plans');
 const { API_ORIGIN, publicBookingView, publicBookingOffers } = require('./bookingController');
 const { formOf, shopSections, publicClassOffers } = require('./shopController');
 const { renderShopPage } = require('../lib/shopPage');
@@ -380,7 +380,7 @@ const sendPublicSite = async (res, site) => {
   const owner = await prisma.user.findUnique({ where: { id: site.userId }, select: { plan: true } });
   const booking = await publicBookingView(site, owner?.plan);
   const shop = shopSections(site, owner?.plan).available;
-  let html = renderContent(site.content, site.themeId, site.shuffle, { booking, shop });
+  let html = renderContent(site.content, site.themeId, site.shuffle, { booking, shop, madeWith: brandingOn(owner?.plan) });
   // A small link to the shop, added at the bottom of the page, only when the owner has items to sell.
   if (shop && html.includes('</body>')) {
     html = html.replace('</body>', '<p style="text-align:center;padding:12px 0"><a href="shop" style="color:inherit">Shop</a></p></body>');
@@ -415,6 +415,7 @@ const sendShopPage = async (res, site, back) => {
       form: formOf(site),
       bookings,
       contact: sections.contact,
+      madeWith: brandingOn(owner?.plan),
     })
   );
 };

@@ -122,4 +122,8 @@ const planKeyForAmount = (amount) => {
   return match || LEGACY_PRICE_KEYS[amount] || null;
 };
 
-module.exports = { PLANS, PAID_PLANS, planKey, planKeyForAmount };
+// Published sites show a small "Made with Venture-Pro" line, except on the top plan, which can remove it.
+const BRANDING_REMOVED_ON = ['corporate'];
+const brandingOn = (plan) => !BRANDING_REMOVED_ON.includes(planKey(plan));
+
+module.exports = { PLANS, PAID_PLANS, planKey, planKeyForAmount, brandingOn };

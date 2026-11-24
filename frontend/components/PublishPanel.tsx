@@ -11,6 +11,7 @@ const cleanSlug = (value: string) =>
   value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-');
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
+const shareText = (url: string) => `Take a look at my new website: ${url}`;
 
 export default function PublishPanel({
   content,
@@ -74,6 +75,12 @@ export default function PublishPanel({
       setLive(data.site);
       if (data.site.shuffle !== shuffle) onShuffleChange(data.site.shuffle);
       setMessage('Your site is live.');
+      // The progress page shows the congratulations once, the next time the owner visits it.
+      try {
+        localStorage.setItem('vp-celebrate', data.site.url);
+      } catch {
+        /* private browsing: no celebration this time */
+      }
       loadSites();
     } catch (error) {
       setMessage(errorMessage(error, 'Could not publish the site'));
@@ -101,6 +108,15 @@ export default function PublishPanel({
       setMessage(errorMessage(error, 'Could not update the site'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setMessage('Link copied.');
+    } catch {
+      setMessage('Could not copy. Select the link above and copy it.');
     }
   };
 
@@ -135,6 +151,29 @@ export default function PublishPanel({
           >
             {busy ? 'Updating...' : 'Update live site'}
           </button>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => copyLink(live.url)}
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-white/5"
+            >
+              Copy link
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareText(live.url))}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-white/5"
+            >
+              WhatsApp
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent('My new website')}&body=${encodeURIComponent(shareText(live.url))}`}
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-white/5"
+            >
+              Email
+            </a>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
