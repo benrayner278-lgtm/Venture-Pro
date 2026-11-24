@@ -69,10 +69,11 @@ export default function Sidebar() {
     { href: '/email', label: 'Email', icon: 'mail' },
     { href: '/domain', label: 'Domain', icon: 'web' },
     { href: '/bookings', label: 'Bookings', icon: 'calendar' },
-    { href: '/settings', label: 'Payments & Settings', icon: 'settings' },
+    { href: '/payments', label: 'Payments', icon: 'billing' },
+    { href: '/contact-details', label: 'Contact details', icon: 'mail' },
+    { href: '/settings', label: 'Settings', icon: 'settings' },
     { href: '/shop', label: 'Shop', icon: 'web' },
     { href: '/logo-builder', label: 'Logo Builder', icon: 'logo' },
-    { href: '/legal-documents', label: 'Legal Docs', icon: 'legal' },
     { href: '/billing', label: 'Billing', icon: 'billing' },
   ];
 
