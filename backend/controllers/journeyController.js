@@ -1,4 +1,4 @@
-// The guided journey: idea and plan, then website, then email, then domain, booking and payments.
+// The guided journey: idea and plan, then website, then contact details, email, domain, booking and payments.
 // Each step's status is worked out from the owner's data, so the Progress page always matches what is done.
 const prisma = require('../lib/prisma');
 const { PLANS, planKey } = require('../lib/plans');
@@ -48,6 +48,14 @@ const getJourney = async (req, res) => {
         action: sites.length > 0 ? 'Open your website' : 'Build my website',
       },
       {
+        key: 'contact',
+        title: 'Add your contact details',
+        description: 'Your email and phone number, so customers can reach you. New websites start with these.',
+        done: Boolean(user.contact && (user.contact.email || user.contact.phone)),
+        href: '/contact-details',
+        action: user.contact && (user.contact.email || user.contact.phone) ? 'Change contact details' : 'Add contact details',
+      },
+      {
         key: 'email',
         title: 'Set up your email address',
         description: 'Create a business address such as hello@yourbusiness.venture-pro.io. You choose the name and confirm it yourself.',
@@ -84,7 +92,7 @@ const getJourney = async (req, res) => {
         done: Boolean(user.paymentsEnabled),
         allowed: plan.booking,
         requiredPlan: 'Premium',
-        href: plan.booking ? '/settings' : '/billing?needs=payments',
+        href: plan.booking ? '/payments' : '/billing?needs=payments',
         action: !plan.booking ? 'Unlock with the Premium plan' : user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
       },
     ];
