@@ -96,8 +96,8 @@ const getJourney = async (req, res) => {
         action: !plan.booking ? 'Unlock with the Premium plan' : user.paymentsEnabled ? 'Payments are ready' : 'Set up payments',
       },
     ];
-    // Booking and payments are left off the board on plans that do not include them.
-    const steps = allSteps.filter((step) => plan.booking || (step.key !== 'booking' && step.key !== 'payments'));
+    // Every step stays on the board. A step the plan does not include shows as locked, with the plan it needs.
+    const steps = allSteps;
 
     // The first step not yet done is the next one. A step the plan does not include is skipped for "next".
     const next = steps.find((step) => !step.done && step.allowed !== false);
