@@ -142,14 +142,16 @@ export default function LandingPage() {
           <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Made in a few minutes. Styled your way.</h2>
           <p className="mt-3 max-w-2xl text-zinc-400">Every site starts from your brief, then you choose from five looks and shuffle the layout until it feels right.</p>
 
-          <div className="mt-12 grid gap-8 md:grid-cols-2">
-            {EXAMPLES.map((example) => (
+          <div className="mt-12 grid items-start gap-8 md:grid-cols-2">
+            {EXAMPLES.map((example, index) => (
               <a
                 key={example.label}
                 href={`/examples/${example.file}.html`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group block overflow-hidden rounded-xl border border-white/10 bg-zinc-950 transition hover:border-white/25"
+                className={`group block overflow-hidden rounded-xl border border-white/10 bg-zinc-950 transition hover:border-white/25 ${
+                  index === 0 ? 'md:col-span-2' : index % 2 === 0 ? '' : 'md:mt-16'
+                }`}
               >
                 <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2.5">
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
@@ -157,7 +159,7 @@ export default function LandingPage() {
                   <span className="h-2 w-2 rounded-full bg-zinc-700" />
                   <span className="ml-3 truncate text-[11px] text-zinc-600">{example.name}</span>
                 </div>
-                <div className="relative h-[420px] overflow-hidden bg-black">
+                <div className={`relative overflow-hidden bg-black ${index === 0 ? 'h-[560px]' : index % 3 === 0 ? 'h-[460px]' : 'h-[380px]'}`}>
                   <iframe
                     src={`/examples/${example.file}.html`}
                     title={`${example.label} example`}
@@ -182,11 +184,21 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <p className="text-sm font-medium text-zinc-500">Features</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Everything the early stages need, in one place.</h2>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-2">
-            {FEATURES.map((feature) => (
-              <div key={feature.title} className="bg-black p-8">
-                <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
-                <p className="mt-2 leading-relaxed text-zinc-400">{feature.body}</p>
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {FEATURES.map((feature, index) => (
+              <div
+                key={feature.title}
+                className={`flex flex-col rounded-2xl border p-8 ${
+                  index === 0
+                    ? 'border-white bg-white text-black md:col-span-2'
+                    : index === 3
+                      ? 'border-white/10 bg-zinc-950 md:col-span-2'
+                      : 'border-white/10 bg-zinc-950'
+                }`}
+              >
+                <span className={`font-mono text-xs ${index === 0 ? 'text-zinc-500' : 'text-zinc-600'}`}>{String(index + 1).padStart(2, '0')}</span>
+                <h3 className="mt-6 text-xl font-semibold tracking-tight">{feature.title}</h3>
+                <p className={`mt-2 max-w-xl leading-relaxed ${index === 0 ? 'text-zinc-700' : 'text-zinc-400'}`}>{feature.body}</p>
               </div>
             ))}
           </div>
