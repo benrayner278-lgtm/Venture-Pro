@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rayner Automation: 20-Month Scaling Timeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --accent-1: #0066cc;
+            --accent-2: #00b896;
+            --accent-3: #ff6b6b;
+            --warning: #ffa500;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #2d2d2d;
+                --text-primary: #ffffff;
+                --text-secondary: #b0b0b0;
+                --border-color: #444444;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-primary);
+            padding: 2rem 1.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .header-meta {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-1);
+        }
+
+        .stat-card.revenue {
+            border-left-color: var(--accent-2);
+        }
+
+        .stat-card.team {
+            border-left-color: var(--accent-3);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .timeline {
+            position: relative;
+            margin-bottom: 3rem;
+        }
+
+        .phase {
+            margin-bottom: 2.5rem;
+            background-color: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-1);
+        }
+
+        .phase.phase-1 { border-left-color: #0066cc; }
+        .phase.phase-2 { border-left-color: #0099ff; }
+        .phase.phase-3 { border-left-color: #00b896; }
+        .phase.phase-4 { border-left-color: #ffa500; }
+
+        .phase-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-duration {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .phase-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .detail-box {
+            background-color: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-box h3 {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .detail-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .detail-box li {
+            padding: 0.4rem 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding-left: 1.2rem;
+            position: relative;
+        }
+
+        .detail-box li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent-1);
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .success-criteria {
+            background-color: rgba(0, 184, 150, 0.1);
+            border-left: 3px solid var(--accent-2);
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1.5rem;
+        }
+
+        .success-criteria h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .success-criteria ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .success-criteria li {
+            padding: 0.3rem 0 0.3rem 1.2rem;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .success-criteria li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent-2);
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .financial-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .financial-table thead {
+            background-color: var(--bg-secondary);
+        }
+
+        .financial-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .financial-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .financial-table tr:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .value-positive {
+            color: var(--accent-2);
+            font-weight: 600;
+        }
+
+        .value-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .callout {
+            background-color: rgba(255, 107, 107, 0.1);
+            border-left: 3px solid var(--accent-3);
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+        }
+
+        .callout-title {
+            font-weight: 600;
+            color: var(--accent-3);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Rayner Automation: 20-Month Scaling Timeline</h1>
+        <div class="header-meta">
+            From Solo Freelancer → Agency Owner (Passive Ownership Model)<br>
+            Timeline: Sept 2026 - May 2028 | Target Age: 20 years old
+        </div>
+
+        <div class="overview">
+            <div class="stat-card">
+                <div class="stat-label">Starting Revenue (Month 0)</div>
+                <div class="stat-value">~$3-5K/mo</div>
+            </div>
+            <div class="stat-card revenue">
+                <div class="stat-label">Target Revenue (Month 20)</div>
+                <div class="stat-value">$50-80K/mo</div>
+            </div>
+            <div class="stat-card team">
+                <div class="stat-label">Team Size (Month 20)</div>
+                <div class="stat-value">4-6 people</div>
+            </div>
+        </div>
+
+        <div class="timeline">
+            <div class="phase phase-1">
+                <div class="phase-title">📈 Phase 1: Foundation & Optimization (Months 0-4)</div>
+                <div class="phase-duration">September 2026 - December 2026</div>
+                <div class="phase-content">
+                    <div class="detail-box">
+                        <h3>Revenue Goals</h3>
+                        <div class="metric">
+                            <span class="metric-label">Starting MRR</span>
+                            <span class="metric-value">$3,500</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Target MRR</span>
+                            <span class="metric-value">$8,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Growth Rate</span>
+                            <span class="metric-value">+130%</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Key Actions</h3>
+                        <ul>
+                            <li>Raise rates by 30-50% (test market willingness)</li>
+                            <li>Create service packages (starter, pro, enterprise)</li>
+                            <li>Build case studies from 2-3 best clients</li>
+                            <li>Launch simple website/portfolio</li>
+                            <li>Systematize your workflow (document processes)</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Business Ops</h3>
+                        <ul>
+                            <li>Set up business entity (LLC/Corp)</li>
+                            <li>Open business bank account</li>
+                            <li>Implement project management system</li>
+                            <li>Create client onboarding template</li>
+                            <li>Track time & profitability per project</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success-criteria">
+                    <h4>Phase 1 Success Criteria:</h4>
+                    <ul>
+                        <li>Monthly revenue hits $8,000 consistently</li>
+                        <li>3-5 documented case studies</li>
+                        <li>All major processes documented</li>
+                        <li>You understand your margins per service type</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="phase phase-2">
+                <div class="phase-title">👥 Phase 2: First Hire & Service Expansion (Months 5-10)</div>
+                <div class="phase-duration">January 2027 - June 2027</div>
+                <div class="phase-content">
+                    <div class="detail-box">
+                        <h3>Revenue Goals</h3>
+                        <div class="metric">
+                            <span class="metric-label">Starting MRR</span>
+                            <span class="metric-value">$8,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Target MRR</span>
+                            <span class="metric-value">$20,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Growth Rate</span>
+                            <span class="metric-value">+150%</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Hiring Plan</h3>
+                        <ul>
+                            <li><strong>Month 5-6:</strong> Hire 1st contractor (developer/designer - 20 hrs/wk)</li>
+                            <li><strong>Month 8-9:</strong> Hire operations/admin person (part-time)</li>
+                            <li>Start at contractors → evaluate for full-time</li>
+                            <li>Outsource: coding, design, or support (not client relationships)</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Service Expansion</h3>
+                        <ul>
+                            <li>Launch "Done-For-You" premium packages</li>
+                            <li>Create retainer contracts (recurring revenue)</li>
+                            <li>Add complementary services (consulting, training)</li>
+                            <li>Build strategic partnerships (referral networks)</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Systems & Automation</h3>
+                        <ul>
+                            <li>Automate invoicing & payment collection</li>
+                            <li>Build sales pipeline system (CRM)</li>
+                            <li>Create client delivery templates</li>
+                            <li>Delegate your lowest-value tasks</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success-criteria">
+                    <h4>Phase 2 Success Criteria:</h4>
+                    <ul>
+                        <li>MRR reaches $20,000</li>
+                        <li>1-2 contractors working reliably for you</li>
+                        <li>50%+ of revenue from retainers (recurring)</li>
+                        <li>You're spending <20 hrs/week on delivery (rest on strategy)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="phase phase-3">
+                <div class="phase-title">🎯 Phase 3: Team Building & Systems (Months 11-16)</div>
+                <div class="phase-duration">July 2027 - December 2027</div>
+                <div class="phase-content">
+                    <div class="detail-box">
+                        <h3>Revenue Goals</h3>
+                        <div class="metric">
+                            <span class="metric-label">Starting MRR</span>
+                            <span class="metric-value">$20,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Target MRR</span>
+                            <span class="metric-value">$40,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Growth Rate</span>
+                            <span class="metric-value">+100%</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Team Expansion</h3>
+                        <ul>
+                            <li><strong>Month 11:</strong> Hire 2nd developer (full-time)</li>
+                            <li><strong>Month 13:</strong> Hire project manager/ops (full-time)</li>
+                            <li><strong>Month 15:</strong> Consider sales person or content marketer</li>
+                            <li>Team size: 4-5 people total</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Leadership Transition</h3>
+                        <ul>
+                            <li>Hire operations manager to run day-to-day</li>
+                            <li>You transition to: sales, strategy, client relationships</li>
+                            <li>Create company handbook & processes</li>
+                            <li>Implement project management & QA systems</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Growth Levers</h3>
+                        <ul>
+                            <li>Content marketing (blog, YouTube, Twitter)</li>
+                            <li>Referral partnerships with agencies</li>
+                            <li>Premium consulting arm ($5-10K/month retainers)</li>
+                            <li>Group packages or hybrid productized services</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success-criteria">
+                    <h4>Phase 3 Success Criteria:</h4>
+                    <ul>
+                        <li>MRR reaches $40,000+</li>
+                        <li>4-5 person team in place</li>
+                        <li>You're doing <10 hrs/week on delivery (mostly sales/strategy)</li>
+                        <li>Ops manager handling day-to-day operations</li>
+                        <li>Processes documented & repeatable</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="phase phase-4">
+                <div class="phase-title">💎 Phase 4: Scaling to $50-80K/mo (Months 17-20)</div>
+                <div class="phase-duration">January 2028 - May 2028</div>
+                <div class="phase-content">
+                    <div class="detail-box">
+                        <h3>Revenue Goals</h3>
+                        <div class="metric">
+                            <span class="metric-label">Starting MRR</span>
+                            <span class="metric-value">$40,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Target MRR</span>
+                            <span class="metric-value">$50,000-80,000</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Growth Rate</span>
+                            <span class="metric-value">+25-100%</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Team & Structure</h3>
+                        <ul>
+                            <li>Team: 5-6 people (developers, designer, ops, marketer)</li>
+                            <li>Ops manager fully running business</li>
+                            <li>You focus on: strategy, sales, partnerships</li>
+                            <li>Consider equity structure for key team members</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Revenue Diversification</h3>
+                        <ul>
+                            <li>Core services: 60% revenue</li>
+                            <li>Retainers: 25% revenue (recurring base)</li>
+                            <li>Consulting/premium: 15% revenue</li>
+                            <li>Launch productized offering (templates, courses)</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-box">
+                        <h3>Your Role (Passive Ownership)</h3>
+                        <ul>
+                            <li>CEO/Founder: strategy & growth only</li>
+                            <li>Time commitment: 10-15 hrs/week</li>
+                            <li>Revenue share structure established</li>
+                            <li>Business runs without you (stress-test it)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success-criteria">
+                    <h4>Phase 4 Success Criteria (& Ownership Milestone):</h4>
+                    <ul>
+                        <li>MRR: $50,000-$80,000+</li>
+                        <li>Annual revenue: $600K-$960K+</li>
+                        <li>Team of 5-6 running operations smoothly</li>
+                        <li>You work <15 hrs/week and company thrives</li>
+                        <li>Business is saleable/scalable independent of you</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">📊 Financial Projections</div>
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Phase</th>
+                    <th>Month Range</th>
+                    <th>Starting MRR</th>
+                    <th>Ending MRR</th>
+                    <th>Quarterly Revenue</th>
+                    <th>Est. Team Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Phase 1</strong></td>
+                    <td>0-4</td>
+                    <td>$3,500</td>
+                    <td class="value-positive">$8,000</td>
+                    <td class="value-positive">$21,000</td>
+                    <td>You (solo)</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 2</strong></td>
+                    <td>5-10</td>
+                    <td>$8,000</td>
+                    <td class="value-positive">$20,000</td>
+                    <td class="value-positive">$60,000</td>
+                    <td>2-3 contractors</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 3</strong></td>
+                    <td>11-16</td>
+                    <td>$20,000</td>
+                    <td class="value-positive">$40,000</td>
+                    <td class="value-positive">$120,000</td>
+                    <td>4-5 full-time</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 4</strong></td>
+                    <td>17-20</td>
+                    <td>$40,000</td>
+                    <td class="value-positive">$60,000-80,000</td>
+                    <td class="value-positive">$180,000-240,000</td>
+                    <td>5-6 full-time</td>
+                </tr>
+                <tr style="background-color: var(--bg-secondary); font-weight: 600;">
+                    <td colspan="2"><strong>Estimated 20-Month Total Revenue</strong></td>
+                    <td colspan="4" class="value-positive">$500K-$600K (before payroll)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="section-title">💰 Profitability & Cash Flow</div>
+        <div class="detail-box">
+            <h3>Profit Targets by Phase</h3>
+            <div class="metric">
+                <span class="metric-label">Phase 1 (solo)</span>
+                <span class="metric-value">60-70% margin</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Phase 2 (contractors)</span>
+                <span class="metric-value">50-60% margin</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Phase 3 (team)</span>
+                <span class="metric-value">40-50% margin</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Phase 4 (scaled)</span>
+                <span class="metric-value">35-45% margin</span>
+            </div>
+        </div>
+
+        <div class="callout">
+            <div class="callout-title">⚠️ Reality Check: Profit vs. Revenue</div>
+            $50-80K MRR revenue ≠ profit. Here's the breakdown at Phase 4:
+            <ul style="margin-top: 0.75rem; padding-left: 1rem;">
+                <li><strong>$60K MRR example:</strong> $600K annual revenue → ~$200-250K profit (after team payroll & ops)</li>
+                <li>This is yours to keep OR reinvest in growth</li>
+                <li>To hit $1M by 20, you need to scale beyond $60K MRR, sell the company, or run this path 2-3x over</li>
+            </ul>
+        </div>
+
+        <div class="section-title">🎯 Path to $1M by Age 20</div>
+        <div class="detail-box">
+            <h3>Three Viable Routes (Choose One or Combine):</h3>
+            <br>
+            <strong>Route A: Grow Revenue Beyond Phase 4</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li>Hit $100K+ MRR by month 20 (more aggressive hiring + marketing)</li>
+                <li>Keep 40%+ as profit = $40K+/month = $480K+/year</li>
+                <li>Possible but requires perfect execution</li>
+            </ul>
+            <br>
+            <strong>Route B: Sell the Business</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li>Agency with $60K MRR + strong team typically valued at $500K-$1M (3-5x revenue multiple)</li>
+                <li>If you hit $800K/year revenue by month 20, could sell for $1-2M</li>
+                <li>Best path to $1M cash</li>
+            </ul>
+            <br>
+            <strong>Route C: Diversify Income</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li>Keep agency as cash cow ($40-50K/month profit)</li>
+                <li>Launch productized service, SaaS, or digital product ($20-50K/month)</li>
+                <li>Combine for $60-100K/month total</li>
+            </ul>
+        </div>
+
+        <div class="section-title">✅ Critical Success Factors</div>
+        <div class="detail-box">
+            <ul style="padding-left: 1.5rem;">
+                <li><strong>Client Retention:</strong> Focus on keeping clients happy (recurring revenue is your cash engine)</li>
+                <li><strong>Margin Protection:</strong> Don't race to the bottom on pricing; raise rates aggressively</li>
+                <li><strong>Hiring Right:</strong> First 1-2 hires make or break your growth (hire slowly, fire fast)</li>
+                <li><strong>Delegation:</strong> Your job changes from "doing" to "leading" — embrace this early</li>
+                <li><strong>Systems:</strong> Document everything; if the team can't run it without you, you own a job, not a business</li>
+                <li><strong>Cash Management:</strong> Profit ≠ cash. Track cash flow weekly (this kills fast-growing businesses)</li>
+            </ul>
+        </div>
+
+        <div class="section-title">📋 Month-by-Month Action Checklist (Next 4 Months)</div>
+        <div class="detail-box">
+            <h3>September 2026 (Month 0-1)</h3>
+            <ul style="padding-left: 1.5rem;">
+                <li>☐ Set up business entity (LLC/Corp) + bank account</li>
+                <li>☐ Document 3 case studies from recent best clients</li>
+                <li>☐ Create service menu (3-4 tiers with clear pricing)</li>
+                <li>☐ Raise rates on new clients by 30-50%</li>
+                <li>☐ Build/update portfolio website</li>
+            </ul>
+            <br>
+            <h3>October 2026 (Month 1-2)</h3>
+            <ul style="padding-left: 1.5rem;">
+                <li>☐ Document your core delivery process (video walkthrough)</li>
+                <li>☐ Create client onboarding template</li>
+                <li>☐ Launch email list (newsletter/updates)</li>
+                <li>☐ Land 2-3 new clients at higher rates</li>
+                <li>☐ Set up CRM (HubSpot free tier, Notion, or Pipedrive)</li>
+            </ul>
+            <br>
+            <h3>November 2026 (Month 2-3)</h3>
+            <ul style="padding-left: 1.5rem;">
+                <li>☐ Launch referral program (incentivize clients to refer)</li>
+                <li>☐ Create 1-2 retainer contract templates</li>
+                <li>☐ Target 50% of revenue from recurring (retainers)</li>
+                <li>☐ Implement project tracking system (Asana, Monday, ClickUp)</li>
+                <li>☐ Audit profitability per client (know your best deals)</li>
+            </ul>
+            <br>
+            <h3>December 2026 (Month 3-4)</h3>
+            <ul style="padding-left: 1.5rem;">
+                <li>☐ Review Month 4 financials (hit $8K MRR goal?)</li>
+                <li>☐ Plan Phase 2 hiring (who's the first contractor?)</li>
+                <li>☐ Write job description for first hire</li>
+                <li>☐ Start networking for hires (freelancer platforms, LinkedIn)</li>
+                <li>☐ Set 2027 revenue goal ($240K = $20K/month avg)</li>
+            </ul>
+        </div>
+
+        <div class="callout">
+            <div class="callout-title">🔥 Your Biggest Leverage Points</div>
+            <ul style="margin-top: 0.75rem; padding-left: 1rem;">
+                <li><strong>Raise prices:</strong> A 50% price increase on 5 clients = +$2,500/month instantly (no extra work)</li>
+                <li><strong>Hire a contractor month 5-6:</strong> Frees you to close more deals vs. doing the work</li>
+                <li><strong>Systemize delivery:</strong> If you can deliver in 20 hrs instead of 40, you doubled capacity</li>
+                <li><strong>Move to retainers:</strong> $5K/month retainer = $1 deal, renewable every month</li>
+                <li><strong>Sell the idea, not the hours:</strong> Move from hourly → project → value pricing</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border-color); color: var(--text-secondary); font-size: 0.9rem;">
+            <strong>Note:</strong> This timeline assumes consistent execution, market opportunity, and your ability to hire and delegate. Adjust phases based on actual results. The goal isn't perfection—it's momentum. Review quarterly and adapt.
+        </div>
+    </div>
+</body>
+</html>

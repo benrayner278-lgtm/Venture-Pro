@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venture-Pro | AI-Powered Business Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066cc;
+            --primary-dark: #0052a3;
+            --primary-light: #e6f0ff;
+            --accent: #00b896;
+            --accent-dark: #009976;
+            --accent-light: #e8faf5;
+            --purple: #8b5cf6;
+            --text-dark: #0f172a;
+            --text-light: #64748b;
+            --text-muted: #94a3b8;
+            --bg-white: #ffffff;
+            --bg-light: #f8fafc;
+            --bg-darker: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: var(--bg-white);
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 2rem;
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+        }
+
+        nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .nav-btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #003d7a 100%);
+            color: white;
+            padding: 6rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 600px;
+            height: 600px;
+            background: rgba(0, 184, 150, 0.1);
+            border-radius: 50%;
+            transform: translate(150px, -100px);
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .hero h1 {
+            margin-bottom: 1.5rem;
+            line-height: 1.15;
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1.1rem 2.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 184, 150, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-3px);
+        }
+
+        /* Section */
+        .section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            background: var(--bg-light);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .step:nth-child(2) {
+            border-left-color: var(--purple);
+        }
+
+        .step:nth-child(3) {
+            border-left-color: var(--accent);
+        }
+
+        .step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .step:nth-child(2) .step-number {
+            background: #ede9fe;
+            color: var(--purple);
+        }
+
+        .step:nth-child(3) .step-number {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .step h3 {
+            margin-bottom: 0.75rem;
+            color: var(--text-dark);
+        }
+
+        .step p {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        /* Dashboard Preview */
+        .dashboard-section {
+            background: white;
+        }
+
+        .dashboard-preview {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            margin-top: 3rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .browser-header {
+            background: #374151;
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #9ca3af;
+        }
+
+        .browser-dot.red {
+            background: #ef4444;
+        }
+
+        .browser-dot.yellow {
+            background: #f59e0b;
+        }
+
+        .browser-dot.green {
+            background: #10b981;
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            height: 400px;
+            color: white;
+        }
+
+        .sidebar {
+            background: #1e293b;
+            padding: 2rem 1rem;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            overflow-y: auto;
+        }
+
+        .sidebar-item {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .chat-area {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .bot-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .message-content {
+            background: rgba(255,255,255,0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.user .message-content {
+            background: var(--primary);
+            display: inline-block;
+            margin-left: auto;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: var(--accent-dark);
+        }
+
+        /* Features */
+        .features {
+            background: var(--bg-light);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            border-color: var(--primary);
+            box-shadow: 0 12px 30px rgba(0, 102, 204, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature h3 {
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .feature p {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        /* Pricing */
+        .pricing {
+            background: white;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .pricing-card {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 102, 204, 0.12);
+        }
+
+        .pricing-card.featured {
+            border-color: var(--accent);
+            transform: scale(1.04);
+            box-shadow: 0 20px 40px rgba(0, 184, 150, 0.15);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .plan-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-desc {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .price {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .price-period {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .plan-btn {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .pricing-card.featured .plan-btn {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .plan-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .plan-features {
+            flex-grow: 1;
+        }
+
+        .plan-features ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0 0.5rem 1.5rem;
+            position: relative;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .plan-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary) 0%, #003d7a 100%);
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 184, 150, 0.1);
+            border-radius: 50%;
+            transform: translate(100px, -100px);
+        }
+
+        .cta-section h2 {
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-section p {
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-darker);
+            color: white;
+            padding: 2.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        footer p {
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            .dashboard-content {
+                grid-template-columns: 1fr;
+                height: auto;
+                min-height: 400px;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            nav-links {
+                gap: 1rem;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">
+            <span class="logo-icon">🚀</span>
+            Venture-Pro
+        </div>
+        <nav-links>
+            <a href="#how">How It Works</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#" class="nav-btn">Sign In</a>
+        </nav-links>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="badge">🤖 AI-Powered Business Builder</div>
+            <h1>Your Business Idea Deserves to Launch</h1>
+            <p class="hero-subtitle">Chat with our AI. It learns your vision. It builds your business. Then you sell.</p>
+            <div class="hero-cta">
+                <button class="btn btn-primary">Start Building Free</button>
+                <button class="btn btn-secondary">Watch Demo</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section how-it-works" id="how">
+        <h2 class="section-title">Three Steps to Launch</h2>
+        <p class="section-subtitle">From idea to business in weeks, not months.</p>
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Chat With AI</h3>
+                <p>Answer questions about your vision. The AI learns your niche, target market, and business model. No jargon, no complexity.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>AI Builds Your Foundation</h3>
+                <p>Watch as the AI generates your website, email system, payment setup, and legal templates in real-time. Everything connected and ready to use.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Launch & Get Customers</h3>
+                <p>Your business is live. Start selling. Get feedback. Iterate. The AI helps you optimize based on real-world results.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section class="section dashboard-section">
+        <h2 class="section-title">Inside Your Dashboard</h2>
+        <p class="section-subtitle">This is where the magic happens. Your AI co-founder builds your business in real-time.</p>
+
+        <div class="dashboard-preview">
+            <div class="browser-header">
+                <div class="browser-dot red"></div>
+                <div class="browser-dot yellow"></div>
+                <div class="browser-dot green"></div>
+            </div>
+            <div class="dashboard-content">
+                <div class="sidebar">
+                    <div class="sidebar-item active">📊 Dashboard</div>
+                    <div class="sidebar-item">💬 Build Project</div>
+                    <div class="sidebar-item">🌐 Website</div>
+                    <div class="sidebar-item">📧 Email</div>
+                    <div class="sidebar-item">💳 Payments</div>
+                    <div class="sidebar-item">📋 Docs</div>
+                    <div class="sidebar-item">📈 Analytics</div>
+                </div>
+                <div class="chat-area">
+                    <div class="chat-messages">
+                        <div class="message bot">
+                            <div class="bot-avatar">🤖</div>
+                            <div class="message-content">Hi! I'm your Venture-Pro AI co-founder. Let's build your business together. What's your business idea?</div>
+                        </div>
+                        <div class="message user">
+                            <div class="message-content">I want to offer digital marketing consulting to small businesses</div>
+                        </div>
+                        <div class="message bot">
+                            <div class="bot-avatar">🤖</div>
+                            <div class="message-content">Great! Digital marketing consulting has huge demand. Who are your ideal clients? What services will you offer?</div>
+                        </div>
+                        <div class="message user">
+                            <div class="message-content">E-commerce store owners who need help with social media and email marketing. I'll do strategy and execution.</div>
+                        </div>
+                        <div class="message bot">
+                            <div class="bot-avatar">🤖</div>
+                            <div class="message-content">Perfect! I'm now generating: your website, email sequences, pricing packages, contract templates, and business docs. Give me 60 seconds...</div>
+                        </div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" class="chat-input" placeholder="Continue the conversation...">
+                        <button class="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section features" id="features">
+        <h2 class="section-title">What the AI Builds For You</h2>
+        <div class="features-grid">
+            <div class="feature">
+                <div class="feature-icon">🌐</div>
+                <h3>Professional Website</h3>
+                <p>Custom domain, conversion-optimized design, and built-in email capture. No coding required. Launch in minutes.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📧</div>
+                <h3>Email Automation</h3>
+                <p>Welcome sequences, nurture campaigns, and customer management. All connected to your website.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💳</div>
+                <h3>Payment System</h3>
+                <p>Stripe fully integrated. Accept payments, invoices, recurring subscriptions. Get paid on day one.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📋</div>
+                <h3>Legal Templates</h3>
+                <p>Contracts, terms of service, privacy policies. All customized to your business. No lawyer needed.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Analytics Dashboard</h3>
+                <p>Track visitors, conversions, revenue. See what's working. Optimize based on real data.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>AI Coaching</h3>
+                <p>Ask questions anytime. Get business advice, marketing strategies, customer acquisition tips. 24/7 support.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section pricing" id="pricing">
+        <h2 class="section-title">Start For Less Than a Coffee</h2>
+        <p class="section-subtitle">No setup fee. No contracts. Cancel anytime. All plans include full AI access.</p>
+        <div class="pricing-grid">
+            <!-- AI Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">AI Self-Serve</div>
+                <div class="plan-desc">AI builds everything</div>
+                <div class="price">£89</div>
+                <div class="price-period">per month, billed monthly</div>
+                <button class="plan-btn">Start Free Trial</button>
+                <div class="plan-features">
+                    <ul>
+                        <li>AI chatbot & discovery</li>
+                        <li>Website generation</li>
+                        <li>Email automation setup</li>
+                        <li>Payment integration</li>
+                        <li>Legal templates</li>
+                        <li>Analytics dashboard</li>
+                        <li>24/7 AI coaching</li>
+                        <li>Community access</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AI + Human Plan (Featured) -->
+            <div class="pricing-card featured">
+                <div class="pricing-badge">MOST POPULAR</div>
+                <div class="plan-name">AI + Human Review</div>
+                <div class="plan-desc">AI + expert optimization</div>
+                <div class="price">£349</div>
+                <div class="price-period">per month, billed monthly</div>
+                <button class="plan-btn">Start Free Trial</button>
+                <div class="plan-features">
+                    <ul>
+                        <li>Everything in AI Plan +</li>
+                        <li>Weekly 1-on-1 calls</li>
+                        <li>Website optimization</li>
+                        <li>Copy & messaging review</li>
+                        <li>Customer acquisition help</li>
+                        <li>Business strategy guidance</li>
+                        <li>Priority email support</li>
+                        <li>Personalized action plans</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Full Service Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">Full Service</div>
+                <div class="plan-desc">Done-for-you launch</div>
+                <div class="price">£2,999</div>
+                <div class="price-period">one-time investment</div>
+                <button class="plan-btn">Get Started</button>
+                <div class="plan-features">
+                    <ul>
+                        <li>Everything in AI + Human +</li>
+                        <li>30-day intensive program</li>
+                        <li>Bi-weekly strategy calls</li>
+                        <li>Custom brand development</li>
+                        <li>Launch copywriting</li>
+                        <li>Customer acquisition plan</li>
+                        <li>3 months support included</li>
+                        <li>Quarterly strategy reviews</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3rem; color: var(--text-light);">
+            <p>✓ 14-day free trial | ✓ No credit card required | ✓ Cancel anytime | ✓ Money-back guarantee</p>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-section">
+        <h2>Ready to Stop Dreaming and Start Building?</h2>
+        <p>Your business is waiting. The AI is ready. Let's launch.</p>
+        <button class="btn btn-primary" style="padding: 1.2rem 3rem; font-size: 1.1rem;">Get Started Free</button>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Venture-Pro. All rights reserved. | Privacy Policy | Terms of Service | Contact</p>
+    </footer>
+</body>
+</html>
