@@ -12,6 +12,7 @@ const { createPage, revisePage } = require('../lib/pageGenerator');
 const { cleanStock, fillStockPhotos, addSectionPhotos } = require('../lib/stockPhotos');
 const { sanitizeBody, sanitizeCss } = require('../lib/pageSanitizer');
 const { logUsage } = require('../lib/usageLog');
+const { CREDIT_COST, spendCredits, refundCredits } = require('../lib/credits');
 const { PLANS, planKey } = require('../lib/plans');
 
 const EDIT_PROMPT = `You change a website for a small business. You are given the business brief, the earlier requests on this website, and the current website as JSON. Make the change the user asks for, and only that change. Keep everything else that still fits, including the design, unless the request is about the design.
@@ -148,6 +149,8 @@ Specific requests: ${String(requests || 'none').slice(0, 500)}`;
 };
 
 const generateWebsite = async (req, res) => {
+  // Set when this change is paid for with credits, so a failed AI call can give them back.
+  let creditsSpent = 0;
   try {
     const { businessName, tagline, features, callToAction, requests, currentContent, instruction, buildId, look } = req.body || {};
     // The look the owner chose from the shortlist. Unknown ids are ignored, and the AI designs the look as before.
@@ -193,13 +196,18 @@ Specific requests: ${fields.requests || 'none'}`;
       const tweakKey = { userId_month: { userId: req.userId, month } };
       const tweaksUsed = (await prisma.tweakMonthlyUsage.findUnique({ where: tweakKey }))?.count || 0;
       if (tweaksUsed >= tweaksPerMonth) {
-        return res.status(429).json({ error: `You have used this month's ${tweaksPerMonth} website changes. The limit resets on the 1st, or you can upgrade your plan.` });
+        // Past the monthly allowance, a change uses credits if the balance covers it.
+        if (!(await spendCredits(req.userId, CREDIT_COST.websiteChange))) {
+          return res.status(429).json({ error: `You have used this month's ${tweaksPerMonth} website changes and have no credits left. The limit resets on the 1st. You can buy more credits or upgrade your plan.` });
+        }
+        creditsSpent = CREDIT_COST.websiteChange;
+      } else {
+        await prisma.tweakMonthlyUsage.upsert({
+          where: tweakKey,
+          create: { userId: req.userId, month, count: 1 },
+          update: { count: { increment: 1 } },
+        });
       }
-      await prisma.tweakMonthlyUsage.upsert({
-        where: tweakKey,
-        create: { userId: req.userId, month, count: 1 },
-        update: { count: { increment: 1 } },
-      });
 
       const build = await openBuild({
         userId: req.userId,
@@ -288,7 +296,7 @@ ${JSON.stringify(content)}`;
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       });
-      logUsage(`website create attempt ${attempt + 1}`, response);
+      logUsage(`website create attempt ${attempt + 1}`, response, req.userId);
       const text = response.content.find((block) => block.type === 'text')?.text || '';
       try {
         if (response.stop_reason === 'max_tokens') {
@@ -309,6 +317,7 @@ ${JSON.stringify(content)}`;
     await recordChange(build, { request: 'Built the website from the brief.', reply, actions: ['built the website'], state: content });
     res.json({ content, buildId: build.id, reply });
   } catch (error) {
+    if (creditsSpent) await refundCredits(req.userId, creditsSpent);
     // Only our own errors pass through. An AI error (such as a rejected API key, which is also a 401) must not look like a login problem.
     if (error.expose) return res.status(error.status).json({ error: error.message });
     console.error('Generate website error:', error);
@@ -338,7 +347,7 @@ const proofreadText = async (req, res) => {
       system: PROOFREAD_PROMPT,
       messages: [{ role: 'user', content: text }],
     });
-    logUsage('proofread', response);
+    logUsage('proofread', response, req.userId);
     if (response.stop_reason === 'max_tokens') throw new Error('Proofread response was cut off');
     const reply = response.content.find((block) => block.type === 'text')?.text || '';
     const cleaned = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();

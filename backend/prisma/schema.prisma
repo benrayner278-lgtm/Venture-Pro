@@ -22,10 +22,13 @@ model User {
   contact              Json?    // the owner's business contact details (email, phone, address, hours), used as the default for new sites
   resetTokenHash       String?  // SHA-256 of the emailed reset token; the token itself is never stored
   resetTokenExpiresAt  DateTime?
+  // Credits bought on top of the monthly allowance. Used once the daily or monthly allowance runs out.
+  creditBalance        Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   projects   Project[]
+  creditPurchases CreditPurchase[]
   sites      Site[]
   chatUsage  ChatDailyUsage[]
   tweakUsage TweakMonthlyUsage[]
@@ -72,6 +75,36 @@ model TweakMonthlyUsage {
 
   @@id([userId, month])
   @@map("tweak_monthly_usage")
+}
+
+// One row per paid credit pack. The unique Stripe session ID stops a repeated webhook adding credits twice.
+model CreditPurchase {
+  id              String   @id @default(uuid())
+  userId          String
+  stripeSessionId String   @unique
+  credits         Int
+  amountPence     Int
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("credit_purchases")
+}
+
+// One row per Claude call, so the cost of each action can be totalled. No message text is stored.
+model AiUsage {
+  id               String   @id @default(uuid())
+  userId           String?  // null when the call is not tied to a signed-in user
+  action           String   // e.g. "chat", "website create attempt 1", "class schedule"
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@map("ai_usage")
 }
 
 model Site {

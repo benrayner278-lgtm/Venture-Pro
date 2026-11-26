@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const { getAnthropic } = require('../lib/anthropic');
 const { PLANS, planKey } = require('../lib/plans');
+const { logUsage } = require('../lib/usageLog');
+const { CREDIT_COST, spendCredits, refundCredits } = require('../lib/credits');
 
 // Returns the project if it belongs to userId; otherwise sends 404/403 and returns null
 const loadOwnedProject = async (projectId, userId, res) => {
@@ -18,6 +20,8 @@ const loadOwnedProject = async (projectId, userId, res) => {
 
 // Process a chat message and get AI response
 const processMessage = async (req, res) => {
+  // Set when this message is paid for with credits, so a failed AI call can give them back.
+  let creditsSpent = 0;
   try {
     const { message, projectId } = req.body || {};
 
@@ -35,10 +39,15 @@ const processMessage = async (req, res) => {
     const day = new Date().toISOString().slice(0, 10);
     const usageKey = { userId_day: { userId: req.userId, day } };
     const usage = await prisma.chatDailyUsage.findUnique({ where: usageKey });
-    if ((usage?.count || 0) >= chatPerDay) {
-      return res.status(429).json({
-        error: `You have used today's ${chatPerDay} chatbot messages. The limit resets at midnight UTC, or you can upgrade your plan.`,
-      });
+    const overAllowance = (usage?.count || 0) >= chatPerDay;
+    if (overAllowance) {
+      // Past the daily allowance, a message uses credits if the balance covers it.
+      if (!(await spendCredits(req.userId, CREDIT_COST.chat))) {
+        return res.status(429).json({
+          error: `You have used today's ${chatPerDay} chatbot messages and have no credits left. The limit resets at midnight UTC. You can buy more credits or upgrade your plan.`,
+        });
+      }
+      creditsSpent = CREDIT_COST.chat;
     }
 
     const response = await getAnthropic().messages.create({
@@ -53,20 +62,23 @@ const processMessage = async (req, res) => {
     });
 
     // Token counts for working out cost per message. The message text itself is not logged.
-    const { input_tokens, output_tokens, cache_read_input_tokens = 0, cache_creation_input_tokens = 0 } = response.usage;
-    console.log('Chat usage:', JSON.stringify({ userId: req.userId, model: response.model, input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens }));
+    logUsage('chat', response, req.userId);
 
-    await prisma.chatDailyUsage.upsert({
-      where: usageKey,
-      create: { userId: req.userId, day, count: 1 },
-      update: { count: { increment: 1 } },
-    });
+    // Only messages inside the daily allowance count towards it.
+    if (!overAllowance) {
+      await prisma.chatDailyUsage.upsert({
+        where: usageKey,
+        create: { userId: req.userId, day, count: 1 },
+        update: { count: { increment: 1 } },
+      });
+    }
 
     const aiMessage = response.content[0].type === 'text' ? response.content[0].text : '';
 
     res.json({ message: aiMessage });
   } catch (error) {
     console.error('Process message error:', error);
+    if (creditsSpent) await refundCredits(req.userId, creditsSpent);
     res.status(500).json({ error: 'Failed to process message' });
   }
 };
