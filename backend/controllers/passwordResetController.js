@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 
 const prisma = require('../lib/prisma');
-const { sendEmail } = require('../lib/email');
+const { sendEmail, ACCOUNTS_FROM } = require('../lib/email');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESET_MS = 60 * 60 * 1000;
@@ -24,6 +24,7 @@ const requestReset = async (req, res) => {
         });
         const link = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
         await sendEmail({
+          from: ACCOUNTS_FROM,
           to: email,
           subject: 'Reset your Venture-Pro password',
           text: `Someone asked to reset the password for your Venture-Pro account.\n\nTo choose a new password, open this link within the next hour:\n${link}\n\nIf you did not ask for this, you can ignore this email and your password will stay the same.`,
