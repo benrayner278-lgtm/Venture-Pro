@@ -2,6 +2,7 @@ const express = require('express');
 const { getBillingInfo, getInvoices, getPlans, cancelSubscription } = require('../controllers/billingController');
 const auth = require('../middleware/auth');
 const { requireSelf } = require('../middleware/auth');
+const { createCreditCheckout } = require('../controllers/checkoutController');
 
 const router = express.Router();
 router.use(auth);
@@ -12,6 +13,7 @@ router.get('/plans/list', getPlans);
 router.get('/me', getBillingInfo);
 router.get('/me/invoices', getInvoices);
 router.post('/me/cancel', cancelSubscription);
+router.post('/me/credits/checkout', createCreditCheckout);
 
 // Legacy paths: :userId must match the token (403 otherwise)
 router.get('/:userId', requireSelf, getBillingInfo);

@@ -3,6 +3,60 @@ const { getStripe } = require('../lib/stripe');
 const prisma = require('../lib/prisma');
 const { PAID_PLANS, planKeyForAmount } = require('../lib/plans');
 const { recordPaidSession } = require('./shopController');
+const { CREDIT_PRICE_PENCE, MIN_CREDIT_PURCHASE, MAX_CREDIT_PURCHASE, fulfilCreditPurchase } = require('../lib/credits');
+
+// Buys credits for the basket. One Checkout session for the whole quantity, paid once.
+const createCreditCheckout = async (req, res) => {
+  try {
+    const credits = Number(req.body?.credits);
+    if (!Number.isInteger(credits) || credits < MIN_CREDIT_PURCHASE || credits > MAX_CREDIT_PURCHASE) {
+      return res.status(400).json({ error: `Buy between ${MIN_CREDIT_PURCHASE} and ${MAX_CREDIT_PURCHASE} credits at a time` });
+    }
+
+    const userId = req.userId;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await getStripe().customers.create({
+        email: user.email,
+        name: user.name,
+        metadata: { userId },
+      });
+      stripeCustomerId = customer.id;
+      await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId } });
+    }
+
+    const base = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const session = await getStripe().checkout.sessions.create({
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: 'Venture-Pro credits',
+              description: 'Credits for website changes and chatbot messages once your monthly or daily allowance has run out.',
+            },
+            unit_amount: CREDIT_PRICE_PENCE,
+          },
+          quantity: credits,
+        },
+      ],
+      mode: 'payment',
+      billing_address_collection: 'required',
+      success_url: `${base}/billing?credits=success`,
+      cancel_url: `${base}/billing?credits=canceled`,
+      metadata: { kind: 'credits', userId, credits: String(credits) },
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Credit checkout error:', error);
+    res.status(500).json({ error: 'Failed to start the credit checkout' });
+  }
+};
 
 const createCheckoutSession = async (req, res) => {
   try {
@@ -174,6 +228,10 @@ const handleWebhook = async (req, res) => {
           await recordPaidSession(session, event.account);
           console.log(`✅ Shop order recorded for session ${session.id}`);
         }
+        if (session.metadata?.kind === 'credits' && session.payment_status === 'paid') {
+          const added = await fulfilCreditPurchase(session);
+          console.log(added ? `✅ Credits added for session ${session.id}` : `Credits already added for session ${session.id}`);
+        }
         break;
       }
 
@@ -198,4 +256,4 @@ const getPlans = async (req, res) => {
   res.json(PAID_PLANS);
 };
 
-module.exports = { createCheckoutSession, handleWebhook, getPlans };
+module.exports = { createCheckoutSession, createCreditCheckout, handleWebhook, getPlans };

@@ -24,7 +24,13 @@ interface BillingInfo {
   name: string;
   plan: string;
   subscriptionStatus: string;
+  creditBalance?: number;
 }
+
+// Kept in step with backend/lib/credits.js.
+const MIN_CREDITS = 10;
+const MAX_CREDITS = 1000;
+const CREDIT_PRICE_POUNDS = 0.15;
 
 interface Invoice {
   id: string;
@@ -44,9 +50,12 @@ export default function BillingPage() {
   const [canceling, setCanceling] = useState(false);
   const [stripe, setStripe] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'plans'>('dashboard');
+  const [creditQty, setCreditQty] = useState(50);
+  const [buyingCredits, setBuyingCredits] = useState(false);
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
   const canceled = searchParams.get('canceled');
+  const creditsResult = searchParams.get('credits');
   // Set when the owner follows a locked step on Start here, so the page explains which plan unlocks it.
   const needs = searchParams.get('needs');
   const NEEDS_TEXT: Record<string, string> = {
@@ -166,6 +175,33 @@ export default function BillingPage() {
     }
   };
 
+  const buyCredits = async () => {
+    if (creditQty < MIN_CREDITS || creditQty > MAX_CREDITS) return;
+    setBuyingCredits(true);
+    try {
+      const response = await apiFetch('/api/billing/me/credits/checkout', {
+        method: 'POST',
+        json: { credits: creditQty },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+        return;
+      }
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Failed to start checkout');
+      }
+    } catch (error) {
+      console.error('Credit checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setBuyingCredits(false);
+    }
+  };
+
   return (
     <div className="min-h-screen app-bg flex pt-14 md:pt-0">
       <Sidebar />
@@ -192,6 +228,16 @@ export default function BillingPage() {
         {canceled && (
           <div className="mx-8 mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-4 max-w-4xl">
             <p className="text-yellow-300 font-medium">⚠️ Checkout was canceled. Please try again.</p>
+          </div>
+        )}
+        {creditsResult === 'success' && (
+          <div className="mx-8 mt-6 bg-green-900/30 border border-green-700/50 rounded-lg p-4 max-w-4xl">
+            <p className="text-green-300 font-medium">✅ Payment received. Your credits will show here once they have been added, which can take a few seconds. Refresh the page if they don&apos;t appear.</p>
+          </div>
+        )}
+        {creditsResult === 'canceled' && (
+          <div className="mx-8 mt-6 bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-4 max-w-4xl">
+            <p className="text-yellow-300 font-medium">No credits were bought.</p>
           </div>
         )}
 
@@ -230,6 +276,60 @@ export default function BillingPage() {
               {/* Dashboard Tab */}
               {activeTab === 'dashboard' && billingInfo && (
                 <div className="space-y-8">
+                  {/* Credits */}
+                  <div className="bg-gray-900/50 border border-gray-800/50 rounded-2xl p-8">
+                    <h2 className="text-xl font-bold text-white mb-2">Credits</h2>
+                    <p className="text-gray-400 text-sm mb-6">
+                      Credits cover chatbot messages (1 credit each) and website changes (12 credits each) once your plan&apos;s allowance for the day or month has run out. You don&apos;t need to change plan to keep going.
+                    </p>
+                    <div className="mb-6">
+                      <p className="text-gray-400 text-sm mb-1">Your balance</p>
+                      <p className="text-3xl font-bold text-white">{billingInfo.creditBalance ?? 0} <span className="text-base font-medium text-gray-400">credits</span></p>
+                    </div>
+                    <div className="border-t border-gray-800 pt-6">
+                      <p className="text-white font-medium mb-3">Add credits to your basket</p>
+                      <div className="flex items-center gap-3 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setCreditQty((q) => Math.max(MIN_CREDITS, q - 10))}
+                          className="w-10 h-10 rounded-lg bg-gray-800 text-white text-lg hover:bg-gray-700"
+                          aria-label="Remove 10 credits"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={MIN_CREDITS}
+                          max={MAX_CREDITS}
+                          step={10}
+                          value={creditQty}
+                          onChange={(e) => setCreditQty(Number(e.target.value))}
+                          className="w-28 h-10 rounded-lg bg-gray-800 text-white text-center border border-gray-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCreditQty((q) => Math.min(MAX_CREDITS, q + 10))}
+                          className="w-10 h-10 rounded-lg bg-gray-800 text-white text-lg hover:bg-gray-700"
+                          aria-label="Add 10 credits"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-4">
+                        {creditQty} credits × £{CREDIT_PRICE_POUNDS.toFixed(2)} = <span className="font-semibold text-white">£{(creditQty * CREDIT_PRICE_POUNDS).toFixed(2)}</span>
+                      </p>
+                      <p className="text-gray-500 text-xs mb-4">Between {MIN_CREDITS} and {MAX_CREDITS} credits at a time.</p>
+                      <button
+                        type="button"
+                        onClick={buyCredits}
+                        disabled={buyingCredits || creditQty < MIN_CREDITS || creditQty > MAX_CREDITS}
+                        className="bg-white text-gray-900 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        {buyingCredits ? 'Opening checkout...' : 'Checkout'}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Current Plan */}
                   <div className="bg-gray-900/50 border border-gray-800/50 rounded-2xl p-8">
                     <h2 className="text-xl font-bold text-white mb-6">Current Plan</h2>

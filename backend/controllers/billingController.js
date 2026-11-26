@@ -29,6 +29,7 @@ const getBillingInfo = async (req, res) => {
       plan: user.plan || 'free',
       subscriptionStatus: user.subscriptionStatus || 'inactive',
       subscription: subscription || null,
+      creditBalance: user.creditBalance || 0,
     });
   } catch (error) {
     console.error('Get billing info error:', error);
