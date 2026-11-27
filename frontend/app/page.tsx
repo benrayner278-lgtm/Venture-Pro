@@ -167,12 +167,19 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2">
           <div>
             <p className="text-sm font-medium text-zinc-500">Get paid</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Connected to customers all over the world.</h2>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Your first sale can land today.</h2>
             <p className="mt-4 max-w-md leading-relaxed text-zinc-400">
-              On Premium and above, your website can take card payments and bookings from customers anywhere. Stripe handles the payments, in the currency your customer pays in.
+              On Premium and above, your website takes card payments and bookings from customers anywhere in the world. Payments run through Stripe, the platform trusted by businesses worldwide, and the money reaches your bank account.
             </p>
+            <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm text-zinc-200">
+              <span className="h-2 w-2 rounded-full bg-[#635bff]" aria-hidden="true" />
+              Payments powered by Stripe
+            </div>
           </div>
-          <SpinningGlobe />
+          <div>
+            <SpinningGlobe />
+            <p className="mt-3 text-center text-xs text-zinc-500">Drag the globe to look around.</p>
+          </div>
         </div>
       </section>
 
