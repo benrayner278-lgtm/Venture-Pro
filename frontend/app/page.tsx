@@ -6,16 +6,6 @@ import { useRouter } from 'next/navigation';
 import SpinningGlobe from '../components/SpinningGlobe';
 import MakeStrip from '../components/MakeStrip';
 
-// Real sites made with the same renderer that publishes customers' sites. Each is marked as an example.
-const EXAMPLES = [
-  { label: 'Studio portfolio', name: 'Studio Lumen', file: 'studio-portfolio' },
-  { label: 'SaaS launch page', name: 'Tidewise', file: 'saas-launch' },
-  { label: 'Engineering firm', name: 'Halden Engineering', file: 'engineering-firm' },
-  { label: 'Consultancy', name: 'Brightline Advisory', file: 'consultancy' },
-  { label: 'Coffee shop', name: 'Ember & Oak', file: 'coffee-shop' },
-  { label: 'Workshop booking', name: 'Forge Studio', file: 'workshop-booking' },
-];
-
 const PROMPTS = [
   'A portfolio site for a photography studio',
   'A launch page for a new app',
@@ -80,7 +70,6 @@ export default function LandingPage() {
           </Link>
           <div className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
-            <a href="#examples" className="transition hover:text-white">Examples</a>
             <a href="#pricing" className="transition hover:text-white">Pricing</a>
           </div>
           <div className="flex items-center gap-3 text-sm">
@@ -146,50 +135,6 @@ export default function LandingPage() {
         </div>
         <div className="mt-12">
           <MakeStrip />
-        </div>
-      </section>
-
-      <section id="examples" className="relative z-10 border-t border-white/[0.08] py-24">
-        <div className="mx-auto max-w-6xl px-6">
-          <p className="text-sm font-medium text-zinc-500">Examples</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Made in a few minutes. Styled your way.</h2>
-          <p className="mt-3 max-w-2xl text-zinc-400">Every site starts from your brief, then you choose from five looks and shuffle the layout until it feels right.</p>
-
-          <div className="mt-12 grid items-start gap-8 md:grid-cols-2">
-            {EXAMPLES.map((example, index) => (
-              <a
-                key={example.label}
-                href={`/examples/${example.file}.html`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`group block overflow-hidden rounded-xl border border-white/10 bg-zinc-950 transition hover:border-white/25 ${
-                  index === 0 ? 'md:col-span-2' : index % 2 === 0 ? '' : 'md:mt-16'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 border-b border-white/10 px-3 py-2.5">
-                  <span className="h-2 w-2 rounded-full bg-zinc-700" />
-                  <span className="h-2 w-2 rounded-full bg-zinc-700" />
-                  <span className="h-2 w-2 rounded-full bg-zinc-700" />
-                  <span className="ml-3 truncate text-[11px] text-zinc-600">{example.name}</span>
-                </div>
-                <div className={`relative overflow-hidden bg-black ${index === 0 ? 'h-[560px]' : index % 3 === 0 ? 'h-[460px]' : 'h-[380px]'}`}>
-                  <iframe
-                    src={`/examples/${example.file}.html`}
-                    title={`${example.label} example`}
-                    loading="lazy"
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className="pointer-events-none h-[1100px] w-full border-0"
-                  />
-                  <div className="absolute inset-0" aria-hidden="true" />
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 text-sm text-zinc-400">
-                  <span>{example.label}</span>
-                  <span className="text-zinc-600 transition group-hover:text-white">Open example</span>
-                </div>
-              </a>
-            ))}
-          </div>
         </div>
       </section>
 
