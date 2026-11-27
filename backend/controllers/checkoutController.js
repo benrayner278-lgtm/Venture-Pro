@@ -47,6 +47,9 @@ const createCreditCheckout = async (req, res) => {
       ],
       mode: 'payment',
       billing_address_collection: 'required',
+      // Not VAT registered: no tax is calculated or added to credit packs.
+      managed_payments: { enabled: false },
+      automatic_tax: { enabled: false },
       success_url: `${base}/billing?credits=success`,
       cancel_url: `${base}/billing?credits=canceled`,
       metadata: { kind: 'credits', userId, credits: String(credits) },
@@ -122,6 +125,9 @@ const createCheckoutSession = async (req, res) => {
       ],
       mode: 'subscription',
       billing_address_collection: 'required',
+      // Not VAT registered: no tax is calculated or added to subscriptions.
+      managed_payments: { enabled: false },
+      automatic_tax: { enabled: false },
       success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/billing?canceled=true`,
       metadata: {
