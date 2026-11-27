@@ -39,6 +39,8 @@ const PLANS = {
       'AI website design, with fonts, colours and style controls',
       'AI logo builder',
       'Business plan, email and legal templates',
+      'Buy extra credits any time, from 15p each',
+      'Credits cover chat messages and website changes once your allowance runs out',
     ],
   },
   premium: {
