@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import SpinningGlobe from '../components/SpinningGlobe';
 
 // Real sites made with the same renderer that publishes customers' sites. Each is marked as an example.
 const EXAMPLES = [
@@ -202,6 +203,19 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="reach" className="relative z-10 border-t border-white/[0.08] py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">Get paid</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Connected to customers all over the world.</h2>
+            <p className="mt-4 max-w-md leading-relaxed text-zinc-400">
+              On Premium and above, your website can take card payments and bookings from customers anywhere. Stripe handles the payments, in the currency your customer pays in.
+            </p>
+          </div>
+          <SpinningGlobe />
         </div>
       </section>
 
