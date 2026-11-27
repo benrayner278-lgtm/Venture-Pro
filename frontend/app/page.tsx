@@ -127,11 +127,11 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section className="relative z-10 border-t border-white/[0.08] py-24">
+      <section className="relative z-10 bg-[#f3ede2] py-24 text-[#1d1a16]">
         <div className="mx-auto max-w-6xl px-6">
-          <p className="text-sm font-medium text-zinc-500">What you can make</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Ask for it in a sentence.</h2>
-          <p className="mt-3 max-w-2xl text-zinc-400">Plans, websites, logos, bookings, emails and terms, all started from a plain request.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8a4a2e]">What you can make</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-5xl">Ask for it in a sentence.</h2>
+          <p className="mt-3 max-w-2xl text-[#4a443c]">Plans, websites, logos, bookings, emails and terms, all started from a plain request.</p>
         </div>
         <div className="mt-12">
           <MakeStrip />
