@@ -38,6 +38,7 @@ const createCreditCheckout = async (req, res) => {
             product_data: {
               name: 'Venture-Pro credits',
               description: 'Credits for website changes and chatbot messages once your monthly or daily allowance has run out.',
+              tax_code: 'txcd_10000000', // Same SaaS tax code as the plan subscriptions. Confirm it with your accountant.
             },
             unit_amount: CREDIT_PRICE_PENCE,
           },
