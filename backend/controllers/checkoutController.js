@@ -47,8 +47,6 @@ const createCreditCheckout = async (req, res) => {
       ],
       mode: 'payment',
       billing_address_collection: 'required',
-      // No VAT is added to credit packs, the same as the plan subscriptions.
-      automatic_tax: { enabled: false },
       success_url: `${base}/billing?credits=success`,
       cancel_url: `${base}/billing?credits=canceled`,
       metadata: { kind: 'credits', userId, credits: String(credits) },
