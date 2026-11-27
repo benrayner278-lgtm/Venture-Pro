@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SpinningGlobe from '../components/SpinningGlobe';
+import MakeStrip from '../components/MakeStrip';
 
 // Real sites made with the same renderer that publishes customers' sites. Each is marked as an example.
 const EXAMPLES = [
@@ -136,6 +137,17 @@ export default function LandingPage() {
           ))}
         </div>
       </header>
+
+      <section className="relative z-10 border-t border-white/[0.08] py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <p className="text-sm font-medium text-zinc-500">What you can make</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Ask for it in a sentence.</h2>
+          <p className="mt-3 max-w-2xl text-zinc-400">Plans, websites, logos, bookings, emails and terms, all started from a plain request.</p>
+        </div>
+        <div className="mt-12">
+          <MakeStrip />
+        </div>
+      </section>
 
       <section id="examples" className="relative z-10 border-t border-white/[0.08] py-24">
         <div className="mx-auto max-w-6xl px-6">
