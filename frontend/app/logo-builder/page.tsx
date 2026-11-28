@@ -5,10 +5,9 @@ import { apiFetch } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import AssistantChat from '@/components/AssistantChat';
 import { DEFAULT_LOGO, LOGO_FONTS, LogoSettings, buildLogoSvg, logoDataUri } from '@/lib/logoSvg';
+import { PageHeader } from '@/components/theme';
+import { inputClass, labelClass } from '@/components/theme';
 
-const inputClass =
-  'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
 
 // Loads every logo font once, so the preview shows the real typefaces.
 const loadLogoFonts = () => {
@@ -178,10 +177,7 @@ export default function LogoBuilderPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Logo Builder</h1>
-          <p className="text-gray-500 text-xs mt-0.5">Design a logo in minutes. Every plan can use it, and it's free to change.</p>
-        </div>
+        <PageHeader title="Logo Builder" subtitle="Design a logo in minutes. Every plan can use it, and it&apos;s free to change." accent="tomato" />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="flex flex-col lg:flex-row gap-8">

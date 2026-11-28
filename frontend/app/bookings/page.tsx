@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { Choice, PageHeader, Section, cardClass, inputClass, labelClass, solidButton } from '@/components/theme';
 
 type Hours = [string, string] | null;
 type Service = { name: string; minutes: number; price: string; pricePence?: number };
@@ -100,10 +101,6 @@ const PRESETS: { key: Preset; label: string; description: string; points: string
   },
 ];
 
-const inputClass =
-  'px-3 py-2 bg-white/[0.05] text-gray-100 rounded-lg border border-white/10 focus:border-white/50 outline-none transition';
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2';
-const cardClass = 'rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6';
 
 const defaultSettings = (): Settings => ({
   enabled: false,
@@ -122,33 +119,6 @@ const defaultSettings = (): Settings => ({
 const formatWhen = (iso: string, timeZone: string) =>
   new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
 
-// A collapsible, colour-coded section. Native <details> keeps it accessible and needs no state.
-function Section({ title, summary, accent, defaultOpen = false, children }: { title: string; summary: string; accent: string; defaultOpen?: boolean; children: ReactNode }) {
-  return (
-    <details
-      open={defaultOpen}
-      className="group rounded-2xl border overflow-hidden"
-      style={{ borderColor: `${accent}59`, background: `${accent}0f` }}
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
-        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: accent }} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-white">{title}</span>
-          <span className="block truncate text-xs mt-0.5" style={{ color: accent }}>
-            {summary}
-          </span>
-        </span>
-        <svg className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M5 8l5 5 5-5" />
-        </svg>
-      </summary>
-      <div className="space-y-5 border-t px-5 py-5" style={{ borderColor: `${accent}33`, background: '#0b0b0b80' }}>
-        {children}
-      </div>
-    </details>
-  );
-}
-
 function PresetDetails({ template }: { template: Template }) {
   return (
     <>
@@ -164,22 +134,6 @@ function PresetDetails({ template }: { template: Template }) {
   );
 }
 
-// A selectable card. When picked it takes on the section colour.
-function Choice({ active, accent, onClick, children }: { active: boolean; accent: string; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="text-left rounded-xl border p-4 transition flex flex-col hover:border-white/40"
-      style={active ? { borderColor: accent, background: `${accent}26` } : { borderColor: 'rgba(255,255,255,0.1)' }}
-    >
-      {children}
-    </button>
-  );
-}
-
-const solidButton = (accent: string) => ({ background: accent, color: INK });
 
 export default function BookingsPage() {
   const [plan, setPlan] = useState('free');
@@ -333,10 +287,7 @@ export default function BookingsPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Bookings</h1>
-          <p className="text-gray-400 text-xs mt-0.5">Let visitors book a time on your website.</p>
-        </div>
+        <PageHeader title="Bookings" subtitle="Let visitors book a time on your website." accent="sage" />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {!allowed ? (

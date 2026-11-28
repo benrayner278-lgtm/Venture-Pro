@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch, clearSession } from '@/lib/api';
 import { type Account, cardClass, buttonClass, inputClass, labelClass, readError } from '@/components/settings/shared';
+import { PageHeader } from '@/components/theme';
 
 const PLAN_NAMES: Record<string, string> = {
   free: 'Free',
@@ -232,15 +233,11 @@ export default function SettingsPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="bg-gray-900/50 border-b border-gray-800/50 px-8 py-5 shadow-lg backdrop-blur-sm flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
-            <p className="text-gray-400 text-sm font-medium mt-1">Manage your account</p>
-          </div>
-          <button onClick={signOut} className="border border-white/10 hover:bg-white/5 text-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium transition">
+        <PageHeader title="Settings" subtitle="Manage your account" accent="lilac">
+          <button onClick={signOut} className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-gray-100 transition hover:bg-white/[0.06]">
             Sign out
           </button>
-        </div>
+        </PageHeader>
 
         <div className="flex-1 p-8">
           {loadError && <p className="text-sm text-red-400">{loadError}</p>}

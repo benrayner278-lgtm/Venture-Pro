@@ -13,6 +13,7 @@ import { PagePhotos } from '@/components/PagePhotos';
 import StyleEditor from '@/components/StyleEditor';
 import TextEditPanel from '@/components/TextEditPanel';
 import { ContentPath, describePath, getAt, setAt } from '@/lib/contentPath';
+import { PageHeader } from '@/components/theme';
 
 type Step = 'form' | 'looks' | 'generating' | 'result';
 // One of the three looks offered before a website is built.
@@ -301,10 +302,7 @@ export default function WebsiteBuilderPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Website Builder</h1>
-          <p className="text-gray-500 text-xs mt-0.5">Generate a complete website for your business</p>
-        </div>
+        <PageHeader title="Website Builder" subtitle="Generate a complete website for your business" accent="sky" />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {step === 'form' && (

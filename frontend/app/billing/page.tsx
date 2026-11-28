@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
 
 interface Plan {
   name: string;
@@ -208,10 +209,7 @@ export default function BillingPage() {
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gray-900/50 border-b border-gray-800/50 px-8 py-5 shadow-lg backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Billing & Plans</h1>
-          <p className="text-gray-400 text-sm font-medium mt-1">Manage your subscription and billing</p>
-        </div>
+        <PageHeader title="Billing & Plans" subtitle="Manage your subscription and billing" accent="peach" />
 
         {/* Messages */}
         {success && (

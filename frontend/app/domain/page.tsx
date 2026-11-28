@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
+import { inputClass, labelClass, cardClass } from '@/components/theme';
 
 type DomainSetup = {
   domain: string;
@@ -16,10 +18,6 @@ type DomainSetup = {
 type SiteRow = { id: string; slug: string; title: string; url: string; domain: DomainSetup };
 type Check = { verified: boolean; pointing: boolean; targetAddresses: string[] };
 
-const inputClass =
-  'px-3 py-2 bg-white/[0.04] text-gray-100 rounded-lg border border-white/10 focus:border-white/40 outline-none transition';
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
-const cardClass = 'rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6';
 const buttonClass =
   'bg-white hover:bg-gray-200 text-black px-4 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-50';
 
@@ -129,10 +127,7 @@ export default function DomainPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Domain</h1>
-          <p className="text-gray-500 text-xs mt-0.5">Show your published website on your own web address.</p>
-        </div>
+        <PageHeader title="Domain" subtitle="Show your published website on your own web address." accent="peach" />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {sites.length === 0 ? (

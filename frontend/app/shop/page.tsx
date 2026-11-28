@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
 import { compressPhoto } from '@/lib/imageUpload';
+import { PageHeader } from '@/components/theme';
 
 type Item = { id?: string; name: string; description: string; price: string; photos: string[] };
 type Order = { id: string; itemName: string; amountPence: number; customerName: string; customerEmail: string; createdAt: string };
@@ -372,10 +373,7 @@ export default function ShopPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Shop</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Sell items on your website. Customers pay you directly by card.</p>
-        </div>
+        <PageHeader title="Shop" subtitle="Sell items on your website. Customers pay you directly by card." accent="tomato" />
 
         <div className="p-4 md:p-8 max-w-3xl space-y-6">
           {sites.length > 1 && (

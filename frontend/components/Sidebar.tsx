@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { clearSession } from '@/lib/api';
 import { ChatHistoryPanel } from './ChatHistory';
+import { ACCENT, NAV_ACCENT } from './theme';
 
 const ICON_PATHS: Record<string, string[]> = {
   chat: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'],
@@ -105,7 +106,7 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/[0.08] bg-black transition-transform duration-200 md:static md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/[0.08] bg-[#050505] transition-transform duration-200 md:static md:h-screen md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
         >
@@ -123,6 +124,7 @@ export default function Sidebar() {
         <nav className="flex-1 px-3 space-y-0.5">
           {navItems.map((item) => {
             const active = isActive(item.href);
+            const colour = ACCENT[NAV_ACCENT[item.href] ?? 'sky'];
             return (
               <div key={item.href} className="relative">
                 <Link
@@ -130,15 +132,20 @@ export default function Sidebar() {
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    active
-                      ? 'bg-white/[0.06] text-white'
-                      : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'
+                    active ? 'text-white' : 'text-gray-300 hover:text-white'
                   }`}
+                  style={active ? { background: `${colour}26` } : undefined}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = `${colour}14`;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = '';
+                  }}
                 >
                   {active && (
-                    <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                    <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ background: colour, boxShadow: `0 0 8px ${colour}` }} />
                   )}
-                  <span className={active ? 'text-white' : 'text-gray-500'}>
+                  <span style={{ color: colour }}>
                     <NavIcon name={item.icon} />
                   </span>
                   <span className="font-medium">{item.label}</span>
@@ -149,7 +156,7 @@ export default function Sidebar() {
                   onClick={() => setHistoryOpen((value) => !value)}
                   aria-label="Chat history"
                   aria-expanded={historyOpen}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-500 transition hover:bg-white/[0.06] hover:text-gray-200"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-400 transition hover:bg-white/[0.06] hover:text-gray-100"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M9 6l6 6-6 6" />

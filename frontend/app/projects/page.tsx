@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
 
 interface Project {
   id: string;
@@ -93,18 +94,15 @@ export default function ProjectsPage() {
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gray-900/50 border-b border-gray-800/50 px-8 py-5 shadow-lg backdrop-blur-sm flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Projects</h1>
-            <p className="text-gray-400 text-sm font-medium mt-1">Manage your business ideas</p>
-          </div>
+        <PageHeader title="Projects" subtitle="Manage your business ideas" accent="sage">
           <button
             onClick={() => setShowNewForm(!showNewForm)}
-            className="bg-white hover:bg-gray-200 text-black px-6 py-2.5 rounded-lg transition font-semibold text-sm shadow-lg"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold shadow-lg transition hover:opacity-90"
+            style={{ background: '#a8d5a2', color: '#1d1a16' }}
           >
             + New Project
           </button>
-        </div>
+        </PageHeader>
 
         {/* Content */}
         <div className="flex-1 p-8 overflow-y-auto">

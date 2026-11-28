@@ -1,11 +1,9 @@
 'use client';
 
 import { DEFAULT_STYLE, FONT_OPTIONS, HEADING_CASE_OPTIONS, StyleSettings } from '@/lib/websiteTemplates';
+import { inputClass, labelClass } from './theme';
 
-const inputClass =
-  'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition';
 
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
 
 function Slider({
   label,

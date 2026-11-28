@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
 
 // The owner's report. The workbook is built from live data each time it is downloaded.
 export default function AnalyticsPage() {
@@ -36,10 +37,7 @@ export default function AnalyticsPage() {
     <div className="min-h-screen app-bg flex pt-14 md:pt-0">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Analytics</h1>
-          <p className="text-gray-500 text-xs mt-0.5">Visitors, sign-ups and paying accounts, by hour, day, week, month and year.</p>
-        </div>
+        <PageHeader title="Analytics" subtitle="Visitors, sign-ups and paying accounts, by hour, day, week, month and year." accent="sky" />
         <div className="p-4 md:p-8 max-w-2xl space-y-4">
           <p className="text-sm text-gray-300">
             Download the latest report as an Excel workbook. It has the headline numbers, visitors for each period, paying accounts by plan and the average payment.

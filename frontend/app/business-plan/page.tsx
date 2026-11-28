@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
 
 interface BusinessInfo {
   businessName: string;
@@ -71,10 +72,7 @@ Format it clearly with headers and bullet points.`;
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Business Plan Generator</h1>
-          <p className="text-gray-500 text-xs mt-0.5">AI-powered business plan creation</p>
-        </div>
+        <PageHeader title="Business Plan Generator" subtitle="AI-powered business plan creation" accent="butter" />
 
         {/* Content */}
         <div className="flex-1 p-8 overflow-y-auto">

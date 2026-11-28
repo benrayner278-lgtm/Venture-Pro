@@ -3,11 +3,9 @@
 import { useRef, useState } from 'react';
 import { ContactDetails, MAX_PHOTOS, Portfolio, PortfolioItem } from '@/lib/websiteTemplates';
 import { compressPhoto } from '@/lib/imageUpload';
+import { inputClass, labelClass } from './theme';
 
-const inputClass =
-  'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
 
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
 
 export function ContactEditor({ value, onChange }: { value: ContactDetails; onChange: (next: ContactDetails) => void }) {
   const field = (name: keyof ContactDetails, label: string, placeholder: string) => (

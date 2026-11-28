@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { apiFetch } from '@/lib/api';
+import { PageHeader } from '@/components/theme';
+import { inputClass, labelClass } from '@/components/theme';
 
 type Mailbox = { id: string; address: string; status: 'setting_up' | 'ready'; siteId: string; siteTitle: string };
 type SiteOption = { id: string; title: string; domain: string };
@@ -11,9 +13,6 @@ type EmailState = { plan: string; allowance: number; used: number; mailboxes: Ma
 
 // Where the owner reads their mail. Set NEXT_PUBLIC_WEBMAIL_URL if the webmail address differs.
 const WEBMAIL_URL = process.env.NEXT_PUBLIC_WEBMAIL_URL || 'https://webmail.migadu.com';
-const inputClass =
-  'w-full px-4 py-3 bg-white/[0.04] text-gray-100 rounded-xl border border-white/10 focus:border-white/40 focus:ring-2 focus:ring-white/25 outline-none transition placeholder-gray-500';
-const labelClass = 'block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2';
 
 export default function EmailPage() {
   const [state, setState] = useState<EmailState | null>(null);
@@ -69,10 +68,7 @@ export default function EmailPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <h1 className="text-base font-semibold text-white tracking-tight">Email</h1>
-          <p className="text-gray-500 text-xs mt-0.5">A business address on your own site, such as hello@yourbusiness.venture-pro.io.</p>
-        </div>
+        <PageHeader title="Email" subtitle="A business address on your own site, such as hello@yourbusiness.venture-pro.io." accent="lilac" />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-2xl space-y-6">
           {error && <p className="text-sm text-red-400">{error}</p>}
